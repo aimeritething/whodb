@@ -17,66 +17,19 @@
 import React from 'react';
 
 /**
- * Check if we're running in a desktop environment (Wails)
+ * Open an external URL in a new browser tab.
  */
-export const isDesktopApp = (): boolean => {
-  // In Wails desktop apps, the window.go object is available
-  if (typeof window === 'undefined') {
-    return false;
-  }
-
-  // For Wails apps, we MUST have the go bindings available
-  // If they're not there, we're not really in a desktop app
-  // even if other indicators suggest we might be
-    // Check for bindings in both possible locations (main.App or common.App)
-    const wailsGo = (window as any).go;
-    return !!(wailsGo?.main?.App || wailsGo?.common?.App);
-};
-
-/**
- * Open an external URL in the system's default browser
- * Handles both desktop and web environments
- */
-export const openExternalLink = async (url: string, event?: React.MouseEvent): Promise<void> => {
-  // Prevent default behavior if event is provided
+export const openExternalLink = (url: string, event?: React.MouseEvent): void => {
   if (event) {
     event.preventDefault();
     event.stopPropagation();
   }
 
-  if (isDesktopApp()) {
-    // Use Wails runtime to open the URL in the system browser
-    const wailsGo = (window as any).go;
-      // Check both main.App and common.App namespaces
-      const app = wailsGo?.main?.App || wailsGo?.common?.App;
-      if (app && app.OpenURL) {
-      try {
-          await app.OpenURL(url);
-      } catch (error) {
-        console.error('Failed to open external link:', error);
-        // Fallback to window.open if Wails method fails
-        const newWindow = window.open(url, '_blank');
-        if (!newWindow) {
-          console.warn('Unable to open external link in desktop app:', url);
-          alert(`Please open this URL in your browser: ${url}`);
-        }
-      }
-    } else {
-      // Fallback if Wails runtime is not available
-      const newWindow = window.open(url, '_blank');
-      if (!newWindow) {
-        console.warn('Unable to open external link in desktop app:', url);
-        alert(`Please open this URL in your browser: ${url}`);
-      }
-    }
-  } else {
-    // In web browser, use standard behavior
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
+  window.open(url, '_blank', 'noopener,noreferrer');
 };
 
 /**
- * React component wrapper for external links
+ * React component wrapper for external links.
  * Usage: <ExternalLink href="https://example.com">Link Text</ExternalLink>
  */
 interface ExternalLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {

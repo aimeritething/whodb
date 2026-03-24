@@ -26,7 +26,6 @@ import { scratchpadReducers, IScratchpadState } from './scratchpad';
 import { IChatState } from './chat';
 import { tourReducers } from './tour';
 import { databaseMetadataReducers } from './database-metadata';
-import { providersReducers } from './providers';
 import { healthReducers } from './health';
 import { runMigrations } from './migrations';
 
@@ -168,7 +167,6 @@ const persistedReducer = combineReducers({
   }, scratchpadReducers),
   tour: persistReducer({ key: "tour", storage }, tourReducers),
   databaseMetadata: persistReducer({ key: "databaseMetadata", storage }, databaseMetadataReducers),
-  providers: persistReducer({ key: "providers", storage }, providersReducers),
   health: healthReducers, // Health status is not persisted (transient state)
 });
 

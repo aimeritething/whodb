@@ -17,47 +17,12 @@
 import {defineConfig} from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import fs from 'fs';
 import tailwindcss from '@tailwindcss/vite'
 
-// Check if EE directory exists
-const eeDir = path.resolve(__dirname, '../ee/frontend/src');
-const eeExists = fs.existsSync(eeDir);
-
-// Plugin to handle missing EE modules
-const eeModulePlugin = () => ({
-  name: 'ee-module-fallback',
-  resolveId(id: string) {
-    if (id.startsWith('@ee/') && !eeExists) {
-      // Return a virtual module ID for missing EE modules
-      return '\0virtual:ee-fallback:' + id;
-    }
-  },
-  load(id: string) {
-    if (id.startsWith('\0virtual:ee-fallback:')) {
-        const originalId = id.replace('\0virtual:ee-fallback:', '');
-        // Return empty CSS for CSS files, minimal JS for other modules
-        if (originalId.endsWith('.css')) {
-            return '';
-        }
-      return 'export default {};';
-    }
-  }
-});
-
-// Resolve app meta (title, description) at build time from the EE config (if available)
+// Resolve app meta (title, description) at build time
 const htmlMetaPlugin = () => {
-  let title = 'Clidey WhoDB';
-  let description = 'WhoDB is the next-generation database explorer';
-  if (process.env.VITE_BUILD_EDITION === 'ee' && eeExists) {
-    try {
-      const configContent = fs.readFileSync(path.resolve(eeDir, 'config.tsx'), 'utf-8');
-      const titleMatch = configContent.match(/MetaTitle:\s*["']([^"']*)["']/);
-      if (titleMatch) title = titleMatch[1];
-      const descMatch = configContent.match(/MetaDescription:\s*["']([^"']*)["']/);
-      if (descMatch) description = descMatch[1];
-    } catch { /* fall back to defaults */ }
-  }
+  const title = 'Clidey WhoDB';
+  const description = 'WhoDB is the next-generation database explorer';
   return {
     name: 'html-meta',
     transformIndexHtml(html: string) {
@@ -80,10 +45,6 @@ export default defineConfig(async () => {
         requireEnv: false,
         include: [
           'src/**/*.{js,jsx,ts,tsx}',
-          // Include EE sources when testing EE edition
-          ...(process.env.VITE_BUILD_EDITION === 'ee' && eeExists ? [
-            '../ee/frontend/src/**/*.{js,jsx,ts,tsx}'
-          ] : [])
         ],
         exclude: [
           'node_modules',
@@ -91,7 +52,6 @@ export default defineConfig(async () => {
           '**/*.test.{js,jsx,ts,tsx}',
           '**/*.spec.{js,jsx,ts,tsx}',
           'src/generated/**',
-          '../ee/frontend/src/generated/**',
           'src/index.tsx'
         ],
         cwd: process.cwd(),
@@ -105,7 +65,6 @@ export default defineConfig(async () => {
     plugins: [
       react(),
       tailwindcss(),
-      eeModulePlugin(),
       htmlMetaPlugin(),
       istanbulPlugin
     ].filter(Boolean),
@@ -113,15 +72,7 @@ export default defineConfig(async () => {
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      ...(eeExists ? { '@ee': eeDir } : {}),
-      // Dynamic GraphQL import based on build edition
-      '@graphql': process.env.VITE_BUILD_EDITION === 'ee' 
-        ? path.resolve(__dirname, '../ee/frontend/src/generated/graphql.tsx')
-        : path.resolve(__dirname, './src/generated/graphql.tsx'),
-      // Handle relative imports from EE to frontend
-      '../../../../../frontend/src': path.resolve(__dirname, './src'),
-      '../../../../frontend/src': path.resolve(__dirname, './src'),
-      '../../../frontend/src': path.resolve(__dirname, './src'),
+      '@graphql': path.resolve(__dirname, './src/generated/graphql.tsx'),
     },
   },
   server: {
@@ -134,7 +85,6 @@ export default defineConfig(async () => {
       },
     },
   },
-    publicDir: eeExists ? path.resolve(__dirname, '../ee/frontend/public') : undefined,
   build: {
     outDir: 'build',
     sourcemap: process.env.NODE_ENV === 'production' ? 'hidden' : true,
@@ -144,7 +94,6 @@ export default defineConfig(async () => {
   },
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
-      'process.env.BUILD_EDITION': JSON.stringify(process.env.VITE_BUILD_EDITION),
       '__APP_VERSION__': JSON.stringify(process.env.VITE_APP_VERSION || 'development'),
     },
   };

@@ -66,7 +66,7 @@ import {
     useGenerateMockDataMutation,
     useMockDataMaxRowCountQuery
 } from '@graphql';
-import {FC, Suspense, useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {FC, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Export} from "./export";
 import {ImportData} from "./import-data";
 import {useTranslation} from '@/hooks/use-translation';
@@ -103,32 +103,6 @@ import {formatShortcut} from "@/utils/platform";
 import {matchesShortcut, SHORTCUTS} from "@/utils/shortcuts";
 import {isNoSQL} from "@/utils/functions";
 
-// Dynamically load EE Export component
-// const EEExport = loadEEComponent(
-//     () => import('@ee/components/export').then(mod => ({ default: mod.Export })),
-//     null,
-// );
-
-const EEExport = null;
-
-// Dynamic Export component that uses EE version if available, otherwise CE version
-const DynamicExport: FC<{
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    schema: string;
-    storageUnit: string;
-    hasSelectedRows: boolean;
-    selectedRowsData?: Record<string, any>[];
-    checkedRowsCount: number;
-    databaseType?: string;
-    rawQuery?: string;
-    preselectedFormat?: 'csv' | 'excel' | 'ndjson';
-    forceExportAll?: boolean;
-}> = (props) => {
-    // Use EE Export if available, otherwise fall back to CE Export
-    const ExportComponent = EEExport || Export;
-    return <ExportComponent {...props} />;
-};
 
 // Type sets for icon mapping
 // Includes both canonical forms and common aliases for broad matching
@@ -1844,21 +1818,19 @@ export const StorageUnitTable: FC<TableProps> = ({
                     </SheetFooter>
                 </SheetContent>
             </Sheet>
-            <Suspense fallback={<Spinner />}>
-                <DynamicExport
-                    open={showExportConfirm}
-                    onOpenChange={setShowExportConfirm}
-                    schema={schema || ''}
-                    storageUnit={rawQuery ? 'query_export' : (storageUnit || '')}
-                    hasSelectedRows={hasSelectedRows}
-                    selectedRowsData={selectedRowsData}
-                    checkedRowsCount={checked.length}
-                    databaseType={databaseType}
-                    rawQuery={rawQuery}
-                    preselectedFormat={preselectedFormat}
-                    forceExportAll={forceExportAll}
-                />
-            </Suspense>
+            <Export
+                open={showExportConfirm}
+                onOpenChange={setShowExportConfirm}
+                schema={schema || ''}
+                storageUnit={rawQuery ? 'query_export' : (storageUnit || '')}
+                hasSelectedRows={hasSelectedRows}
+                selectedRowsData={selectedRowsData}
+                checkedRowsCount={checked.length}
+                databaseType={databaseType}
+                rawQuery={rawQuery}
+                preselectedFormat={preselectedFormat}
+                forceExportAll={forceExportAll}
+            />
             {isImportSupported && allowImport && (
                 <ImportData
                     open={showImport}

@@ -70,7 +70,6 @@ import {IGraphCardProps} from "../../components/graph/graph";
 import {Loading, LoadingPage} from "../../components/loading";
 import {InternalPage} from "../../components/page";
 import {InternalRoutes} from "../../config/routes";
-import {trackFrontendEvent} from "../../config/posthog";
 import {useAppDispatch, useAppSelector} from "../../store/hooks";
 import {databaseSupportsModifiers} from "../../utils/database-data-types";
 import {databaseSupportsScratchpad, databaseTypesThatUseDatabaseInsteadOfSchema} from "../../utils/database-features";
@@ -248,13 +247,6 @@ export const StorageUnitPage: FC = () => {
     const dispatch = useAppDispatch();
     const { t } = useTranslation('pages/storage-unit');
 
-    useEffect(() => {
-        void trackFrontendEvent('ui.storage_unit_viewed', {
-            database_type: current?.Type ?? 'unknown',
-            view_mode: view,
-        });
-    }, [current?.Type, trackFrontendEvent, view]);
-
     // Databases like MySQL, MariaDB, ClickHouse, MongoDB use database name as schema parameter since they treat database=schema
     if (databaseTypesThatUseDatabaseInsteadOfSchema(current?.Type)) {
         schema = current?.Database ?? '';
@@ -310,11 +302,7 @@ export const StorageUnitPage: FC = () => {
     const handleCreate = useCallback(() => {
         const next = !create;
         setCreate(next);
-        void trackFrontendEvent('ui.storage_unit_create_toggle', {
-            database_type: current?.Type ?? 'unknown',
-            open: next,
-        });
-    }, [create, current?.Type, trackFrontendEvent]);
+    }, [create]);
 
     const handleSubmit = useCallback(() => {
         if (storageUnitName.length === 0) {
@@ -333,10 +321,6 @@ export const StorageUnitPage: FC = () => {
             onCompleted() {
                 const message = t('createSuccessMessage').replace('{storageUnit}', `${getDatabaseStorageUnitLabel(current?.Type, true)} ${storageUnitName}`);
                 toast.success(message);
-                void trackFrontendEvent('ui.storage_unit_created', {
-                    database_type: current?.Type ?? 'unknown',
-                    field_count: fields.length,
-                });
                 setStorageUnitName("");
                 setFields([]);
                 refetch();
@@ -346,14 +330,11 @@ export const StorageUnitPage: FC = () => {
                 toast.error(e.message);
             },
         });
-    }, [addStorageUnit, current?.Type, fields, refetch, schema, storageUnitName, t, trackFrontendEvent]);
+    }, [addStorageUnit, current?.Type, fields, refetch, schema, storageUnitName, t]);
 
     const handleAddField = useCallback(() => {
         setFields(f => [...f, { Key: "", Value: "", Extra: [] }]);
-        void trackFrontendEvent('ui.storage_unit_field_added', {
-            database_type: current?.Type ?? 'unknown',
-        });
-    }, [current?.Type, trackFrontendEvent]);
+    }, []);
 
     const handleFieldValueChange = useCallback((type: string, index: number, value: string | boolean) => {
         setFields(f => {

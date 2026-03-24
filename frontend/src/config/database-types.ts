@@ -16,7 +16,6 @@
 
 import {ComponentType, ReactElement} from "react";
 import {Icons} from "../components/icons";
-import {EEDatabaseType} from "./ee-types";
 
 /**
  * Type category for grouping database types in the UI.
@@ -57,7 +56,7 @@ export interface TypeDefinition {
 
 /**
  * Props passed to a custom login form renderer.
- * Allows EE database types to fully control the login form fields.
+ * Allows database types to fully control the login form fields.
  */
 export interface CustomLoginFormProps {
     hostName: string;
@@ -99,8 +98,6 @@ export interface IDatabaseDropdownItem {
     supportsDatabaseSwitching?: boolean;
     // Whether this database should use the schema field (true) or database field (false) for graph queries
     usesSchemaForGraph?: boolean;
-    // Whether this database type is an AWS managed service (hidden when cloud providers disabled)
-    isAwsManaged?: boolean;
     // SSL modes supported by this database (undefined = no SSL support, e.g., SQLite)
     sslModes?: SSLModeOption[];
     // Custom login form renderer (replaces default hostname/username/password fields)
@@ -270,150 +267,19 @@ export const baseDatabaseTypes: IDatabaseDropdownItem[] = [
         usesSchemaForGraph: false,
         sslModes: SSL_MODES_SIMPLE,
     },
-    // AWS managed database types (discovered via AWS providers, use underlying plugins)
-    {
-        id: "ElastiCache",
-        label: "ElastiCache",
-        icon: Icons.Logos.ElastiCache,
-        extra: {"Port": "6379", "TLS": "true"},
-        fields: {
-            hostname: true,
-            username: true,
-            password: true,
-        },
-        supportsScratchpad: false,
-        supportsSchema: false,
-        supportsDatabaseSwitching: true,
-        usesSchemaForGraph: false,
-        isAwsManaged: true,
-        sslModes: SSL_MODES_SIMPLE,  // Uses Redis SSL modes
-    },
-    {
-        id: "DocumentDB",
-        label: "DocumentDB",
-        icon: Icons.Logos.DocumentDB,
-        extra: {"Port": "27017"},
-        fields: {
-            hostname: true,
-            username: true,
-            password: true,
-            database: true,
-        },
-        supportsScratchpad: false,
-        supportsSchema: false,
-        supportsDatabaseSwitching: true,
-        usesSchemaForGraph: false,
-        isAwsManaged: true,
-        sslModes: SSL_MODES_SIMPLE,  // Uses MongoDB SSL modes
-    },
 ];
 
-// This will be populated if EE is loaded
-let eeDatabaseTypes: IDatabaseDropdownItem[] = [];
-let eeLoadPromise: Promise<void> | null = null;
-
-// Load EE database types if in EE mode
-if (import.meta.env.VITE_BUILD_EDITION === 'ee') {
-    // Store the promise so we can await it later
-    eeLoadPromise = Promise.all([
-        import('@ee/config.tsx'),
-        import('@ee/icons')
-    ]).then(async ([eeConfig, eeIcons]) => {
-        if (eeConfig?.eeDatabaseTypes && eeIcons?.EEIcons?.Logos) {
-            // First merge the icons
-            Object.assign(Icons.Logos, eeIcons.EEIcons.Logos);
-
-            // Load custom form renderers via EE's lazy loader to avoid circular imports
-            const formRenderers: Record<string, ComponentType<CustomLoginFormProps>> =
-                (typeof eeConfig.loadFormRenderers === 'function')
-                    ? await eeConfig.loadFormRenderers()
-                    : {};
-
-            // Then map EE database types to the correct format with resolved icons
-            eeDatabaseTypes = (eeConfig.eeDatabaseTypes as EEDatabaseType[]).map((dbType): IDatabaseDropdownItem => ({
-                id: dbType.id,
-                label: dbType.label,
-                icon: Icons.Logos[dbType.iconName as keyof typeof Icons.Logos],
-                extra: dbType.extra,
-                fields: dbType.fields,
-                supportsModifiers: dbType.supportsModifiers,
-                supportsScratchpad: dbType.supportsScratchpad,
-                supportsSchema: dbType.supportsSchema,
-                supportsDatabaseSwitching: dbType.supportsDatabaseSwitching,
-                usesSchemaForGraph: dbType.usesSchemaForGraph,
-                sslModes: dbType.sslModes,
-                customFormRenderer: formRenderers[dbType.id],
-            }));
-
-        } else {
-            console.warn('EE modules loaded but missing expected exports');
-        }
-    }).catch((error) => {
-        console.error('Could not load EE database types:', error);
-    });
-}
-
 /**
- * Filter options for database type retrieval.
+ * Get all database types.
+ * @returns Promise resolving to list of database types
  */
-export interface DatabaseTypeFilterOptions {
-    /** When false, AWS managed database types (ElastiCache, DocumentDB) are excluded */
-    cloudProvidersEnabled?: boolean;
-}
-
-/**
- * Get all database types, optionally filtered by cloud provider availability.
- * @param options Filter options for database types
- * @returns Promise resolving to filtered list of database types
- */
-export const getDatabaseTypeDropdownItems = async (
-    options: DatabaseTypeFilterOptions = {}
-): Promise<IDatabaseDropdownItem[]> => {
-    const { cloudProvidersEnabled = true } = options;
-    const isEE = import.meta.env.VITE_BUILD_EDITION === 'ee';
-
-    let allTypes: IDatabaseDropdownItem[];
-
-    if (isEE && eeLoadPromise) {
-        // Wait for EE to load
-        await eeLoadPromise;
-
-        if (eeDatabaseTypes.length > 0) {
-            allTypes = [...baseDatabaseTypes, ...eeDatabaseTypes];
-        } else {
-            allTypes = baseDatabaseTypes;
-        }
-    } else {
-        allTypes = baseDatabaseTypes;
-    }
-
-    // Filter out AWS managed types when cloud providers are disabled
-    if (!cloudProvidersEnabled) {
-        return allTypes.filter(item => !item.isAwsManaged);
-    }
-
-    return allTypes;
-};
-
-// For backward compatibility, provide a synchronous version that only returns base types initially
-export const getDatabaseTypeDropdownItemsSync = (): IDatabaseDropdownItem[] => {
-    const isEE = import.meta.env.VITE_BUILD_EDITION === 'ee';
-    
-    if (isEE && eeDatabaseTypes.length > 0) {
-        return [...baseDatabaseTypes, ...eeDatabaseTypes];
-    }
-    
+export const getDatabaseTypeDropdownItems = async (): Promise<IDatabaseDropdownItem[]> => {
     return baseDatabaseTypes;
 };
 
-// Export this for components that need immediate access (will be updated when EE loads)
-export let databaseTypeDropdownItems = baseDatabaseTypes;
+/** Get all database types synchronously. */
+export const getDatabaseTypeDropdownItemsSync = (): IDatabaseDropdownItem[] => {
+    return baseDatabaseTypes;
+};
 
-// Update the exported items when EE loads
-if (import.meta.env.VITE_BUILD_EDITION === 'ee' && eeLoadPromise) {
-    eeLoadPromise.then(() => {
-        if (eeDatabaseTypes.length > 0) {
-            databaseTypeDropdownItems = [...baseDatabaseTypes, ...eeDatabaseTypes];
-        }
-    });
-}
+export const databaseTypeDropdownItems = baseDatabaseTypes;

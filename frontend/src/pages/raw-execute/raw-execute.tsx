@@ -88,16 +88,8 @@ import { Tip } from "../../components/tip";
 import { InternalRoutes } from "../../config/routes";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { ScratchpadActions } from "../../store/scratchpad";
-import { isEEFeatureEnabled, loadEEModule } from "../../utils/ee-loader";
-import { isDesktopApp } from "../../utils/external-links";
 import { v4 as uuidv4 } from 'uuid';
 import { IPluginProps, QueryView } from "./query-view";
-
-type EEExports = {
-    plugins: any[];
-    ActionOptions: Record<string, string>;
-    ActionOptionIcons: Record<string, ReactElement>;
-};
 
 type IRawExecuteCellProps = {
     cellId: string;
@@ -383,40 +375,6 @@ const RawExecuteCell: FC<IRawExecuteCellProps> = ({ cellId, onAdd, onDelete, sho
     const [allActionOptions, setAllActionOptions] = useState<Record<string, string>>({ ...ActionOptions });
     const [allActionOptionIcons, setAllActionOptionIcons] = useState<Record<string, ReactElement>>({ ...ActionOptionIcons });
 
-    // Load EE module on mount and merge with base
-    useEffect(() => {
-        let mounted = true;
-        loadEEModule<EEExports>(
-            () => import('@ee/pages/raw-execute/index'),
-            { plugins: [], ActionOptions: {}, ActionOptionIcons: {} }
-        ).then((mod) => {
-            if (mod && mounted) {
-                const { default: defaultMod } = mod as any;
-                if (defaultMod == null || defaultMod.plugins == null) {
-                    return;
-                }
-                // Merge plugins
-                setAllPlugins(prev => [
-                    ...prev,
-                    ...(defaultMod.plugins || []).map((p: any) => ({
-                        type: p.type,
-                        component: p.component,
-                    })),
-                ]);
-                // Merge action options
-                setAllActionOptions(prev => ({
-                    ...prev,
-                    ...(defaultMod.ActionOptions || {})
-                }));
-                // Merge action option icons
-                setAllActionOptionIcons(prev => ({
-                    ...prev,
-                    ...(defaultMod.ActionOptionIcons || {})
-                }));
-            }
-        });
-        return () => { mounted = false; }
-    }, []);
 
     const handleRawExecute = useCallback((historyCode?: string) => {
         if (current == null) {
@@ -589,13 +547,6 @@ const RawExecuteCell: FC<IRawExecuteCellProps> = ({ cellId, onAdd, onDelete, sho
     }, [rows, mode]);
 
     const isAnalyzeAvailable = useMemo(() => {
-        if (!isEEFeatureEnabled('analyzeView')) {
-            return false;
-        }
-        switch(current?.Type) {
-            case DatabaseType.Postgres:
-                return !!allActionOptions.Analyze;
-        }
         return false;
     }, [current?.Type, allActionOptions]);
 
@@ -1030,21 +981,6 @@ export const RawExecutePage: FC = () => {
         }
     }, [location.state, dispatch]);
 
-    // Listen for menu event to create new Scratchpad page
-    useEffect(() => {
-        if (!isDesktopApp()) return;
-
-        const handleNewScratchpadPage = () => {
-            dispatch(ScratchpadActions.addPage({ name: `Page ${pages.length + 1}` }));
-        };
-
-        window.addEventListener('menu:new-scratchpad-page', handleNewScratchpadPage);
-
-        return () => {
-            window.removeEventListener('menu:new-scratchpad-page', handleNewScratchpadPage);
-        };
-    }, [dispatch, pages.length]);
-
     const handleAdd = useCallback(() => {
         dispatch(ScratchpadActions.addPage({ name: `Page ${pages.length + 1}` }));
     }, [dispatch, pages.length]);
@@ -1070,10 +1006,6 @@ export const RawExecutePage: FC = () => {
     return (
         <InternalPage routes={[InternalRoutes.RawExecute]}>
             <div className="flex flex-col w-full gap-2" data-testid="raw-execute-page">
-                {/* {isEEFeatureEnabled('analyzeView') && <AIProvider 
-                    {...aiState}
-                    disableNewChat={true}
-                />} */}
                 <div className="flex justify-center items-center w-full mt-4">
                     <div className="w-full flex flex-col gap-4">
                         <div className="flex justify-between items-center">

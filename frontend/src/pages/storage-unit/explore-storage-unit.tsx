@@ -70,7 +70,6 @@ import {InternalPage} from "../../components/page";
 import {SchemaViewer} from "../../components/schema-viewer";
 import {getColumnIcons, getInputPropsForColumnType, StorageUnitTable} from "../../components/table";
 import {Tip} from "../../components/tip";
-import {BUILD_EDITION} from "../../config/edition";
 import {InternalRoutes} from "../../config/routes";
 import {useAppSelector} from "../../store/hooks";
 import {databaseSupportsScratchpad, databaseTypesThatUseDatabaseInsteadOfSchema} from "../../utils/database-features";
@@ -84,19 +83,6 @@ import {whereConditionToSql} from "../../utils/where-condition-to-sql";
 import {mergeSearchWithWhere, parseSearchToWhereCondition} from "../../utils/search-parser";
 import {SearchIntellisense} from "../../components/search-intellisense";
 import {useSearchIntellisense} from "../../hooks/use-search-intellisense";
-
-// Conditionally import EE query utilities
-let generateInitialQuery: ((databaseType: string | undefined, schema: string | undefined, tableName: string | undefined) => string) | undefined;
-
-if (BUILD_EDITION === 'ee') {
-    // Dynamically import EE query utilities when in EE mode
-    import('@ee/pages/storage-unit/query-utils').then(module => {
-        generateInitialQuery = module.generateInitialQuery;
-    }).catch(() => {
-        // EE module not available, use default
-        generateInitialQuery = undefined;
-    });
-}
 
 export const ExploreStorageUnit: FC = () => {
     const defaultPageSize = useAppSelector(state => state.settings.defaultPageSize);
@@ -201,33 +187,11 @@ export const ExploreStorageUnit: FC = () => {
     }, [unit]);
 
     const initialScratchpadQuery = useMemo(() => {
-        if (generateInitialQuery && current?.Type) {
-            return generateInitialQuery(current?.Type, schema, unitName);
-        }
         const qualified = schema ? `${schema}.${unitName}` : unitName;
         return `SELECT * FROM ${qualified} LIMIT 5`;
-    }, [schema, unitName, current?.Type, generateInitialQuery]);
+    }, [schema, unitName]);
 
     const scratchpadQueryWithConditions = useMemo(() => {
-        if (generateInitialQuery && current?.Type) {
-            const baseQuery = generateInitialQuery(current?.Type, schema, unitName);
-            const whereClause = whereConditionToSql(whereCondition);
-
-            if (!whereClause) {
-                return baseQuery;
-            }
-
-            // Insert WHERE clause before LIMIT if present
-            const limitMatch = baseQuery.match(/\s+LIMIT\s+\d+/i);
-            if (limitMatch) {
-                const beforeLimit = baseQuery.substring(0, limitMatch.index);
-                const limitPart = baseQuery.substring(limitMatch.index!);
-                return `${beforeLimit} WHERE ${whereClause}${limitPart}`;
-            }
-
-            return `${baseQuery} WHERE ${whereClause}`;
-        }
-
         const qualified = schema ? `${schema}.${unitName}` : unitName;
         const whereClause = whereConditionToSql(whereCondition);
 
@@ -236,7 +200,7 @@ export const ExploreStorageUnit: FC = () => {
         }
 
         return `SELECT * FROM ${qualified} WHERE ${whereClause} LIMIT 5`;
-    }, [schema, unitName, current?.Type, generateInitialQuery, whereCondition]);
+    }, [schema, unitName, whereCondition]);
 
     const [code, setCode] = useState(initialScratchpadQuery);
 

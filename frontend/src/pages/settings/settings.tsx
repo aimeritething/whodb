@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-import {FC, useCallback, useEffect, useMemo} from "react";
+import {FC, useCallback, useMemo} from "react";
 import {InternalPage} from "../../components/page";
 import {InternalRoutes} from "../../config/routes";
 import {useAppDispatch, useAppSelector} from "../../store/hooks";
 import {SettingsActions} from "../../store/settings";
-import {isEEMode} from "@/config/ee-imports";
 import {getAppName} from "@/config/features";
 import {useTranslation} from "@/hooks/use-translation";
 import {
@@ -30,21 +29,15 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-    Separator,
     Switch,
 } from "@clidey/ux";
-import {optInUser, optOutUser, trackFrontendEvent} from "@/config/posthog";
 import {type SupportedLanguage, SUPPORTED_LANGUAGES} from "@/utils/languages";
-import {ExternalLink} from "../../utils/external-links";
 import {usePageSize} from "../../hooks/use-page-size";
-import {AwsProvidersSection} from "../../components/aws";
-import {useSettingsConfigQuery} from "@graphql";
 
 export const SettingsPage: FC = () => {
     const {t} = useTranslation('pages/settings');
     const appName = getAppName();
     const dispatch = useAppDispatch();
-    const metricsEnabled = useAppSelector(state => state.settings.metricsEnabled);
     const storageUnitView = useAppSelector(state => state.settings.storageUnitView);
     const fontSize = useAppSelector(state => state.settings.fontSize);
     const borderRadius = useAppSelector(state => state.settings.borderRadius);
@@ -55,10 +48,6 @@ export const SettingsPage: FC = () => {
     const language = useAppSelector(state => state.settings.language);
     const databaseSchemaTerminology = useAppSelector(state => state.settings.databaseSchemaTerminology);
     const disableAnimations = useAppSelector(state => state.settings.disableAnimations);
-
-    // Check if cloud providers are enabled
-    const { data: settingsData } = useSettingsConfigQuery();
-    const cloudProvidersEnabled = settingsData?.SettingsConfig?.CloudProvidersEnabled ?? false;
 
     const pageSizeOptions = useMemo(() => ({
         onPageSizeChange: (size: number) => dispatch(SettingsActions.setDefaultPageSize(size)),
@@ -73,21 +62,6 @@ export const SettingsPage: FC = () => {
         handleSelectChange: handleDefaultPageSizeChange,
         handleCustomApply: handleCustomPageSizeApply,
     } = usePageSize(defaultPageSize, pageSizeOptions);
-
-    useEffect(() => {
-        void trackFrontendEvent('ui.settings_viewed');
-    }, []);
-
-    const handleMetricsToggle = useCallback((enabled: boolean) => {
-        if (enabled) {
-            optInUser();
-            void trackFrontendEvent('ui.telemetry_toggled', {enabled: true});
-        } else {
-            void trackFrontendEvent('ui.telemetry_toggled', {enabled: false});
-            optOutUser();
-        }
-        dispatch(SettingsActions.setMetricsEnabled(enabled));
-    }, [dispatch, trackFrontendEvent]);
 
     const handleStorageUnitViewToggle = useCallback((view: 'list' | 'card') => {
         dispatch(SettingsActions.setStorageUnitView(view));
@@ -125,43 +99,7 @@ export const SettingsPage: FC = () => {
         <InternalPage routes={[InternalRoutes.Settings!]}>
             <div className="flex flex-col items-center w-full max-w-2xl mx-auto py-10 gap-8">
                 <div className="w-full flex flex-col gap-0">
-                    <div className="flex flex-col gap-2">
-                        <p className="text-2xl font-bold flex items-center gap-2">
-                            {t('telemetryTitle')}
-                        </p>
-                    </div>
                     <div className="flex flex-col gap-xl py-6">
-                        {isEEMode ? (
-                            <div className="flex flex-col gap-sm">
-                                <h3 className="text-base">
-                                    {t('eeNoTelemetry', { appName })}
-                                </h3>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col gap-4">
-                                <h3 className="text-base">
-                                    {t('telemetryDescription', { appName })}&nbsp;
-                                    {t('dataCollectionDetails', {
-                                        privacyPolicyLink: <ExternalLink
-                                            href={"https://clidey.com/privacy-policy"}
-                                            className={"underline text-blue-500"}>{t('privacyPolicy')}</ExternalLink>
-                                    })}
-                                    <br/>
-                                    <br/>
-                                    {t('posthogInfo', { appName })}&nbsp;
-                                    {t('sensitiveDataInfo')}
-                                    <br/>
-                                    <br/>
-                                    {t('contactUsInfo')}
-                                </h3>
-                                <br/>
-                                <div className="flex justify-between">
-                                    <Label>{metricsEnabled ? t('enableTelemetry') : t('disableTelemetry')}</Label>
-                                    <Switch checked={metricsEnabled} onCheckedChange={handleMetricsToggle}/>
-                                </div>
-                                <Separator className="mt-4" />
-                            </div>
-                        )}
                         <div className="flex flex-col gap-sm mb-2">
                             <p className="text-lg font-bold">
                                 {t('personalizeTitle')}
@@ -288,27 +226,19 @@ export const SettingsPage: FC = () => {
                                 </SelectContent>
                             </Select>
                         </div>
-                        {isEEMode && (
-                            <div className="flex justify-between">
-                                <Label>{t('language')}</Label>
-                                <Select value={language} onValueChange={handleLanguageChange}>
-                                    <SelectTrigger id="language" className="w-[200px]">
-                                        <SelectValue placeholder={t('selectLanguage')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Object.entries(SUPPORTED_LANGUAGES).map(([code, name]) => (
-                                            <SelectItem key={code} value={code} data-value={code}>{name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
-                        {cloudProvidersEnabled && (
-                            <>
-                                <Separator className="my-6" />
-                                <AwsProvidersSection />
-                            </>
-                        )}
+                        <div className="flex justify-between">
+                            <Label>{t('language')}</Label>
+                            <Select value={language} onValueChange={handleLanguageChange}>
+                                <SelectTrigger id="language" className="w-[200px]">
+                                    <SelectValue placeholder={t('selectLanguage')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {Object.entries(SUPPORTED_LANGUAGES).map(([code, name]) => (
+                                        <SelectItem key={code} value={code} data-value={code}>{name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </div>
             </div>

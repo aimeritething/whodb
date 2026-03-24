@@ -15,16 +15,12 @@
  */
 
 import {Toaster} from "@clidey/ux";
-import {useUpdateSettingsMutation} from '@graphql';
-import {useCallback, useEffect} from "react";
+import {useEffect} from "react";
 import {Route, Routes} from "react-router-dom";
-import {getStoredConsentState, optInUser, optOutUser, resetAnalyticsIdentity} from "./config/posthog";
 import {getRoutes, PrivateRoute, PublicRoutes} from './config/routes';
 import {NavigateToDefault} from "./pages/chat/default-chat-route";
 import {useAppDispatch, useAppSelector} from "./store/hooks";
-import {SettingsActions} from "./store/settings";
 import {useThemeCustomization} from "./hooks/use-theme-customization";
-import {useDesktopMenu} from "./hooks/useDesktop";
 import {useSidebarShortcuts} from "./hooks/useSidebarShortcuts";
 import {TourProvider} from "./components/tour/tour-provider";
 import {useKeyboardShortcutsHelp} from "./components/keyboard-shortcuts-help";
@@ -34,15 +30,10 @@ import {ServerDownOverlay, DatabaseDownOverlay} from "./components/health/health
 import {HealthActions} from "./store/health";
 
 export const App = () => {
-    const [updateSettings] = useUpdateSettingsMutation();
     const dispatch = useAppDispatch();
-  const metricsEnabled = useAppSelector(state => state.settings.metricsEnabled);
 
   // Apply UI customization settings
   useThemeCustomization();
-
-  // Setup desktop menu and keyboard shortcuts
-  useDesktopMenu();
 
   // Setup keyboard shortcuts help modal (? key)
   const { KeyboardShortcutsHelpModal } = useKeyboardShortcutsHelp();
@@ -52,59 +43,6 @@ export const App = () => {
 
   // Setup sidebar navigation shortcuts (Ctrl+1-4 on Mac, Alt+1-4 on Windows/Linux, Cmd/Ctrl+B)
   useSidebarShortcuts();
-
-  useEffect(() => {
-      const consent = getStoredConsentState();
-
-      if (consent === 'denied' && metricsEnabled) {
-          dispatch(SettingsActions.setMetricsEnabled(false));
-          return;
-      }
-
-      if (consent === 'granted' && !metricsEnabled) {
-          dispatch(SettingsActions.setMetricsEnabled(true));
-          return;
-      }
-
-      if (consent === 'unknown') {
-          return;
-      }
-
-      if (!metricsEnabled) {
-          optOutUser();
-          return;
-      }
-
-      optInUser();
-  }, [metricsEnabled, dispatch]);
-
-    useEffect(() => {
-        const consent = getStoredConsentState();
-        if (consent !== 'granted') {
-            if (!metricsEnabled || consent === 'denied') {
-                resetAnalyticsIdentity().catch(() => undefined);
-            }
-            return;
-        }
-
-        if (!metricsEnabled) {
-            resetAnalyticsIdentity().catch(() => undefined);
-        }
-    }, [metricsEnabled]);
-
-  const updateBackendWithSettings = useCallback(() => {
-    updateSettings({
-      variables: {
-        newSettings: {
-          MetricsEnabled: String(metricsEnabled)
-        }
-      }
-    });
-  }, [updateSettings, metricsEnabled])
-
-  useEffect(() => {
-    updateBackendWithSettings();
-  }, [updateBackendWithSettings]);
 
   // Start health check service when user logs in, stop when they log out
   const authStatus = useAppSelector(state => state.auth.status);

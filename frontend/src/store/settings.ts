@@ -15,14 +15,9 @@
  */
 
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
-import {eeSettingsDefaults} from '../config/ee-imports';
 import {type SupportedLanguage, DEFAULT_LANGUAGE} from '../utils/languages';
 
-const ANALYTICS_CONSENT_KEY = 'whodb.analytics.consent';
-
 type ISettingsState = {
-    metricsEnabled: boolean;
-    cloudProvidersEnabled: boolean;
     storageUnitView: 'list' | 'card';
     fontSize: 'small' | 'medium' | 'large';
     borderRadius: 'none' | 'small' | 'medium' | 'large';
@@ -39,34 +34,18 @@ type ISettingsState = {
     os: 'linux' | 'macos' | 'windows' | undefined;
 }
 
-const getInitialMetricsEnabled = (): boolean => {
-    if (typeof window === 'undefined') {
-        return true;
-    }
-
-    const consent = window.localStorage.getItem(ANALYTICS_CONSENT_KEY);
-    if (consent === 'denied') {
-        return false;
-    }
-    return true;
-};
-
 const getInitialState = (): ISettingsState => {
     return {
-        metricsEnabled: getInitialMetricsEnabled(),
-        cloudProvidersEnabled: false,
         storageUnitView: 'card',
         fontSize: 'medium',
         borderRadius: 'medium',
         spacing: 'comfortable',
-        // Use EE default if available, otherwise default to 'popover'
-        whereConditionMode: eeSettingsDefaults.whereConditionMode ?? 'popover',
+        whereConditionMode: 'popover',
         defaultPageSize: 100,
         maxPageSize: 10000,
         language: DEFAULT_LANGUAGE,
         databaseSchemaTerminology: 'database',  // Default to "Database" label for databases where database=schema
-        // Use EE default if available, otherwise default to false (animations enabled)
-        disableAnimations: eeSettingsDefaults.disableAnimations ?? false,
+        disableAnimations: false,
         appTheme: 'default',
         os: undefined,
     };
@@ -78,12 +57,6 @@ export const settingsSlice = createSlice({
     name: 'settings',
     initialState,
     reducers: {
-        setMetricsEnabled: (state, action: PayloadAction<ISettingsState["metricsEnabled"]>) => {
-            state.metricsEnabled = action.payload;
-        },
-        setCloudProvidersEnabled: (state, action: PayloadAction<ISettingsState["cloudProvidersEnabled"]>) => {
-            state.cloudProvidersEnabled = action.payload;
-        },
         setStorageUnitView: (state, action: PayloadAction<ISettingsState["storageUnitView"]>) => {
             state.storageUnitView = action.payload;
         },

@@ -51,7 +51,7 @@ import {FC, ReactElement, useCallback, useEffect, useMemo, useRef, useState} fro
 import {useDispatch} from "react-redux";
 import {Link, useLocation, useNavigate} from "react-router-dom";
 import logoImage from "../../../public/images/logo.svg";
-import {extensions, getAppName, isEEMode} from "../../config/features";
+import {extensions, getAppName} from "../../config/features";
 import {InternalRoutes} from "../../config/routes";
 import {LoginForm} from "../../pages/auth/login";
 import {AuthActions, LocalLoginProfile} from "../../store/auth";
@@ -63,23 +63,18 @@ import {
     databaseSupportsScratchpad,
     databaseTypesThatUseDatabaseInsteadOfSchema
 } from "../../utils/database-features";
-import {isEEFeatureEnabled} from "../../utils/ee-loader";
 import {getDatabaseStorageUnitLabel, isNoSQL} from "../../utils/functions";
-import {isAwsHostname} from "../../utils/cloud-connection-prefill";
 import {
     ArrowLeftStartOnRectangleIcon,
     ChevronDownIcon,
-    CogIcon,
     CommandLineIcon,
     PlusCircleIcon,
-    QuestionMarkCircleIcon,
     RectangleGroupIcon,
     SparklesIcon,
     TableCellsIcon
 } from "../heroicons";
 import {Icons} from "../icons";
 import {Loading} from "../loading";
-import {DatabaseIconWithBadge, isAwsConnection} from "../aws";
 import {useProfileSwitch} from "@/hooks/use-profile-switch";
 
 function getProfileLabel(profile: LocalLoginProfile) {
@@ -97,7 +92,6 @@ export const Sidebar: FC = () => {
     const { t } = useTranslation('components/sidebar');
     const schema = useAppSelector(state => state.database.schema);
     const databaseSchemaTerminology = useAppSelector(state => state.settings.databaseSchemaTerminology);
-    const cloudProvidersEnabled = useAppSelector(state => state.settings.cloudProvidersEnabled);
     const isEmbedded = useAppSelector(state => state.auth.isEmbedded);
     const dispatch = useDispatch();
     const pathname = useLocation().pathname;
@@ -136,24 +130,13 @@ export const Sidebar: FC = () => {
         errorMessage: t('errorSigningIn'),
     });
 
-    // Profile select logic - filter out AWS profiles when cloud providers disabled
     const profileOptions = useMemo(() => profiles
-        .filter(profile => cloudProvidersEnabled || !isAwsHostname(profile.Hostname))
         .map(profile => ({
             value: profile.Id,
             label: getProfileLabel(profile),
-            icon: (
-                <DatabaseIconWithBadge
-                    icon={getProfileIcon(profile)}
-                    showCloudBadge={isAwsConnection(profile.Id)}
-                    sslStatus={profile.Id === current?.Id
-                        ? sslStatus
-                        : (profile.SSLConfigured ? { IsEnabled: true, Mode: 'configured' } : undefined)}
-                    size="sm"
-                />
-            ),
+            icon: getProfileIcon(profile),
             profile,
-        })), [profiles, current?.Id, sslStatus, cloudProvidersEnabled]);
+        })), [profiles]);
 
     const currentProfileOption = useMemo(() => {
         if (!current) return undefined;
@@ -322,7 +305,7 @@ export const Sidebar: FC = () => {
                         <div className={cn("flex items-center gap-sm mt-2", {
                             "hidden": !open,
                         })}>
-                            {extensions.Logo ?? (!isEEMode && <img src={logoImage} alt="clidey logo" className="w-auto h-8" />)}
+                            {extensions.Logo ?? <img src={logoImage} alt="clidey logo" className="w-auto h-8" />}
                             {open && <span className="text-3xl font-bold" data-testid="app-name">{getAppName()}</span>}
                         </div>
                         <SidebarTrigger className="px-0" />
@@ -430,36 +413,6 @@ export const Sidebar: FC = () => {
                                     "mx-0": !open,
                                 })} />
 
-                                {isEEFeatureEnabled('contactUsPage') && InternalRoutes.ContactUs && (
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton asChild tooltip={t('contactUs')}>
-                                            <Link
-                                                to={InternalRoutes.ContactUs.path}
-                                                className={classNames("flex items-center gap-2", {
-                                                    "font-bold": pathname === InternalRoutes.ContactUs.path,
-                                                })}
-                                            >
-                                                <QuestionMarkCircleIcon className="w-4 h-4" />
-                                                {open && <span>{t('contactUs')}</span>}
-                                            </Link>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                )}
-                                {isEEFeatureEnabled('settingsPage') && InternalRoutes.Settings && (
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton asChild tooltip={t('settings')}>
-                                            <Link
-                                                to={InternalRoutes.Settings.path}
-                                                className={classNames("flex items-center gap-2", {
-                                                    "font-bold": pathname === InternalRoutes.Settings.path,
-                                                })}
-                                            >
-                                                <CogIcon className="w-4 h-4" />
-                                                {open && <span>{t('settings')}</span>}
-                                            </Link>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                )}
                                 <div className="grow" />
                                 {!isEmbedded && (
                                     <SidebarMenuItem className="flex justify-between items-center w-full">
