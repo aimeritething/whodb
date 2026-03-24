@@ -1,5 +1,3 @@
-//go:build !ee
-
 package src
 
 import "github.com/clidey/whodb/core/src/engine"
