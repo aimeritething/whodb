@@ -769,6 +769,16 @@ export type LogoutMutationVariables = Exact<{ [key: string]: never; }>;
 
 export type LogoutMutation = { __typename?: 'Mutation', Logout: { __typename?: 'StatusResponse', Status: boolean } };
 
+export type UpdateStorageUnitMutationVariables = Exact<{
+  schema: Scalars['String']['input'];
+  storageUnit: Scalars['String']['input'];
+  values: Array<RecordInput> | RecordInput;
+  updatedColumns: Array<Scalars['String']['input']> | Scalars['String']['input'];
+}>;
+
+
+export type UpdateStorageUnitMutation = { __typename?: 'Mutation', UpdateStorageUnit: { __typename?: 'StatusResponse', Status: boolean } };
+
 export type GetColumnsBatchQueryVariables = Exact<{
   schema: Scalars['String']['input'];
   storageUnits: Array<Scalars['String']['input']> | Scalars['String']['input'];
@@ -1037,6 +1047,47 @@ export function useLogoutMutation(baseOptions?: Apollo.MutationHookOptions<Logou
 export type LogoutMutationHookResult = ReturnType<typeof useLogoutMutation>;
 export type LogoutMutationResult = Apollo.MutationResult<LogoutMutation>;
 export type LogoutMutationOptions = Apollo.BaseMutationOptions<LogoutMutation, LogoutMutationVariables>;
+export const UpdateStorageUnitDocument = gql`
+    mutation UpdateStorageUnit($schema: String!, $storageUnit: String!, $values: [RecordInput!]!, $updatedColumns: [String!]!) {
+  UpdateStorageUnit(
+    schema: $schema
+    storageUnit: $storageUnit
+    values: $values
+    updatedColumns: $updatedColumns
+  ) {
+    Status
+  }
+}
+    `;
+export type UpdateStorageUnitMutationFn = Apollo.MutationFunction<UpdateStorageUnitMutation, UpdateStorageUnitMutationVariables>;
+
+/**
+ * __useUpdateStorageUnitMutation__
+ *
+ * To run a mutation, you first call `useUpdateStorageUnitMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateStorageUnitMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateStorageUnitMutation, { data, loading, error }] = useUpdateStorageUnitMutation({
+ *   variables: {
+ *      schema: // value for 'schema'
+ *      storageUnit: // value for 'storageUnit'
+ *      values: // value for 'values'
+ *      updatedColumns: // value for 'updatedColumns'
+ *   },
+ * });
+ */
+export function useUpdateStorageUnitMutation(baseOptions?: Apollo.MutationHookOptions<UpdateStorageUnitMutation, UpdateStorageUnitMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateStorageUnitMutation, UpdateStorageUnitMutationVariables>(UpdateStorageUnitDocument, options);
+      }
+export type UpdateStorageUnitMutationHookResult = ReturnType<typeof useUpdateStorageUnitMutation>;
+export type UpdateStorageUnitMutationResult = Apollo.MutationResult<UpdateStorageUnitMutation>;
+export type UpdateStorageUnitMutationOptions = Apollo.BaseMutationOptions<UpdateStorageUnitMutation, UpdateStorageUnitMutationVariables>;
 export const GetColumnsBatchDocument = gql`
     query GetColumnsBatch($schema: String!, $storageUnits: [String!]!) {
   ColumnsBatch(schema: $schema, storageUnits: $storageUnits) {
