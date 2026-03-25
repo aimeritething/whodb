@@ -58,6 +58,7 @@ import {useAppDispatch, useAppSelector} from "../../store/hooks";
 import {v4 as uuidv4} from 'uuid';
 import {hasCompletedOnboarding, markOnboardingComplete} from '../../utils/onboarding';
 import {SSL_KEYS, SSLConfig} from '../../components/ssl-config';
+import {isSealosContext, mapSealosLang, mapSealosDbType, getDefaultDatabase, decryptSealosCredential} from '../../config/sealos';
 
 /** Generate a unique ID for login credentials. */
 function generateCredentialId(): string {
@@ -130,10 +131,11 @@ export const LoginForm: FC<LoginFormProps> = ({
     const [selectedAvailableProfile, setSelectedAvailableProfile] = useState<string>();
     const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(() => {
         // Detect auto-login on initial render to prevent flash of login form
-        return searchParams.has("resource") || searchParams.has("login");
+        return searchParams.has("resource") || searchParams.has("login") || searchParams.has("dbType");
     });
     const [isEmbedded] = useState(() => {
-        return searchParams.has("credentials") || searchParams.has("resource") || searchParams.has("login");
+        return searchParams.has("credentials") || searchParams.has("resource")
+            || searchParams.has("login") || searchParams.has("dbType");
     });
 
     const loading = useMemo(() => {
@@ -489,6 +491,75 @@ export const LoginForm: FC<LoginFormProps> = ({
     const sampleProfile = useMemo(() => {
         return profiles?.Profiles.find(p => p.Source === "builtin");
     }, [profiles?.Profiles]);
+
+    const sealosHandledRef = useRef(false);
+    useEffect(() => {
+        if (!isSealosContext(searchParams) || sealosHandledRef.current) return;
+        sealosHandledRef.current = true;
+
+        const dbType = searchParams.get('dbType')!;
+        const credential = searchParams.get('credential')!;
+        const host = searchParams.get('host') ?? '';
+        const port = searchParams.get('port') ?? '';
+        const dbName = searchParams.get('dbName') ?? undefined;
+        const lang = searchParams.get('lang');
+        const theme = searchParams.get('theme');
+
+        // Clear URL immediately — ciphertext disappears from iframe src
+        window.history.replaceState({}, '', window.location.pathname);
+        setSearchParams(new URLSearchParams(), { replace: true });
+
+        // Set language and theme
+        const locale = mapSealosLang(lang);
+        if (isSupportedLanguage(locale)) {
+            dispatch(SettingsActions.setLanguage(locale));
+        }
+        if (theme === 'light' || theme === 'dark') {
+            setTheme(theme);
+        }
+
+        const whodbType = mapSealosDbType(dbType);
+        if (!whodbType) {
+            toast.error(t('sealosUnsupportedDbType', { dbType }));
+            setIsAutoLoggingIn(false);
+            return;
+        }
+
+        const aesKey = import.meta.env.VITE_WHODB_AES_KEY;
+
+        decryptSealosCredential(credential, aesKey).then(({ username, password }) => {
+            const credentials: LoginCredentials = {
+                Id: uuidv4(),
+                Type: whodbType,
+                Hostname: host,
+                Username: username,
+                Password: password,
+                Database: dbName || getDefaultDatabase(dbType),
+                Advanced: [{ Key: 'Port', Value: port }],
+            };
+
+            login({
+                variables: { credentials },
+                onCompleted(data) {
+                    if (data.Login.Status) {
+                        dispatch(AuthActions.setEmbedded(true));
+                        dispatch(AuthActions.login(credentials));
+                        navigate(InternalRoutes.Dashboard.StorageUnit.path);
+                    }
+                    setIsAutoLoggingIn(false);
+                },
+                onError(err) {
+                    console.error('[SealosLogin] login failed:', err.message);
+                    toast.error(t('sealosLoginFailed', { error: err.message }));
+                    setIsAutoLoggingIn(false);
+                },
+            });
+        }).catch((err) => {
+            console.error('[SealosLogin] decryption failed:', err);
+            toast.error(t('sealosDecryptFailed'));
+            setIsAutoLoggingIn(false);
+        });
+    }, [searchParams, login, dispatch, setTheme, navigate, setSearchParams, t]);
 
     // Handle URL parameters for pre-filling credentials or auto-login
     // Note: This effect intentionally does NOT clear selectedAvailableProfile because:
