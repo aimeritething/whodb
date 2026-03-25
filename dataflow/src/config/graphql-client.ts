@@ -5,7 +5,7 @@
  *
  * - httpLink: POST to /api/query (proxied to Core in dev, same-origin in prod)
  * - authLink: injects Authorization Bearer header from auth-store
- * - errorLink: logs network errors (auto-login retry added in Phase 3)
+ * - errorLink: logs network errors
  *
  * Reference: frontend/src/config/graphql-client.ts
  */
@@ -25,11 +25,9 @@ const authLink = setContext((_, { headers }) => ({
 }));
 
 const errorLink = onError(({ networkError }) => {
-  if (networkError && 'statusCode' in networkError && networkError.statusCode === 401) {
-    // TODO (Phase 3): auto-login retry using saved credentials from auth-store
-    console.warn('GraphQL 401: unauthorized — auto-login not yet wired');
-  } else if (networkError) {
-    console.error('GraphQL network error:', networkError);
+  if (networkError) {
+    const status = 'statusCode' in networkError ? networkError.statusCode : undefined;
+    console.error(`GraphQL network error (${status ?? 'unknown'}):`, networkError);
   }
 });
 
