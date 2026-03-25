@@ -16,7 +16,6 @@
 
 import {Button} from "@clidey/ux";
 import {Component, type ErrorInfo, type ReactNode} from "react";
-import {captureException} from "../config/posthog";
 import {openExternalLink} from "../utils/external-links";
 
 interface ErrorBoundaryProps {
@@ -40,7 +39,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
     componentDidCatch(error: Error, info: ErrorInfo) {
         console.error("Uncaught error in component tree:", error, info.componentStack);
-        captureException(error, {componentStack: info.componentStack ?? ""});
     }
 
     private handleGoHome = () => {

@@ -26,30 +26,12 @@ export function isNumeric(str: string) {
     return !isNaN(Number(str));
 }
 
-// Initialize EE NoSQL check function
-let isEENoSQLDatabase: ((databaseType: string) => boolean) | null = null;
-
-// Load EE NoSQL check if available
-if (import.meta.env.VITE_BUILD_EDITION === 'ee') {
-    import('@ee/index').then((eeModule) => {
-        if (eeModule?.isEENoSQLDatabase) {
-            isEENoSQLDatabase = eeModule.isEENoSQLDatabase;
-        }
-    }).catch(() => {
-        // EE module not available, continue with CE functionality
-    });
-}
-
 /**
  * Determines if a database type is a NoSQL database.
  * @param databaseType - The database type string to check
- * @returns True for MongoDB, Redis, ElasticSearch, and EE NoSQL databases
+ * @returns True for MongoDB, Redis, ElasticSearch
  */
 export function isNoSQL(databaseType: string) {
-    if (isEENoSQLDatabase && isEENoSQLDatabase(databaseType)) {
-        return true;
-    }
-
     switch (databaseType) {
         case DatabaseType.MongoDb:
         case DatabaseType.Redis:
@@ -59,20 +41,6 @@ export function isNoSQL(databaseType: string) {
     return false;
 }
 
-// Initialize EE storage label function
-let getEEDatabaseStorageUnitLabel: ((databaseType: string | undefined, singular: boolean) => string | null) | null = null;
-
-// Load EE function if available
-if (import.meta.env.VITE_BUILD_EDITION === 'ee') {
-    import('@ee/index').then((eeModule) => {
-        if (eeModule?.getEEDatabaseStorageUnitLabel) {
-            getEEDatabaseStorageUnitLabel = eeModule.getEEDatabaseStorageUnitLabel;
-        }
-    }).catch(() => {
-        // EE module not available, continue with CE functionality
-    });
-}
-
 /**
  * Returns the appropriate label for storage units based on database type.
  * @param databaseType - The database type
@@ -80,13 +48,6 @@ if (import.meta.env.VITE_BUILD_EDITION === 'ee') {
  * @returns The label (e.g., "Tables", "Collections", "Indices")
  */
 export function getDatabaseStorageUnitLabel(databaseType: string | undefined, singular: boolean = false) {
-    if (getEEDatabaseStorageUnitLabel) {
-        const eeLabel = getEEDatabaseStorageUnitLabel(databaseType, singular);
-        if (eeLabel !== null) {
-            return eeLabel;
-        }
-    }
-
     switch(databaseType) {
         case DatabaseType.ElasticSearch:
             return singular ? "Index" : "Indices";

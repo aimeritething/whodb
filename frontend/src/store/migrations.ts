@@ -222,67 +222,11 @@ function clearChatStateV2(): void {
 }
 
 /**
- * Apply EE settings defaults to persisted settings in EE mode
+ * V4 migration placeholder (previously applied EE settings defaults).
+ * Kept as no-op to preserve migration version numbering.
  */
 function applyEESettingsDefaultsV4(): void {
-  try {
-    // Only run in EE mode
-    if (import.meta.env.VITE_BUILD_EDITION !== 'ee') {
-      return;
-    }
-
-    const persistedSettingsState = localStorage.getItem('persist:settings');
-    if (!persistedSettingsState) {
-      return;
-    }
-
-    const settingsState = JSON.parse(persistedSettingsState);
-    let needsUpdate = false;
-
-    // Update whereConditionMode to EE default ('sheet')
-    if (settingsState.whereConditionMode) {
-      try {
-        const whereConditionMode = JSON.parse(settingsState.whereConditionMode);
-        if (whereConditionMode !== 'sheet') {
-          settingsState.whereConditionMode = JSON.stringify('sheet');
-          needsUpdate = true;
-        }
-      } catch (e) {
-        // If parsing fails, set to EE default
-        settingsState.whereConditionMode = JSON.stringify('sheet');
-        needsUpdate = true;
-      }
-    } else {
-      // Initialize with EE default if missing
-      settingsState.whereConditionMode = JSON.stringify('sheet');
-      needsUpdate = true;
-    }
-
-    // Update disableAnimations to EE default (true)
-    if (settingsState.disableAnimations) {
-      try {
-        const disableAnimations = JSON.parse(settingsState.disableAnimations);
-        if (disableAnimations !== true) {
-          settingsState.disableAnimations = JSON.stringify(true);
-          needsUpdate = true;
-        }
-      } catch (e) {
-        // If parsing fails, set to EE default
-        settingsState.disableAnimations = JSON.stringify(true);
-        needsUpdate = true;
-      }
-    } else {
-      // Initialize with EE default if missing
-      settingsState.disableAnimations = JSON.stringify(true);
-      needsUpdate = true;
-    }
-
-    if (needsUpdate) {
-      localStorage.setItem('persist:settings', JSON.stringify(settingsState));
-    }
-  } catch (error) {
-    console.error('Error applying EE settings defaults:', error);
-  }
+  // No-op: EE settings defaults no longer needed
 }
 
 /**

@@ -29,13 +29,10 @@ import {
 import {LocalLoginProfile} from '../store/auth';
 import {reduxStore} from '../store';
 import {addAuthHeader} from '../utils/auth-headers';
-import {isAwsHostname} from '../utils/cloud-connection-prefill';
 import {getTranslation, loadTranslations} from '../utils/i18n';
 import {type SupportedLanguage, DEFAULT_LANGUAGE} from '../utils/languages';
 
-// Always use a relative URI so that:
-// - Desktop/Wails uses the embedded router handler
-// - Dev server (vite) proxies to the backend via server.proxy in vite.config.ts
+// Always use a relative URI so that the dev server (vite) proxies to the backend via server.proxy in vite.config.ts
 const uri = "/api/query";
 const loginWithProfileQuery = print(LoginWithProfileDocument);
 const loginMutationQuery = print(LoginDocument);
@@ -115,12 +112,6 @@ const errorLink = onError(({networkError}) => {
 async function handleAutoLogin(currentProfile: LocalLoginProfile) {
     const t = await getTranslator();
     try {
-        // Don't auto-login to AWS connections when cloud providers are disabled
-        const cloudProvidersEnabled = reduxStore.getState().settings.cloudProvidersEnabled;
-        if (isAwsHostname(currentProfile.Hostname) && !cloudProvidersEnabled) {
-            return;
-        }
-
         let response, result;
         if (currentProfile.Saved) {
             // Login with profile

@@ -1,19 +1,3 @@
-/*
- * Copyright 2026 Clidey, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package graph
 
 // This file will be automatically regenerated based on the schema, any resolver
@@ -53,16 +37,6 @@ import (
 
 // Login is the resolver for the Login field.
 func (r *mutationResolver) Login(ctx context.Context, credentials model.LoginCredentials) (*model.StatusResponse, error) {
-	if env.DisableCredentialForm {
-		log.WithFields(log.Fields{
-			"type":     credentials.Type,
-			"hostname": credentials.Hostname,
-			"username": credentials.Username,
-			"database": credentials.Database,
-		}).Error("Login with credentials is disabled; use preconfigured connections")
-		return nil, errors.New("login with credentials is disabled; use preconfigured connections")
-	}
-
 	advanced := make([]engine.Record, 0, len(credentials.Advanced))
 	for _, recordInput := range credentials.Advanced {
 		advanced = append(advanced, engine.Record{

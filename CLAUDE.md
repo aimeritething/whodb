@@ -1,10 +1,6 @@
 # WhoDB Development Guide
 
-WhoDB is a database management tool with dual-edition architecture: Community Edition (CE) in `/core` and Enterprise Edition (EE) in `/ee`.
-
-**Note**: The `ee/` submodule is only available to core WhoDB developers. If `ee/` is not present, stub files provide no-op implementations so CE builds work normally. Build tags (`//go:build ee` vs `//go:build !ee`) control which code is compiled.
-
-**EE Documentation**: All Enterprise Edition documentation, commands, and development guides are in `ee/CLAUDE.md` and `ee/.claude/docs/`. This file covers CE only.
+WhoDB is a database management tool with a Go backend (`/core`) and React frontend (`/frontend`).
 
 ## Non-Negotiable Rules
 
@@ -12,14 +8,12 @@ WhoDB is a database management tool with dual-edition architecture: Community Ed
 2. **GraphQL-first** - All new API functionality via GraphQL. Never add HTTP resolvers unless explicitly needed (e.g., file downloads)
 3. **No SQL injection** - Never use `fmt.Sprintf` with user input for SQL. Use parameterized queries or GORM builders. See `.claude/docs/sql-security.md`
 4. **Plugin architecture** - Never use `switch dbType` or `if dbType ==` in shared code. All database-specific logic goes in plugins. See `.claude/docs/plugin-architecture.md`
-5. **CE/EE separation** - EE code MUST stay in the ee submodule. All EE documentation is in `ee/`. No exceptions
-6. **Documentation requirements** - All exported Go functions/types need doc comments. All exported TypeScript functions/components need JSDoc. See `.claude/docs/documentation.md`
+5. **Documentation requirements** - All exported Go functions/types need doc comments. All exported TypeScript functions/components need JSDoc. See `.claude/docs/documentation.md`
 7. **Localization requirements** - All user-facing strings must use `t()` with YAML keys. No fallback strings. No hardcoded UI text. See `.claude/docs/localization.md`
 8. **Verify before completing** - After finishing any task, verify: (1) type checks pass (`pnpm run typecheck` for frontend, `go build` for backend), (2) no linting errors, (3) all added code is actually used (no dead code). See `.claude/docs/verification.md`
 9. **Fallback clarification** - Do not include fallback logic UNLESS you were asked to. If you think the project could benefit from fallback logic, first ask and clarify
 10. **Show proof** - When making a claim about how something outside of our codebase works, for example a 3rd party library or function, always provide official documentation or the actual code to back that up. Check online if you have to.
 11. **No defensive code** - Do not program defensively. If there is an edge or use case that you think needs to be handled, first ask.
-12. **No mention of EE in CE** - Under no circumstance can you mention ANY EE databases, features, or functionality in the CE version.
 
 ## Project Structure
 
@@ -39,34 +33,27 @@ frontend/               # React/TypeScript
   src/store/           # Redux Toolkit state
   src/generated/       # GraphQL codegen output (@graphql alias)
 
-cli/                    # Interactive TUI CLI (Bubble Tea)
-desktop-ce/             # CE desktop app (Wails)
-desktop-common/         # Shared desktop code
-
-.github/workflows/      # CI/CD pipelines (release, build, deploy)
+dev/                    # Docker compose, test scripts, sample data
+docs/                   # Integration plan and analysis
 ```
 
-Additional docs: `.claude/docs/cli.md` (CLI), `.claude/docs/desktop.md` (desktop), `.claude/docs/ci-cd.md` (GitHub Actions), `.claude/docs/testing.md` (testing).
+Additional docs: `.claude/docs/testing.md` (testing).
 
 ## Testing
 
 See `.claude/docs/testing.md` for comprehensive testing documentation including:
-- Frontend Playwright E2E tests (CE and EE)
+- Frontend Playwright E2E tests
 - Docker container setup for test databases
 - Go backend unit and integration tests
-- CLI tests
 
 Quick reference:
 ```bash
 # Frontend Playwright E2E
-cd frontend && pnpm e2e:ce:headless         # CE headless (all databases)
-cd frontend && pnpm e2e:ce                  # CE interactive (headed)
+cd frontend && pnpm e2e:ce:headless         # Headless (all databases)
+cd frontend && pnpm e2e:ce                  # Interactive (headed)
 
 # Backend Go tests
 bash dev/run-backend-tests.sh all           # Unit + integration
-
-# CLI tests
-bash dev/run-cli-tests.sh                   # All CLI tests
 ```
 
 ## When Working on Backend (Go)
@@ -86,7 +73,7 @@ bash dev/run-cli-tests.sh                   # All CLI tests
 - Define GraphQL operations in `.graphql` files, then run `pnpm run generate`
 - Import generated hooks from `@graphql` alias - never use inline `gql` strings
 - CE features in `frontend/src/`
-- **Keyboard shortcuts** are centralized in `frontend/src/utils/shortcuts.ts`. Never hardcode shortcut keys inline — use `SHORTCUTS.*` for definitions, `matchesShortcut()` for event handling, and `SHORTCUTS.*.displayKeys` for UI display. Platform-variant shortcuts (nav numbers) use `resolveShortcut()`. Some shortcuts also have Wails accelerators in `desktop-common/app.go` that must be updated separately
+- **Keyboard shortcuts** are centralized in `frontend/src/utils/shortcuts.ts`. Never hardcode shortcut keys inline — use `SHORTCUTS.*` for definitions, `matchesShortcut()` for event handling, and `SHORTCUTS.*.displayKeys` for UI display. Platform-variant shortcuts (nav numbers) use `resolveShortcut()`
 
 ## When Updating Dependencies
 
@@ -94,12 +81,11 @@ Use `core/go.mod` as the reference point for dependency versions.
 
 ## Commands Quick Reference
 
-See `.claude/docs/commands.md` for full reference. EE commands are in `ee/CLAUDE.md`.
+See `.claude/docs/commands.md` for full reference.
 
 ```bash
 # Backend: cd core && go run .
 # Frontend: cd frontend && pnpm start
-# CLI: cd cli && go run .
 ```
 
 ## Development Principles
@@ -114,4 +100,3 @@ See `.claude/docs/commands.md` for full reference. EE commands are in `ee/CLAUDE
 - Use subagents to accomplish tasks faster
 - Maintain professional, neutral tone without excessive enthusiasm
 - When you finish a task, go back and check your work. Check that it is correct and that it is not over-engineered
-- When you finish a task, if the ee submodule is available, then go through it and see if it needs to be modified to accomodate your changes. For example if you change a plugin signature in CE, update it in EE as well

@@ -15,8 +15,6 @@
  */
 
 import {useCallback} from "react";
-import * as desktopService from "../services/desktop";
-import {isDesktopApp} from "../utils/external-links";
 import {addAuthHeader} from "../utils/auth-headers";
 
 
@@ -43,7 +41,6 @@ export const useExportToCSV = (schema: string, storageUnit: string, selectedOnly
         }
 
         // Use backend export endpoint for full data export
-        // Add auth header for desktop environments where cookies don't work
         const response = await fetch('/api/export', {
           method: 'POST',
           credentials: 'include',
@@ -73,34 +70,21 @@ export const useExportToCSV = (schema: string, storageUnit: string, selectedOnly
         // Create blob from response
         const blob = await response.blob();
 
-        // Use native save dialog in desktop mode
-        if (isDesktopApp()) {
-          const arrayBuffer = await blob.arrayBuffer();
-          const data = new Uint8Array(arrayBuffer);
-          const savedPath = await desktopService.saveBinaryFile(data, filename);
-          if (!savedPath) {
-            console.error('Export: Save dialog was cancelled or failed');
-            // Don't throw error if user just cancelled the dialog
-            return;
-          }
-        } else {
-          // Browser download fallback
-          const downloadUrl = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = downloadUrl;
-          link.download = filename;
-          link.style.display = 'none';
-          document.body.appendChild(link);
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
 
-          // Trigger download
-          link.click();
+        // Trigger download
+        link.click();
 
-          // Cleanup
-          setTimeout(() => {
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(downloadUrl);
-          }, 100);
-        }
+        // Cleanup
+        setTimeout(() => {
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(downloadUrl);
+        }, 100);
       } catch (error) {
         throw error;
       }

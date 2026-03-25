@@ -21,16 +21,6 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 RUN pnpm install
 COPY ./frontend/ ./
 
-# Create empty EE modules for Vite to resolve during CE build
-RUN mkdir -p ee/frontend/src/components/theme ee/frontend/src/components/charts ee/frontend/src/pages/raw-execute ee/frontend/src && \
-    echo "export default {}; export const LineChart = () => null;" > ee/frontend/src/components/charts/line-chart.tsx && \
-    echo "export default {}; export const PieChart = () => null;" > ee/frontend/src/components/charts/pie-chart.tsx && \
-    echo "export default {}; export const AnalyzeGraph = () => null;" > ee/frontend/src/pages/raw-execute/analyze-view.tsx && \
-    echo "export default {};" > ee/frontend/src/index.ts && \
-    echo "export default {}; export const eeDatabaseTypes = []; export const eeFeatures = {};" > ee/frontend/src/config.ts && \
-    echo "export default {};" > ee/frontend/src/components/export.ts && \
-    echo "export default {}; export const EEIcons = { Logos: {} };" > ee/frontend/src/icons.tsx
-
 ARG VERSION=dev
 ENV VITE_APP_VERSION=${VERSION}
 RUN pnpm run build
@@ -46,12 +36,8 @@ RUN apk add --no-cache \
 	curl
 WORKDIR /app
 
-# Copy ee-stub for CE builds (provides stub packages for EE imports)
-COPY ./ee-stub/ ./ee-stub/
-
-# Copy core module files and fix replace path for Docker context
+# Copy core module files
 COPY ./core/go.mod ./core/go.sum ./
-RUN sed -i 's|../ee-stub|./ee-stub|g' go.mod
 RUN go mod download
 COPY ./core/ ./
 

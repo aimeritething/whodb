@@ -45,9 +45,8 @@ import {Loading} from "../../components/loading";
 import {Container} from "../../components/page";
 import {updateProfileLastAccessed} from "../../components/profile-info-tooltip";
 import {baseDatabaseTypes, getDatabaseTypeDropdownItems, IDatabaseDropdownItem} from "../../config/database-types";
-import {extensions, featureFlags, getAppName, isEEMode, sources} from '../../config/features';
+import {extensions, featureFlags, getAppName, sources} from '../../config/features';
 import {InternalRoutes} from "../../config/routes";
-import {useDesktopFile} from '../../hooks/useDesktop';
 import {useTranslation} from '@/hooks/use-translation';
 import {AuthActions} from "../../store/auth";
 import {DatabaseActions} from "../../store/database";
@@ -56,45 +55,14 @@ import {SettingsActions} from "../../store/settings";
 import {isSupportedLanguage} from "@/utils/languages";
 import {HealthActions} from "../../store/health";
 import {useAppDispatch, useAppSelector} from "../../store/hooks";
-import {isDesktopApp} from '../../utils/external-links';
 import {v4 as uuidv4} from 'uuid';
 import {hasCompletedOnboarding, markOnboardingComplete} from '../../utils/onboarding';
-import {
-    AwsConnectionPicker,
-    AwsConnectionPrefillData,
-    DatabaseIconWithBadge,
-    isAwsConnection
-} from '../../components/aws';
-import {isAwsHostname} from '../../utils/cloud-connection-prefill';
 import {SSL_KEYS, SSLConfig} from '../../components/ssl-config';
+import {isSealosContext, mapSealosLang, mapSealosDbType, getDefaultDatabase, decryptSealosCredential} from '../../config/sealos';
 
-/**
- * Generate a consistent ID for desktop credentials based on connection details.
- * This ensures the same credentials always produce the same ID, preventing duplicate keyring entries.
- * For browser environments, returns undefined to rely on cookie-based auth.
- */
-function generateCredentialId(type: string, hostname: string, username: string, database: string): string | undefined {
-    // browser environment just uses a random ID
-    if (!isDesktopApp()) {
-        return uuidv4();
-    }
-
-    // desktop environment uses a deterministic ID based on connection details
-    const parts = [
-        'whodb',
-        type || 'unknown',
-        hostname || 'localhost',
-        username || 'default',
-        database || 'default'
-    ];
-
-    const combined = parts.join('::');
-    try {
-        const encoded = btoa(combined).replace(/[+/=]/g, '');
-        return encoded.substring(0, 16).toLowerCase();
-    } catch {
-        return uuidv4();
-    }
+/** Generate a unique ID for login credentials. */
+function generateCredentialId(): string {
+    return uuidv4();
 }
 
 
@@ -139,14 +107,12 @@ export const LoginForm: FC<LoginFormProps> = ({
     const [getDatabases, { loading: databasesLoading, data: foundDatabases }] = useGetDatabaseLazyQuery();
     const { loading: profilesLoading, data: profiles } = useGetProfilesQuery();
     const { data: settingsData } = useSettingsConfigQuery();
-    const cloudProvidersEnabled = settingsData?.SettingsConfig?.CloudProvidersEnabled ?? false;
     const disableCredentialForm = settingsData?.SettingsConfig?.DisableCredentialForm ?? false;
     const maxPageSize = settingsData?.SettingsConfig?.MaxPageSize ?? 10000;
 
     useEffect(() => {
-        dispatch(SettingsActions.setCloudProvidersEnabled(cloudProvidersEnabled));
         dispatch(SettingsActions.setMaxPageSize(maxPageSize));
-    }, [cloudProvidersEnabled, maxPageSize, dispatch]);
+    }, [maxPageSize, dispatch]);
 
     const [searchParams, setSearchParams] = useSearchParams();
 
@@ -165,13 +131,12 @@ export const LoginForm: FC<LoginFormProps> = ({
     const [selectedAvailableProfile, setSelectedAvailableProfile] = useState<string>();
     const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(() => {
         // Detect auto-login on initial render to prevent flash of login form
-        return searchParams.has("resource") || searchParams.has("login");
+        return searchParams.has("resource") || searchParams.has("login") || searchParams.has("dbType");
     });
     const [isEmbedded] = useState(() => {
-        return searchParams.has("credentials") || searchParams.has("resource") || searchParams.has("login");
+        return searchParams.has("credentials") || searchParams.has("resource")
+            || searchParams.has("login") || searchParams.has("dbType");
     });
-
-    const { isDesktop, selectSQLiteDatabase } = useDesktopFile();
 
     const loading = useMemo(() => {
         return loginLoading || loginWithProfileLoading || isAutoLoggingIn;
@@ -194,8 +159,7 @@ export const LoginForm: FC<LoginFormProps> = ({
         }
         setError(undefined);
 
-        // Generate ID only for desktop apps, using consistent ID for same credentials
-        const credentialId = generateCredentialId(databaseType.id, hostName, username, database);
+        const credentialId = generateCredentialId();
 
         const credentials: LoginCredentials = {
             Id: credentialId,
@@ -442,56 +406,6 @@ export const LoginForm: FC<LoginFormProps> = ({
         setSelectedAvailableProfile(itemId);
     }, []);
 
-    /**
-     * Handle prefill from AWS connection picker.
-     * Updates the main login form with discovered connection details,
-     * then focuses the username field for easy credential entry.
-     */
-    const handleAwsConnectionPrefill = useCallback((data: AwsConnectionPrefillData) => {
-        // Find the database type in our dropdown items
-        const dbType = databaseTypeItems.find(item =>
-            item.id.toLowerCase() === data.databaseType.toLowerCase()
-        );
-
-        if (dbType) {
-            // Use the proper handler to set database type and reset fields
-            handleDatabaseTypeChange(dbType);
-
-            // Set hostname and advanced settings after type change completes
-            setTimeout(() => {
-                if (data.hostname) {
-                    setHostName(data.hostname);
-                }
-
-                // Merge advanced settings
-                if (data.advanced && Object.keys(data.advanced).length > 0) {
-                    setAdvancedForm(prev => ({
-                        ...prev,
-                        ...data.advanced,
-                    }));
-                    setShowAdvanced(true);
-                }
-
-                // Focus username field after form updates
-                setTimeout(() => {
-                    usernameInputRef.current?.focus();
-                }, 50);
-            }, 0);
-        }
-    }, [databaseTypeItems, handleDatabaseTypeChange]);
-
-    const handleBrowseSQLiteFile = useCallback(async () => {
-        try {
-            const filePath = await selectSQLiteDatabase();
-            if (filePath) {
-                setDatabase(filePath);
-            }
-        } catch (error) {
-            console.error('Failed to select SQLite database:', error);
-            toast.error(t('failedToSelectDatabaseFile'));
-        }
-    }, [selectSQLiteDatabase, t]);
-
     useEffect(() => {
         dispatch(DatabaseActions.setSchema(""));
     }, [dispatch]);
@@ -546,12 +460,12 @@ export const LoginForm: FC<LoginFormProps> = ({
         }
     }, [searchParams, dispatch]);
 
-    // Load database types, filtering out AWS types when cloud providers are disabled
+    // Load database types
     useEffect(() => {
-        getDatabaseTypeDropdownItems({ cloudProvidersEnabled }).then(items => {
+        getDatabaseTypeDropdownItems().then(items => {
             setDatabaseTypeItems(items);
         });
-    }, [cloudProvidersEnabled]);
+    }, []);
 
     // Update last accessed time when a new profile is created during login
     useEffect(() => {
@@ -564,28 +478,88 @@ export const LoginForm: FC<LoginFormProps> = ({
     const availableProfiles = useMemo(() => {
         return profiles?.Profiles
             .filter(profile => profile.Source !== "builtin")
-            // Filter out AWS-hosted profiles when cloud providers are disabled
-            .filter(profile => cloudProvidersEnabled || !isAwsHostname(profile.Hostname))
             .map(profile => ({
                 value: profile.Id,
                 label: profile.Alias ?? profile.Id,
-                icon: (
-                    <DatabaseIconWithBadge
-                        icon={(Icons.Logos as Record<string, ReactElement>)[profile.Type]}
-                        showCloudBadge={isAwsConnection(profile.Id)}
-                        sslStatus={profile.SSLConfigured ? { IsEnabled: true, Mode: 'configured' } : undefined}
-                        size="sm"
-                    />
-                ),
+                icon: (Icons.Logos as Record<string, ReactElement>)[profile.Type],
                 rightIcon: sources[profile.Source],
             })) ?? [];
-    }, [profiles?.Profiles, cloudProvidersEnabled]);
+    }, [profiles?.Profiles]);
 
     const hasAvailableProfiles = availableProfiles.length > 0;
 
     const sampleProfile = useMemo(() => {
         return profiles?.Profiles.find(p => p.Source === "builtin");
     }, [profiles?.Profiles]);
+
+    const sealosHandledRef = useRef(false);
+    useEffect(() => {
+        if (!isSealosContext(searchParams) || sealosHandledRef.current) return;
+        sealosHandledRef.current = true;
+
+        const dbType = searchParams.get('dbType')!;
+        const credential = searchParams.get('credential')!;
+        const host = searchParams.get('host') ?? '';
+        const port = searchParams.get('port') ?? '';
+        const dbName = searchParams.get('dbName') ?? undefined;
+        const lang = searchParams.get('lang');
+        const theme = searchParams.get('theme');
+
+        // Clear URL immediately — ciphertext disappears from iframe src
+        window.history.replaceState({}, '', window.location.pathname);
+        setSearchParams(new URLSearchParams(), { replace: true });
+
+        // Set language and theme
+        const locale = mapSealosLang(lang);
+        if (isSupportedLanguage(locale)) {
+            dispatch(SettingsActions.setLanguage(locale));
+        }
+        if (theme === 'light' || theme === 'dark') {
+            setTheme(theme);
+        }
+
+        const whodbType = mapSealosDbType(dbType);
+        if (!whodbType) {
+            toast.error(t('sealosUnsupportedDbType', { dbType }));
+            setIsAutoLoggingIn(false);
+            return;
+        }
+
+        const aesKey = import.meta.env.VITE_WHODB_AES_KEY;
+
+        decryptSealosCredential(credential, aesKey).then(({ username, password }) => {
+            const credentials: LoginCredentials = {
+                Id: uuidv4(),
+                Type: whodbType,
+                Hostname: host,
+                Username: username,
+                Password: password,
+                Database: dbName || getDefaultDatabase(dbType),
+                Advanced: [{ Key: 'Port', Value: port }],
+            };
+
+            login({
+                variables: { credentials },
+                onCompleted(data) {
+                    if (data.Login.Status) {
+                        dispatch(AuthActions.setEmbedded(true));
+                        dispatch(AuthActions.login(credentials));
+                        navigate(InternalRoutes.Dashboard.StorageUnit.path);
+                    }
+                    setIsAutoLoggingIn(false);
+                },
+                onError(err) {
+                    console.error('[SealosLogin] login failed:', err.message);
+                    toast.error(t('sealosLoginFailed', { error: err.message }));
+                    setIsAutoLoggingIn(false);
+                },
+            });
+        }).catch((err) => {
+            console.error('[SealosLogin] decryption failed:', err);
+            toast.error(t('sealosDecryptFailed'));
+            setIsAutoLoggingIn(false);
+        });
+    }, [searchParams, login, dispatch, setTheme, navigate, setSearchParams, t]);
 
     // Handle URL parameters for pre-filling credentials or auto-login
     // Note: This effect intentionally does NOT clear selectedAvailableProfile because:
@@ -769,51 +743,29 @@ export const LoginForm: FC<LoginFormProps> = ({
             return <div className="flex flex-col gap-lg w-full">
                 <div className="flex flex-col gap-xs w-full">
                     <Label htmlFor="sqlite-database">{t('database')}</Label>
-                    {isDesktop ? (
-                        <div className="flex flex-col gap-sm w-full">
-                            <Input
-                                id="sqlite-database"
-                                value={database}
-                                onChange={(e) => setDatabase(e.target.value)}
-                                placeholder={t('selectOrEnterDatabasePath')}
-                                data-testid="database"
-                                aria-required="true"
-                                aria-invalid={error ? "true" : undefined}
-                                aria-describedby={error ? "login-error" : undefined}
-                            />
-                            <Button
-                                onClick={handleBrowseSQLiteFile}
-                                variant="outline"
-                                className="w-full"
-                            >
-                                {t('browseForSqliteFile')}
-                            </Button>
-                        </div>
-                    ) : (
-                        <SearchSelect
-                            value={database}
-                            onChange={setDatabase}
-                            disabled={databasesLoading}
-                            options={
-                                databasesLoading
-                                    ? []
-                                    : foundDatabases?.Database?.map(db => ({
-                                    value: db,
-                                    label: db,
-                                    icon: <CircleStackIcon className="w-4 h-4"/>,
-                                })) ?? []
-                            }
-                            placeholder={t('selectDatabase')}
-                            buttonProps={{
-                                "data-testid": "database",
-                                "aria-required": "true",
-                                "aria-invalid": error ? "true" : undefined,
-                                "aria-describedby": error ? "login-error" : undefined,
-                            }}
-                            contentClassName="w-[var(--radix-popover-trigger-width)] login-select-popover"
-                            rightIcon={<ChevronDownIcon className="w-4 h-4"/>}
-                        />
-                    )}
+                    <SearchSelect
+                        value={database}
+                        onChange={setDatabase}
+                        disabled={databasesLoading}
+                        options={
+                            databasesLoading
+                                ? []
+                                : foundDatabases?.Database?.map(db => ({
+                                value: db,
+                                label: db,
+                                icon: <CircleStackIcon className="w-4 h-4"/>,
+                            })) ?? []
+                        }
+                        placeholder={t('selectDatabase')}
+                        buttonProps={{
+                            "data-testid": "database",
+                            "aria-required": "true",
+                            "aria-invalid": error ? "true" : undefined,
+                            "aria-describedby": error ? "login-error" : undefined,
+                        }}
+                        contentClassName="w-[var(--radix-popover-trigger-width)] login-select-popover"
+                        rightIcon={<ChevronDownIcon className="w-4 h-4"/>}
+                    />
                 </div>
             </div>
         }
@@ -843,7 +795,7 @@ export const LoginForm: FC<LoginFormProps> = ({
                 </div>
             )}
         </div>
-    }, [database, databaseType.id, databaseType.fields, databaseType.customFormRenderer, databasesLoading, foundDatabases?.Database, handleHostNameChange, hostName, password, username, isDesktop, handleBrowseSQLiteFile, advancedForm, formResetKey, t, error]);
+    }, [database, databaseType.id, databaseType.fields, databaseType.customFormRenderer, databasesLoading, foundDatabases?.Database, handleHostNameChange, hostName, password, username, advancedForm, formResetKey, t, error]);
 
     const loginWithCredentialsEnabled = useMemo(() => {
         if (databaseType.customFormRenderer) {
@@ -852,10 +804,7 @@ export const LoginForm: FC<LoginFormProps> = ({
         if (databaseType.id === DatabaseType.Sqlite3) {
             return database.length > 0;
         }
-        const redisCompatible = [DatabaseType.Redis, "ElastiCache"];
-        const mongoCompatible = [DatabaseType.MongoDb, "DocumentDB"];
-
-        if (redisCompatible.includes(databaseType.id) || mongoCompatible.includes(databaseType.id) || (databaseType.id === DatabaseType.ElasticSearch)) {
+        if (databaseType.id === DatabaseType.Redis || databaseType.id === DatabaseType.MongoDb || databaseType.id === DatabaseType.ElasticSearch) {
             return hostName.length > 0;
         }
 
@@ -900,7 +849,7 @@ export const LoginForm: FC<LoginFormProps> = ({
                 {!hideHeader && (
                     <header className="flex justify-between" data-testid="login-header">
                         <h1 className="flex items-center gap-xs text-xl">
-                            {extensions.Logo ?? (!isEEMode && <img src={logoImage} alt="WhoDB" className="w-auto h-8 mr-1"/>)}
+                            {extensions.Logo ?? <img src={logoImage} alt="WhoDB" className="w-auto h-8 mr-1"/>}
                             <span className="text-brand-foreground" data-testid="app-name">{getAppName()}</span>
                         </h1>
                         <span className="text-xl">{t('title')}</span>
@@ -1037,12 +986,6 @@ export const LoginForm: FC<LoginFormProps> = ({
                         </div>
                     </>
                 }
-                {cloudProvidersEnabled && (
-                    <>
-                        <Separator className="my-8" />
-                        <AwsConnectionPicker onSelectConnection={handleAwsConnectionPrefill} />
-                    </>
-                )}
             </div>
             {
                 showSidePanel && advancedDirection === "horizontal" && (

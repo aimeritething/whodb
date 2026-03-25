@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import {isEEMode} from "@/config/ee-imports";
 import {
     Alert,
     AlertDescription,
@@ -71,25 +70,13 @@ import {InternalRoutes} from "../../config/routes";
 import {HoudiniActions} from "../../store/chat";
 import {useAppDispatch, useAppSelector} from "../../store/hooks";
 import {ScratchpadActions} from "../../store/scratchpad";
-import {isEEFeatureEnabled, loadEEComponent} from "../../utils/ee-loader";
 import {chooseRandomItems} from "../../utils/functions";
 import {databaseSupportsScratchpad, databaseTypesThatUseDatabaseInsteadOfSchema} from "../../utils/database-features";
 import {useNavigate} from "react-router-dom";
 import {useChatExamples} from "./examples";
 import {useTranslation} from '@/hooks/use-translation';
-import {addAuthHeader, isDesktopScheme} from "../../utils/auth-headers";
+import {addAuthHeader} from "../../utils/auth-headers";
 import {matchesShortcut, SHORTCUTS} from "../../utils/shortcuts";
-
-// Lazy load chart components if EE is enabled
-const LineChart = isEEFeatureEnabled('dataVisualization') ? loadEEComponent(
-    () => import('@ee/components/charts/line-chart').then(m => ({ default: m.LineChart })),
-    () => null
-) : () => null;
-
-const PieChart = isEEFeatureEnabled('dataVisualization') ? loadEEComponent(
-    () => import('@ee/components/charts/pie-chart').then(m => ({ default: m.PieChart })),
-    () => null
-) : () => null;
 
 const THINKING_PHRASES_COUNT = 25;
 
@@ -441,7 +428,7 @@ export const ChatPage: FC = () => {
         const shouldTryTitle = hasDefaultName;
 
         setLoading(true);
-        loadingPhraseRef.current = isEEMode ? thinkingPhrases[0] : chooseRandomItems(thinkingPhrases)[0];
+        loadingPhraseRef.current = chooseRandomItems(thinkingPhrases)[0];
         dispatch(HoudiniActions.addChatMessage({ Type: "message", Text: sanitizedQuery, isUserInput: true, RequiresConfirmation: false }));
         setQuery("");
 
@@ -465,7 +452,6 @@ export const ChatPage: FC = () => {
         }, 250);
 
         try {
-            const isDesktop = isDesktopScheme();
             const endpoint = '/api/ai-chat/stream';
 
             const requestBody = {
@@ -496,11 +482,11 @@ export const ChatPage: FC = () => {
                 return;
             }
 
-            // Check response type - server returns JSON for non-streaming (Wails), SSE for streaming
+            // Check response type - server returns JSON for non-streaming, SSE for streaming
             const contentType = response.headers.get('Content-Type') || '';
-            const isNonStreaming = contentType.includes('application/json') || isDesktop;
+            const isNonStreaming = contentType.includes('application/json');
 
-            // Non-streaming mode (desktop/Wails) - server returns JSON
+            // Non-streaming mode - server returns JSON
             if (isNonStreaming) {
                 const data = await response.json();
                 // Server returns { messages: [...], done: true }
@@ -1011,14 +997,6 @@ export const ChatPage: FC = () => {
                                                         <ErrorState error={chat.Text.replace(/^ERROR:\s*/i, "")} />
                                                     </div>
                                                 );
-                                            } else if (isEEFeatureEnabled('dataVisualization') && (chat.Type === "sql:pie-chart" || chat.Type === "sql:line-chart")) {
-                                                return <div key={`chat-${i}`} className="flex gap-lg w-full max-w-full min-w-0 pt-4 relative" data-testid="visual-message">
-                                                    {!chat.isUserInput && chats[i-1]?.isUserInput && (extensions.MetaIcon ?? <img src={logoImage} alt="clidey logo" className="w-auto h-8" />)}
-                                                    {/* @ts-ignore */}
-                                                    {chat.Type === "sql:pie-chart" && PieChart && <PieChart columns={chat.Result?.Columns?.map(col => col.Name) ?? []} data={chat.Result?.Rows ?? []} text={chat.Text} />}
-                                                    {/* @ts-ignore */}
-                                                    {chat.Type === "sql:line-chart" && LineChart && <LineChart columns={chat.Result?.Columns?.map(col => col.Name) ?? []} data={chat.Result?.Rows ?? []} text={chat.Text} />}
-                                                </div>
                                             } else if (chat.RequiresConfirmation) {
                                                 // Show confirmation UI inline
                                                 const isExecuting = executingConfirmedId === chat.id;
