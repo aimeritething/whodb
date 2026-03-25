@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useState, useMemo, useRef, ReactNode } from 'react';
 import { useAuth } from '@/src/contexts/AuthContext';
 import type { AuthCredentials } from '@/src/config/auth-store';
+import {
+  useGetDatabaseLazyQuery,
+  useGetSchemaLazyQuery,
+  useGetStorageUnitsLazyQuery,
+} from '@graphql';
 
 export interface Connection {
   id: string;
@@ -71,9 +76,13 @@ function deriveConnection(creds: AuthCredentials, createdAt: string): Connection
 const ConnectionContext = createContext<ConnectionContextType | undefined>(undefined);
 
 export function ConnectionProvider({ children }: { children: ReactNode }) {
-  const { credentials } = useAuth();
+  const { credentials, switchDatabase } = useAuth();
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const createdAtRef = useRef(new Date().toISOString());
+
+  const [getDatabases] = useGetDatabaseLazyQuery();
+  const [getSchemas] = useGetSchemaLazyQuery();
+  const [getStorageUnits] = useGetStorageUnitsLazyQuery();
 
   // Single connection derived from AuthContext credentials
   const connections = useMemo<Connection[]>(() => {
@@ -91,20 +100,47 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
     setSelectedItem(item);
   };
 
-  // Data operations — stubs pending Phase 4 GraphQL wiring
   const fetchDatabases = async (_connectionId: string): Promise<string[]> => {
-    console.warn('fetchDatabases: pending Phase 4 GraphQL wiring');
-    return [];
+    if (!credentials) return [];
+    const { data, error } = await getDatabases({
+      variables: { type: credentials.Type },
+    });
+    if (error) {
+      console.error('[ConnectionContext] fetchDatabases failed:', error);
+      throw error;
+    }
+    return data?.Database ?? [];
   };
 
-  const fetchSchemas = async (_connectionId: string, _database: string): Promise<string[]> => {
-    console.warn('fetchSchemas: pending Phase 4 GraphQL wiring');
-    return [];
+  const fetchSchemas = async (_connectionId: string, database: string): Promise<string[]> => {
+    if (!credentials) return [];
+    if (credentials.Database !== database) {
+      const switched = await switchDatabase(database);
+      if (!switched) return [];
+    }
+    const { data, error } = await getSchemas();
+    if (error) {
+      console.error('[ConnectionContext] fetchSchemas failed:', error);
+      throw error;
+    }
+    return data?.Schema ?? [];
   };
 
-  const fetchTables = async (_connectionId: string, _database: string, _schema?: string): Promise<string[]> => {
-    console.warn('fetchTables: pending Phase 4 GraphQL wiring');
-    return [];
+  const fetchTables = async (_connectionId: string, database: string, schema?: string): Promise<string[]> => {
+    if (!credentials) return [];
+    if (credentials.Database !== database) {
+      const switched = await switchDatabase(database);
+      if (!switched) return [];
+    }
+    const schemaParam = schema ?? database;
+    const { data, error } = await getStorageUnits({
+      variables: { schema: schemaParam },
+    });
+    if (error) {
+      console.error('[ConnectionContext] fetchTables failed:', error);
+      throw error;
+    }
+    return data?.StorageUnit?.map((u) => u.Name) ?? [];
   };
 
   const createDatabase = async (_connectionId: string, _databaseName: string, _charset: string, _collation: string): Promise<boolean> => {
