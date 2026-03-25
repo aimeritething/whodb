@@ -1,0 +1,12 @@
+query GetProfiles {
+  Profiles {
+    Alias
+    Id
+    Type
+    Hostname
+    Database
+    IsEnvironmentDefined
+    Source
+    SSLConfigured
+  }
+}
