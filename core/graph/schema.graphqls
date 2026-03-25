@@ -166,6 +166,7 @@ input SettingsConfigInput {
   MetricsEnabled: String
 }
 
+
 input LoginProfileInput {
   Id: String!
   Type: DatabaseType!

@@ -18,7 +18,6 @@ import (
 	"github.com/clidey/whodb/core/src"
 	"github.com/clidey/whodb/core/src/analytics"
 	"github.com/clidey/whodb/core/src/auth"
-	"github.com/clidey/whodb/core/src/crypto"
 	"github.com/clidey/whodb/core/src/aws"
 	"github.com/clidey/whodb/core/src/common"
 	"github.com/clidey/whodb/core/src/engine"
@@ -207,98 +206,6 @@ func (r *mutationResolver) LoginWithProfile(ctx context.Context, profile model.L
 		"profile_id": profile.ID,
 	}).Error("Login profile not found or not authorized")
 	return nil, errors.New("login profile does not exist or is not authorized")
-}
-
-// SealosLogin is the resolver for the SealosLogin field.
-// It decrypts AES-256-CBC encrypted credentials from the Sealos dbprovider,
-// maps the KubeBlocks database type to a WhoDB plugin type, tests the
-// connection, and returns the decrypted credentials for the frontend to store.
-func (r *mutationResolver) SealosLogin(ctx context.Context, input model.SealosLoginInput) (*model.SealosLoginResponse, error) {
-	aesKey := env.GetAESKey()
-	if aesKey == "" {
-		return nil, errors.New("WHODB_AES_KEY is not configured")
-	}
-
-	cred, err := crypto.DecryptSealosCredential(input.Credential, aesKey)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"dbType": input.DbType,
-			"host":   input.Host,
-		}).Error("Sealos credential decryption failed")
-		return nil, errors.New("failed to decrypt credentials")
-	}
-
-	dbType, ok := sealosTypeMap[input.DbType]
-	if !ok {
-		return nil, fmt.Errorf("unsupported database type: %s", input.DbType)
-	}
-
-	database := sealosDefaultDB[input.DbType]
-	if input.DbName != nil && *input.DbName != "" {
-		database = *input.DbName
-	}
-
-	advanced := []engine.Record{{Key: "Port", Value: input.Port}}
-
-	if !src.MainEngine.Choose(engine.DatabaseType(dbType)).IsAvailable(ctx, &engine.PluginConfig{
-		Credentials: &engine.Credentials{
-			Type:     dbType,
-			Hostname: input.Host,
-			Username: cred.Username,
-			Password: cred.Password,
-			Database: database,
-			Advanced: advanced,
-		},
-	}) {
-		log.WithFields(log.Fields{
-			"type":     dbType,
-			"hostname": input.Host,
-			"username": cred.Username,
-			"database": database,
-		}).Error("Sealos login: database connection failed")
-		return nil, errors.New("unauthorized")
-	}
-
-	// Build LoginCredentials for auth.Login (keyring persistence).
-	loginCreds := &model.LoginCredentials{
-		Type:     dbType,
-		Hostname: input.Host,
-		Username: cred.Username,
-		Password: cred.Password,
-		Database: database,
-		Advanced: []*model.RecordInput{{Key: "Port", Value: input.Port}},
-	}
-	if _, err := auth.Login(ctx, loginCreds); err != nil {
-		return nil, err
-	}
-
-	return &model.SealosLoginResponse{
-		Status:   true,
-		Type:     dbType,
-		Hostname: input.Host,
-		Username: cred.Username,
-		Password: cred.Password,
-		Database: database,
-		Advanced: []*model.Record{{Key: "Port", Value: input.Port}},
-	}, nil
-}
-
-// sealosTypeMap maps KubeBlocks database type names to WhoDB DatabaseType ids.
-var sealosTypeMap = map[string]string{
-	"postgresql":     "Postgres",
-	"apecloud-mysql": "MySQL",
-	"mongodb":        "MongoDB",
-	"redis":          "Redis",
-	"clickhouse":     "ClickHouse",
-}
-
-// sealosDefaultDB maps KubeBlocks database types to their default database names.
-var sealosDefaultDB = map[string]string{
-	"postgresql":     "postgres",
-	"apecloud-mysql": "",
-	"mongodb":        "admin",
-	"redis":          "",
-	"clickhouse":     "default",
 }
 
 // Logout is the resolver for the Logout field.
