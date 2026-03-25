@@ -1,10 +1,16 @@
+// dataflow/src/config/auth-store.ts
+
 /**
- * Module-level auth credential store.
+ * Module-level auth credential store with sessionStorage backing.
  *
  * Apollo Client's authLink runs outside the React tree and needs synchronous
- * access to the current credentials. This module holds them. ConnectionContext
- * calls setAuthCredentials() on login and clearAuthCredentials() on logout.
+ * access to the current credentials. This module holds them in memory and
+ * mirrors writes to sessionStorage for cross-refresh persistence.
+ *
+ * AuthContext controls when to restore from storage (not auto-restored on load).
  */
+
+const STORAGE_KEY = 'dataflow_auth';
 
 export interface AuthCredentials {
   /** Connection ID (assigned by Core on login) */
@@ -31,9 +37,10 @@ type CurrentAuth =
 
 let currentAuth: CurrentAuth = null;
 
-/** Set credentials after a successful Login mutation. */
+/** Set credentials after a successful Login mutation. Persists to sessionStorage. */
 export function setAuthCredentials(credentials: AuthCredentials): void {
   currentAuth = { kind: 'inline', credentials };
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(credentials));
 }
 
 /** Set credentials after a successful LoginWithProfile mutation. */
@@ -41,12 +48,31 @@ export function setProfileAuth(profile: SavedProfileCredentials): void {
   currentAuth = { kind: 'profile', profile };
 }
 
-/** Clear credentials on logout. */
+/** Clear credentials on logout. Removes from sessionStorage. */
 export function clearAuth(): void {
   currentAuth = null;
+  sessionStorage.removeItem(STORAGE_KEY);
 }
 
 /** Read current auth state (used by authLink). */
 export function getAuth(): CurrentAuth {
   return currentAuth;
+}
+
+/**
+ * Restore credentials from sessionStorage into in-memory store.
+ * Called by AuthContext on mount when no Sealos URL params are present.
+ * Returns the restored credentials, or null if none were found.
+ */
+export function restoreFromStorage(): AuthCredentials | null {
+  const stored = sessionStorage.getItem(STORAGE_KEY);
+  if (!stored) return null;
+  try {
+    const credentials: AuthCredentials = JSON.parse(stored);
+    currentAuth = { kind: 'inline', credentials };
+    return credentials;
+  } catch {
+    sessionStorage.removeItem(STORAGE_KEY);
+    return null;
+  }
 }
