@@ -61,4 +61,5 @@ tools/
 .playwright-mcp
 dev_docs/
 dataflow/.next
+dataflow/build/
 docs/superpowers/
