@@ -373,7 +373,6 @@ export type Mutation = {
   Logout: StatusResponse;
   RefreshCloudProvider: AwsProvider;
   RemoveCloudProvider: StatusResponse;
-  SealosLogin: SealosLoginResponse;
   TestAWSCredentials: CloudProviderStatus;
   TestCloudProvider: CloudProviderStatus;
   UpdateAWSProvider: AwsProvider;
@@ -469,11 +468,6 @@ export type MutationRefreshCloudProviderArgs = {
 
 export type MutationRemoveCloudProviderArgs = {
   id: Scalars['ID']['input'];
-};
-
-
-export type MutationSealosLoginArgs = {
-  input: SealosLoginInput;
 };
 
 
@@ -645,25 +639,6 @@ export type SslStatus = {
   __typename?: 'SSLStatus';
   IsEnabled: Scalars['Boolean']['output'];
   Mode: Scalars['String']['output'];
-};
-
-export type SealosLoginInput = {
-  Credential: Scalars['String']['input'];
-  DbName?: InputMaybe<Scalars['String']['input']>;
-  DbType: Scalars['String']['input'];
-  Host: Scalars['String']['input'];
-  Port: Scalars['String']['input'];
-};
-
-export type SealosLoginResponse = {
-  __typename?: 'SealosLoginResponse';
-  Advanced: Array<Record>;
-  Database: Scalars['String']['output'];
-  Hostname: Scalars['String']['output'];
-  Password: Scalars['String']['output'];
-  Status: Scalars['Boolean']['output'];
-  Type: Scalars['String']['output'];
-  Username: Scalars['String']['output'];
 };
 
 export type SettingsConfig = {
