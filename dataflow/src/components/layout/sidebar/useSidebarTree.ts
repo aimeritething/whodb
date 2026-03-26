@@ -1,0 +1,226 @@
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useConnectionStore } from "@/stores/useConnectionStore";
+import type { TreeNodeData, NodeType } from "./types";
+import { connectionToNode } from "./types";
+
+const STORAGE_KEY = "sidebar_expanded_items";
+
+export function useSidebarTree() {
+  const { connections, fetchDatabases, fetchSchemas, fetchTables } =
+    useConnectionStore();
+
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [treeData, setTreeData] = useState<Record<string, TreeNodeData[]>>({});
+  const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
+  const [isRestoring, setIsRestoring] = useState(true);
+  const hasRestored = useRef(false);
+
+  // Persist expanded items to localStorage
+  useEffect(() => {
+    if (!isRestoring) {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(Array.from(expandedItems))
+      );
+    }
+  }, [expandedItems, isRestoring]);
+
+  /** Build children array for a given node by fetching from the store */
+  const buildChildren = useCallback(
+    async (node: TreeNodeData): Promise<TreeNodeData[]> => {
+      if (node.type === "connection") {
+        const dbs = await fetchDatabases(node.connectionId);
+        return dbs.map((db) => ({
+          id: `${node.id}-${db}`,
+          name: db,
+          type: "database" as const,
+          parentId: node.id,
+          connectionId: node.connectionId,
+          metadata: { database: db },
+        }));
+      }
+
+      if (node.type === "database") {
+        const conn = connections.find((c) => c.id === node.connectionId);
+
+        if (conn?.type === "POSTGRES") {
+          const schemas = await fetchSchemas(node.connectionId, node.name);
+          return schemas.map((schema) => ({
+            id: `${node.id}-${schema}`,
+            name: schema,
+            type: "schema" as const,
+            parentId: node.id,
+            connectionId: node.connectionId,
+            metadata: { database: node.name, schema },
+          }));
+        }
+
+        if (conn?.type === "REDIS") {
+          return [
+            {
+              id: `${node.id}-all-keys`,
+              name: "全部数据",
+              type: "redis_keys_list" as const,
+              parentId: node.id,
+              connectionId: node.connectionId,
+              metadata: { database: node.name },
+            },
+          ];
+        }
+
+        // MySQL / MongoDB / ClickHouse — fetch tables directly
+        const tables = await fetchTables(node.connectionId, node.name);
+        return tables.map((table) => ({
+          id: `${node.id}-${table}`,
+          name: table,
+          type: (conn?.type === "MONGODB" ? "collection" : "table") as NodeType,
+          parentId: node.id,
+          connectionId: node.connectionId,
+          metadata: { database: node.name, table },
+        }));
+      }
+
+      if (node.type === "schema") {
+        const tables = await fetchTables(
+          node.connectionId,
+          node.metadata.database!,
+          node.name
+        );
+        return tables.map((table) => ({
+          id: `${node.id}-${table}`,
+          name: table,
+          type: "table" as const,
+          parentId: node.id,
+          connectionId: node.connectionId,
+          metadata: {
+            database: node.metadata.database,
+            schema: node.name,
+            table,
+          },
+        }));
+      }
+
+      return [];
+    },
+    [connections, fetchDatabases, fetchSchemas, fetchTables]
+  );
+
+  /** Fetch and store children for a node */
+  const fetchNodeChildren = useCallback(
+    async (node: TreeNodeData) => {
+      setIsLoading((prev) => ({ ...prev, [node.id]: true }));
+      try {
+        const children = await buildChildren(node);
+        setTreeData((prev) => ({ ...prev, [node.id]: children }));
+        return children;
+      } catch (error) {
+        console.error("Failed to fetch children:", error);
+        throw error;
+      } finally {
+        setIsLoading((prev) => ({ ...prev, [node.id]: false }));
+      }
+    },
+    [buildChildren]
+  );
+
+  /** Toggle expand/collapse for a node */
+  const toggleItem = useCallback(
+    async (node: TreeNodeData) => {
+      const newExpanded = new Set(expandedItems);
+
+      if (newExpanded.has(node.id)) {
+        newExpanded.delete(node.id);
+      } else {
+        newExpanded.add(node.id);
+        // Always re-fetch databases when expanding (original behavior)
+        const shouldFetch = !treeData[node.id] || node.type === "database";
+        if (shouldFetch) {
+          await fetchNodeChildren(node);
+        }
+      }
+
+      setExpandedItems(newExpanded);
+    },
+    [expandedItems, treeData, fetchNodeChildren]
+  );
+
+  /** Re-fetch children for a node (used after mutations) */
+  const refreshNode = useCallback(
+    async (node: TreeNodeData) => {
+      setTreeData((prev) => {
+        const next = { ...prev };
+        delete next[node.id];
+        return next;
+      });
+      if (expandedItems.has(node.id)) {
+        await fetchNodeChildren(node);
+      }
+    },
+    [expandedItems, fetchNodeChildren]
+  );
+
+  /** Collapse a node without fetching */
+  const collapseNode = useCallback((nodeId: string) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      next.delete(nodeId);
+      return next;
+    });
+  }, []);
+
+  // Restore expanded state from localStorage on mount (runs once)
+  useEffect(() => {
+    if (hasRestored.current || connections.length === 0) return;
+
+    const restoreState = async () => {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) {
+        setIsRestoring(false);
+        return;
+      }
+
+      try {
+        const expandedIds = new Set<string>(JSON.parse(stored));
+        setExpandedItems(expandedIds);
+
+        const fetchRecursively = async (nodes: TreeNodeData[]) => {
+          for (const node of nodes) {
+            if (!expandedIds.has(node.id)) continue;
+            setIsLoading((prev) => ({ ...prev, [node.id]: true }));
+            try {
+              const children = await buildChildren(node);
+              setTreeData((prev) => ({ ...prev, [node.id]: children }));
+              if (children.length > 0) {
+                await fetchRecursively(children);
+              }
+            } catch (error) {
+              console.error("Failed to restore node:", node.id, error);
+            } finally {
+              setIsLoading((prev) => ({ ...prev, [node.id]: false }));
+            }
+          }
+        };
+
+        const connectionNodes = connections.map(connectionToNode);
+        await fetchRecursively(connectionNodes);
+      } catch (e) {
+        console.error("Failed to restore expanded items", e);
+      }
+
+      setIsRestoring(false);
+    };
+
+    hasRestored.current = true;
+    restoreState();
+  }, [connections.length, buildChildren]);
+
+  return {
+    expandedItems,
+    treeData,
+    isLoading,
+    toggleItem,
+    fetchNodeChildren,
+    refreshNode,
+    collapseNode,
+  };
+}
