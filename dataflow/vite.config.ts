@@ -27,4 +27,7 @@ export default defineConfig({
     outDir: 'build',
     chunkSizeWarningLimit: 1000,
   },
+  define: {
+    '__APP_VERSION__': JSON.stringify(process.env.VITE_APP_VERSION || 'development'),
+  },
 });

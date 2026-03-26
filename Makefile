@@ -35,3 +35,11 @@ docker-push: ## Push docker image.
 .PHONY: docker-build-push
 docker-build-push: ## Build and push docker image.
 	docker buildx build -f core/Dockerfile --platform linux/amd64 -t $(IMG) --push .
+
+.PHONY: docker-build-dataflow
+docker-build-dataflow: ## Build docker image with DataFlow frontend.
+	docker buildx build -f core/Dockerfile.dataflow --platform linux/amd64 -t $(IMG) .
+
+.PHONY: docker-build-push-dataflow
+docker-build-push-dataflow: ## Build and push docker image with DataFlow frontend.
+	docker buildx build -f core/Dockerfile.dataflow --platform linux/amd64 -t $(IMG) --push .
