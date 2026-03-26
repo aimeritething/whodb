@@ -12,26 +12,29 @@ import { getAuth } from './auth-store';
 
 /**
  * Builds the Authorization header value for the current session.
- * Returns null if no auth credentials are set.
+ *
+ * @param databaseOverride - If provided, overrides the Database field in the
+ *   credential payload. This enables per-request database targeting without
+ *   mutating global auth state.
+ * @returns Header value string, or null if no auth credentials are set.
  */
-export function getAuthorizationHeader(): string | null {
+export function getAuthorizationHeader(databaseOverride?: string): string | null {
   const auth = getAuth();
   if (!auth) return null;
 
   const tokenPayload = auth.kind === 'profile'
-    ? { Id: auth.profile.Id, Database: auth.profile.Database }
+    ? { Id: auth.profile.Id, Database: databaseOverride ?? auth.profile.Database }
     : {
         Id: auth.credentials.Id,
         Type: auth.credentials.Type,
         Hostname: auth.credentials.Hostname,
         Username: auth.credentials.Username,
         Password: auth.credentials.Password,
-        Database: auth.credentials.Database,
+        Database: databaseOverride ?? auth.credentials.Database,
         Advanced: auth.credentials.Advanced ?? [],
         IsProfile: false,
       };
 
-  // JSON → UTF-8 → Base64 (same encoding as frontend/src/utils/auth-headers.ts)
   const jsonString = JSON.stringify(tokenPayload);
   const utf8Bytes = encodeURIComponent(jsonString).replace(
     /%([0-9A-F]{2})/g,
@@ -42,9 +45,16 @@ export function getAuthorizationHeader(): string | null {
 
 /**
  * Merges the Authorization header into an existing headers object.
+ *
+ * @param headers - Existing headers to merge into.
+ * @param databaseOverride - If provided, overrides the Database field in the
+ *   credential payload for this specific request.
  */
-export function addAuthHeader(headers: Record<string, string> = {}): Record<string, string> {
-  const authHeader = getAuthorizationHeader();
+export function addAuthHeader(
+  headers: Record<string, string> = {},
+  databaseOverride?: string,
+): Record<string, string> {
+  const authHeader = getAuthorizationHeader(databaseOverride);
   if (authHeader) {
     return { ...headers, Authorization: authHeader };
   }
