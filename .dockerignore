@@ -20,5 +20,3 @@ core/tmp
 cli/build
 cli/.gocache
 cli/whodb-cli
-dataflow/.env.local
-dataflow/.env*.local

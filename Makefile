@@ -1,6 +1,7 @@
 SERVICE_NAME = whodb
 DOCKER_USERNAME ?=
 IMAGE_TAG ?= latest
+WHODB_AES_KEY ?=
 IMG ?= $(DOCKER_USERNAME)/$(SERVICE_NAME):$(IMAGE_TAG)
 
 .PHONY: all
@@ -38,8 +39,8 @@ docker-build-push: ## Build and push docker image.
 
 .PHONY: docker-build-dataflow
 docker-build-dataflow: ## Build docker image with DataFlow frontend.
-	docker buildx build -f core/Dockerfile.dataflow --platform linux/amd64 -t $(IMG) .
+	docker buildx build -f core/Dockerfile.dataflow --platform linux/amd64 --build-arg WHODB_AES_KEY=$(WHODB_AES_KEY) -t $(IMG) .
 
 .PHONY: docker-build-push-dataflow
 docker-build-push-dataflow: ## Build and push docker image with DataFlow frontend.
-	docker buildx build -f core/Dockerfile.dataflow --platform linux/amd64 -t $(IMG) --push .
+	docker buildx build -f core/Dockerfile.dataflow --platform linux/amd64 --build-arg WHODB_AES_KEY=$(WHODB_AES_KEY) -t $(IMG) --push .
