@@ -21,7 +21,7 @@ const CONNECTION_TYPES = [
 ];
 
 export function ConnectionModal({ isOpen, onClose, initialData }: ConnectionModalProps) {
-    const { addConnection, editConnection } = useConnectionStore();
+    const { editConnection } = useConnectionStore();
     const [step, setStep] = useState<"select" | "config">(initialData ? "config" : "select");
     const [selectedType, setSelectedType] = useState<ConnectionType | null>(
         initialData ? (initialData.type as ConnectionType) : null
@@ -127,8 +127,6 @@ export function ConnectionModal({ isOpen, onClose, initialData }: ConnectionModa
 
         if (initialData) {
             editConnection(initialData.id, connectionData);
-        } else {
-            addConnection(connectionData);
         }
         onClose();
     };

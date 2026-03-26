@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { PlusCircle } from "lucide-react";
+
 import { useConnectionStore, type Connection } from "@/stores/useConnectionStore";
 import { useTabStore } from "@/stores/useTabStore";
 import { ContextMenu } from "../ui/ContextMenu";
@@ -87,10 +87,6 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
     },
     [refreshNode],
   );
-
-  const handleNewConnection = useCallback(() => {
-    openModal({ type: "connection", params: {} });
-  }, [openModal]);
 
   const handleItemClick = useCallback(
     async (node: TreeNodeData) => {
@@ -457,15 +453,8 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
   return (
     <div className="flex h-full w-64 flex-col border-r bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b h-14 shrink-0">
+      <div className="flex items-center p-4 border-b h-14 shrink-0">
         <h2 className="font-semibold text-sm">数据库连接</h2>
-        <button
-          onClick={handleNewConnection}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-          title="新建连接"
-        >
-          <PlusCircle className="h-5 w-5" />
-        </button>
       </div>
 
       {/* Tree */}
