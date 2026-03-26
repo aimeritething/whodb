@@ -36,8 +36,11 @@ No test framework is configured.
 
 ### Client State
 
-- **React Context** (`src/contexts/`): `AuthContext`, `ConnectionContext` (connection list in localStorage, stub API functions), `TabContext` (open tabs, active tab)
-- **Zustand stores** (`src/stores/`): `useAnalysisStore` (dashboards, components, layout — in-memory only)
+- **Zustand stores** (`src/stores/`):
+  - `useAuthStore` — auth lifecycle (Sealos login, session restore, database switching)
+  - `useConnectionStore` — derived connection, DB/schema/table fetching, CRUD stubs
+  - `useTabStore` — open tabs, active tab, tab lifecycle
+  - `useAnalysisStore` — dashboards, components, layout (in-memory only)
 
 ### Component Organization
 
