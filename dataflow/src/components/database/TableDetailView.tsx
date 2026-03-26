@@ -260,6 +260,7 @@ export function TableDetailView({ connectionId, databaseName, tableName, schema 
                     pageSize,
                     pageOffset: overridePageOffset ?? (currentPage - 1) * pageSize,
                 },
+                context: { database: databaseName },
             });
 
             // Drop stale results
@@ -404,6 +405,7 @@ export function TableDetailView({ connectionId, databaseName, tableName, schema 
                     values,
                     updatedColumns,
                 },
+                context: { database: databaseName },
             });
 
             if (errors?.length) {
@@ -449,6 +451,7 @@ export function TableDetailView({ connectionId, databaseName, tableName, schema 
                     storageUnit: tableName,
                     values,
                 },
+                context: { database: databaseName },
             });
 
             if (errors?.length) {
@@ -535,6 +538,7 @@ export function TableDetailView({ connectionId, databaseName, tableName, schema 
                     storageUnit: tableName,
                     values,
                 },
+                context: { database: databaseName },
             });
 
             if (errors?.length) {
