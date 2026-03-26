@@ -6,6 +6,8 @@ import {
   GetDatabaseDocument,
   type GetDatabaseQuery,
   type GetDatabaseQueryVariables,
+  GetDatabaseMetadataDocument,
+  type GetDatabaseMetadataQuery,
   GetSchemaDocument,
   type GetSchemaQuery,
   GetStorageUnitsDocument,
@@ -25,7 +27,7 @@ export interface Connection {
   createdAt: string;
 }
 
-export type SelectedItemType = 'connection' | 'database' | 'schema' | 'table' | 'collection' | 'key' | 'redis_keys_list' | null;
+export type SelectedItemType = 'connection' | 'database' | 'schema' | 'table' | 'view' | 'collection' | 'key' | 'redis_keys_list' | null;
 
 export interface SelectedItem {
   type: SelectedItemType;
@@ -52,7 +54,12 @@ interface ConnectionState {
   selectItem: (item: SelectedItem | null) => void;
   fetchDatabases: (connectionId: string) => Promise<string[]>;
   fetchSchemas: (connectionId: string, database: string) => Promise<string[]>;
-  fetchTables: (connectionId: string, database: string, schema?: string) => Promise<string[]>;
+  fetchTables: (connectionId: string, database: string, schema?: string) => Promise<{ name: string; type: string }[]>;
+  systemSchemas: string[];
+  /** Node IDs where system objects are visible */
+  showSystemObjectsFor: Set<string>;
+  toggleSystemObjects: (nodeId: string) => void;
+  fetchSystemSchemas: () => Promise<void>;
 }
 
 const connectionTypeMap: Record<string, Connection['type']> = {
@@ -82,6 +89,20 @@ const createdAt = new Date().toISOString();
 export const useConnectionStore = create<ConnectionState>((set) => ({
   connections: [],
   selectedItem: null,
+  systemSchemas: [],
+  showSystemObjectsFor: new Set<string>(),
+  toggleSystemObjects: (nodeId) => set((state) => {
+    const next = new Set(state.showSystemObjectsFor);
+    if (next.has(nodeId)) next.delete(nodeId); else next.add(nodeId);
+    return { showSystemObjectsFor: next };
+  }),
+
+  fetchSystemSchemas: async () => {
+    const { data } = await graphqlClient.query<GetDatabaseMetadataQuery>({
+      query: GetDatabaseMetadataDocument,
+    });
+    set({ systemSchemas: data?.DatabaseMetadata?.systemSchemas ?? [] });
+  },
 
   // Connection management is a no-op in Sealos single-credential mode
   addConnection: () => {},
@@ -132,7 +153,10 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
       console.error('[useConnectionStore] fetchTables failed:', error);
       throw error;
     }
-    return data?.StorageUnit?.map((u) => u.Name) ?? [];
+    return data?.StorageUnit?.map((u) => ({
+      name: u.Name,
+      type: u.Attributes.find(a => a.Key === "Type")?.Value ?? "table",
+    })) ?? [];
   },
 
   createDatabase: async () => {

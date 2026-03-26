@@ -6,7 +6,7 @@ import { connectionToNode } from "./types";
 const STORAGE_KEY = "sidebar_expanded_items";
 
 export function useSidebarTree() {
-  const { connections, fetchDatabases, fetchSchemas, fetchTables } =
+  const { connections, fetchDatabases, fetchSchemas, fetchTables, fetchSystemSchemas } =
     useConnectionStore();
 
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -28,8 +28,14 @@ export function useSidebarTree() {
   /** Build children array for a given node by fetching from the store */
   const buildChildren = useCallback(
     async (node: TreeNodeData): Promise<TreeNodeData[]> => {
+      // Read directly from store to avoid stale closure values
+      const { systemSchemas, showSystemObjectsFor } = useConnectionStore.getState();
+
       if (node.type === "connection") {
-        const dbs = await fetchDatabases(node.connectionId);
+        let dbs = await fetchDatabases(node.connectionId);
+        if (!showSystemObjectsFor.has(node.id) && systemSchemas.length > 0) {
+          dbs = dbs.filter(db => !systemSchemas.includes(db));
+        }
         return dbs.map((db) => ({
           id: `${node.id}-${db}`,
           name: db,
@@ -44,7 +50,10 @@ export function useSidebarTree() {
         const conn = connections.find((c) => c.id === node.connectionId);
 
         if (conn?.type === "POSTGRES") {
-          const schemas = await fetchSchemas(node.connectionId, node.name);
+          let schemas = await fetchSchemas(node.connectionId, node.name);
+          if (!showSystemObjectsFor.has(node.id) && systemSchemas.length > 0) {
+            schemas = schemas.filter(s => !systemSchemas.includes(s));
+          }
           return schemas.map((schema) => ({
             id: `${node.id}-${schema}`,
             name: schema,
@@ -70,13 +79,15 @@ export function useSidebarTree() {
 
         // MySQL / MongoDB / ClickHouse — fetch tables directly
         const tables = await fetchTables(node.connectionId, node.name);
-        return tables.map((table) => ({
-          id: `${node.id}-${table}`,
-          name: table,
-          type: (conn?.type === "MONGODB" ? "collection" : "table") as NodeType,
+        return tables.map((t) => ({
+          id: `${node.id}-${t.name}`,
+          name: t.name,
+          type: (conn?.type === "MONGODB"
+            ? "collection"
+            : t.type.toLowerCase().includes("view") ? "view" : "table") as NodeType,
           parentId: node.id,
           connectionId: node.connectionId,
-          metadata: { database: node.name, table },
+          metadata: { database: node.name, table: t.name },
         }));
       }
 
@@ -86,16 +97,16 @@ export function useSidebarTree() {
           node.metadata.database!,
           node.name
         );
-        return tables.map((table) => ({
-          id: `${node.id}-${table}`,
-          name: table,
-          type: "table" as const,
+        return tables.map((t) => ({
+          id: `${node.id}-${t.name}`,
+          name: t.name,
+          type: (t.type.toLowerCase().includes("view") ? "view" : "table") as NodeType,
           parentId: node.id,
           connectionId: node.connectionId,
           metadata: {
             database: node.metadata.database,
             schema: node.name,
-            table,
+            table: t.name,
           },
         }));
       }
@@ -169,10 +180,14 @@ export function useSidebarTree() {
   }, []);
 
   // Restore expanded state from localStorage on mount (runs once)
+  // Waits for systemSchemas to load first so filtering is applied correctly
   useEffect(() => {
     if (hasRestored.current || connections.length === 0) return;
 
     const restoreState = async () => {
+      // Ensure system schemas are loaded before restoring tree
+      await fetchSystemSchemas();
+
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
         setIsRestoring(false);
@@ -212,7 +227,7 @@ export function useSidebarTree() {
 
     hasRestored.current = true;
     restoreState();
-  }, [connections.length, buildChildren]);
+  }, [connections.length, buildChildren, fetchSystemSchemas]);
 
   return {
     expandedItems,

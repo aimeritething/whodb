@@ -1,7 +1,7 @@
 import React from "react";
 import {
   Terminal, Plus, Upload, Download, Edit2, Trash2, Unplug,
-  RefreshCw, Eraser, Copy,
+  RefreshCw, Eraser, Copy, Eye, EyeOff,
 } from "lucide-react";
 import type { ContextMenuItem } from "@/components/ui/ContextMenu";
 
@@ -11,15 +11,34 @@ interface MenuCallbacks {
   onAction: (action: string) => void;
 }
 
+interface SystemObjectsState {
+  systemSchemas: string[];
+  showSystemObjects: boolean;
+}
+
 function refreshItem(onAction: (action: string) => void): ContextMenuItem {
   return { label: "Refresh", onClick: () => onAction("refresh"), icon: React.createElement(RefreshCw, { className: "h-4 w-4" }) };
 }
 
 export function getConnectionMenuItems(
   connectionType: ConnectionType,
-  callbacks: MenuCallbacks
+  callbacks: MenuCallbacks,
+  systemObjectsState?: SystemObjectsState
 ): ContextMenuItem[] {
   const { onAction } = callbacks;
+  const systemItems: ContextMenuItem[] = systemObjectsState && systemObjectsState.systemSchemas.length > 0
+    ? [
+        { separator: true },
+        {
+          label: systemObjectsState.showSystemObjects ? "隐藏系统对象" : "显示系统对象",
+          onClick: () => onAction("toggle_system_objects"),
+          icon: React.createElement(
+            systemObjectsState.showSystemObjects ? EyeOff : Eye,
+            { className: "h-4 w-4" }
+          ),
+        },
+      ]
+    : [];
   return [
     { label: "New Query", onClick: () => onAction("new_query"), icon: React.createElement(Terminal, { className: "h-4 w-4" }) },
     { separator: true },
@@ -36,14 +55,29 @@ export function getConnectionMenuItems(
     { label: "Close Connection", onClick: () => onAction("disconnect"), icon: React.createElement(Unplug, { className: "h-4 w-4" }) },
     { separator: true },
     refreshItem(onAction),
+    ...systemItems,
   ];
 }
 
 export function getDatabaseMenuItems(
   connectionType: ConnectionType,
-  callbacks: MenuCallbacks
+  callbacks: MenuCallbacks,
+  systemObjectsState?: SystemObjectsState
 ): ContextMenuItem[] {
   const { onAction } = callbacks;
+  const systemItems: ContextMenuItem[] = systemObjectsState && systemObjectsState.systemSchemas.length > 0
+    ? [
+        { separator: true },
+        {
+          label: systemObjectsState.showSystemObjects ? "隐藏系统对象" : "显示系统对象",
+          onClick: () => onAction("toggle_system_objects"),
+          icon: React.createElement(
+            systemObjectsState.showSystemObjects ? EyeOff : Eye,
+            { className: "h-4 w-4" }
+          ),
+        },
+      ]
+    : [];
   return [
     { label: "New Query", onClick: () => onAction("new_query"), icon: React.createElement(Terminal, { className: "h-4 w-4" }) },
     { separator: true },
@@ -60,6 +94,7 @@ export function getDatabaseMenuItems(
     { label: "Delete Database", onClick: () => onAction("delete_database"), icon: React.createElement(Trash2, { className: "h-4 w-4 text-red-500" }), danger: true },
     { separator: true },
     refreshItem(onAction),
+    ...systemItems,
   ];
 }
 
@@ -85,6 +120,15 @@ export function getTableMenuItems(callbacks: MenuCallbacks): ContextMenuItem[] {
     { separator: true },
     { label: "Design Table", onClick: () => onAction("edit_table"), icon: React.createElement(Edit2, { className: "h-4 w-4" }) },
     { label: "Delete Table", onClick: () => onAction("delete_table"), icon: React.createElement(Trash2, { className: "h-4 w-4 text-red-500" }), danger: true },
+    { separator: true },
+    refreshItem(onAction),
+  ];
+}
+
+export function getViewMenuItems(callbacks: MenuCallbacks): ContextMenuItem[] {
+  const { onAction } = callbacks;
+  return [
+    { label: "Export Data", onClick: () => onAction("export_data"), icon: React.createElement(Download, { className: "h-4 w-4" }) },
     { separator: true },
     refreshItem(onAction),
   ];

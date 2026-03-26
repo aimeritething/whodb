@@ -5,6 +5,7 @@ export type NodeType =
   | "database"
   | "schema"
   | "table"
+  | "view"
   | "collection"
   | "redis_keys_list";
 
@@ -34,6 +35,7 @@ export const NODE_ICON_COLORS: Record<NodeType, string> = {
   database: "text-purple-500/80",
   schema: "text-orange-500/80",
   table: "text-emerald-500/80",
+  view: "text-sky-500/80",
   collection: "text-green-500/80",
   redis_keys_list: "text-blue-500/80",
 };

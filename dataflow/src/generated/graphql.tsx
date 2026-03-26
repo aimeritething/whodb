@@ -141,6 +141,7 @@ export type DatabaseMetadata = {
   capabilities: Capabilities;
   databaseType: Scalars['String']['output'];
   operators: Array<Scalars['String']['output']>;
+  systemSchemas: Array<Scalars['String']['output']>;
   typeDefinitions: Array<TypeDefinition>;
 };
 
@@ -798,7 +799,7 @@ export type GetColumnsQuery = { __typename?: 'Query', Columns: Array<{ __typenam
 export type GetDatabaseMetadataQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetDatabaseMetadataQuery = { __typename?: 'Query', DatabaseMetadata?: { __typename?: 'DatabaseMetadata', databaseType: string, operators: Array<string>, typeDefinitions: Array<{ __typename?: 'TypeDefinition', id: string, label: string, hasLength: boolean, hasPrecision: boolean, defaultLength?: number | null, defaultPrecision?: number | null, category: TypeCategory }>, aliasMap: Array<{ __typename?: 'Record', Key: string, Value: string }>, capabilities: { __typename?: 'Capabilities', supportsScratchpad: boolean, supportsChat: boolean, supportsGraph: boolean, supportsSchema: boolean, supportsDatabaseSwitch: boolean, supportsModifiers: boolean } } | null };
+export type GetDatabaseMetadataQuery = { __typename?: 'Query', DatabaseMetadata?: { __typename?: 'DatabaseMetadata', databaseType: string, operators: Array<string>, systemSchemas: Array<string>, typeDefinitions: Array<{ __typename?: 'TypeDefinition', id: string, label: string, hasLength: boolean, hasPrecision: boolean, defaultLength?: number | null, defaultPrecision?: number | null, category: TypeCategory }>, aliasMap: Array<{ __typename?: 'Record', Key: string, Value: string }>, capabilities: { __typename?: 'Capabilities', supportsScratchpad: boolean, supportsChat: boolean, supportsGraph: boolean, supportsSchema: boolean, supportsDatabaseSwitch: boolean, supportsModifiers: boolean } } | null };
 
 export type GetDatabaseQueryVariables = Exact<{
   type: Scalars['String']['input'];
@@ -1215,6 +1216,7 @@ export const GetDatabaseMetadataDocument = gql`
       supportsDatabaseSwitch
       supportsModifiers
     }
+    systemSchemas
   }
 }
     `;

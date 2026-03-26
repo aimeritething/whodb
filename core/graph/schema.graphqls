@@ -302,6 +302,7 @@ type DatabaseMetadata {
   operators: [String!]!
   aliasMap: [Record!]!
   capabilities: Capabilities!
+  systemSchemas: [String!]!
 }
 
 type DatabaseQuerySuggestion {

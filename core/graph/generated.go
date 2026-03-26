@@ -98,6 +98,7 @@ type ComplexityRoot struct {
 		Capabilities    func(childComplexity int) int
 		DatabaseType    func(childComplexity int) int
 		Operators       func(childComplexity int) int
+		SystemSchemas   func(childComplexity int) int
 		TypeDefinitions func(childComplexity int) int
 	}
 
@@ -647,6 +648,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.DatabaseMetadata.Operators(childComplexity), true
+	case "DatabaseMetadata.systemSchemas":
+		if e.ComplexityRoot.DatabaseMetadata.SystemSchemas == nil {
+			break
+		}
+
+		return e.ComplexityRoot.DatabaseMetadata.SystemSchemas(childComplexity), true
 	case "DatabaseMetadata.typeDefinitions":
 		if e.ComplexityRoot.DatabaseMetadata.TypeDefinitions == nil {
 			break
@@ -3698,6 +3705,35 @@ func (ec *executionContext) fieldContext_DatabaseMetadata_capabilities(_ context
 				return ec.fieldContext_Capabilities_supportsModifiers(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Capabilities", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DatabaseMetadata_systemSchemas(ctx context.Context, field graphql.CollectedField, obj *model.DatabaseMetadata) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_DatabaseMetadata_systemSchemas,
+		func(ctx context.Context) (any, error) {
+			return obj.SystemSchemas, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_DatabaseMetadata_systemSchemas(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DatabaseMetadata",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7293,6 +7329,8 @@ func (ec *executionContext) fieldContext_Query_DatabaseMetadata(_ context.Contex
 				return ec.fieldContext_DatabaseMetadata_aliasMap(ctx, field)
 			case "capabilities":
 				return ec.fieldContext_DatabaseMetadata_capabilities(ctx, field)
+			case "systemSchemas":
+				return ec.fieldContext_DatabaseMetadata_systemSchemas(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type DatabaseMetadata", field.Name)
 		},
@@ -11371,6 +11409,11 @@ func (ec *executionContext) _DatabaseMetadata(ctx context.Context, sel ast.Selec
 			}
 		case "capabilities":
 			out.Values[i] = ec._DatabaseMetadata_capabilities(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "systemSchemas":
+			out.Values[i] = ec._DatabaseMetadata_systemSchemas(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

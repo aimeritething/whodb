@@ -33,6 +33,7 @@ import {
   getSchemaMenuItems,
   getTableMenuItems,
   getCollectionMenuItems,
+  getViewMenuItems,
 } from "./sidebar/contextMenuItems";
 import { TreeProvider } from "./sidebar/TreeContext";
 import { TreeNode } from "./sidebar/TreeNode";
@@ -42,7 +43,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onRefreshCollection }: SidebarProps) {
-  const { connections, selectedItem, selectItem } = useConnectionStore();
+  const { connections, selectedItem, selectItem, systemSchemas, showSystemObjectsFor, toggleSystemObjects } = useConnectionStore();
   const { openTab } = useTabStore();
 
   const {
@@ -109,7 +110,7 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
         }
       }
 
-      if (node.type === "table") {
+      if (node.type === "table" || node.type === "view") {
         openTab({
           type: "table",
           title: node.name,
@@ -354,6 +355,13 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
         case "disconnect":
           collapseNode(node.id);
           break;
+        case "toggle_system_objects":
+          toggleSystemObjects(node.id);
+          // Re-fetch this node's children with the new filter
+          if (expandedItems.has(node.id)) {
+            fetchNodeChildren(node);
+          }
+          break;
       }
 
       setContextMenu(null);
@@ -361,6 +369,7 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
     [
       contextMenu, connections, openTab, openModal,
       expandedItems, fetchNodeChildren, toggleItem, collapseNode,
+      toggleSystemObjects,
     ],
   );
 
@@ -416,21 +425,28 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
       onAction: handleContextMenuAction,
     };
 
+    const nodeId = node.type === "connection" ? node.id : node.id;
+    const sysState = { systemSchemas, showSystemObjects: showSystemObjectsFor.has(nodeId) };
+
     switch (node.type) {
       case "connection":
         return getConnectionMenuItems(
           connections.find((c) => c.id === node.id)!.type,
           callbacks,
+          sysState,
         );
       case "database":
         return getDatabaseMenuItems(
           connections.find((c) => c.id === node.connectionId)!.type,
           callbacks,
+          sysState,
         );
       case "schema":
         return getSchemaMenuItems(callbacks);
       case "table":
         return getTableMenuItems(callbacks);
+      case "view":
+        return getViewMenuItems(callbacks);
       case "collection":
         return getCollectionMenuItems(callbacks);
       default:

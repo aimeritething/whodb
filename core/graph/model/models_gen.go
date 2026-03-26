@@ -119,6 +119,7 @@ type DatabaseMetadata struct {
 	Operators       []string          `json:"operators"`
 	AliasMap        []*Record         `json:"aliasMap"`
 	Capabilities    *Capabilities     `json:"capabilities"`
+	SystemSchemas   []string          `json:"systemSchemas"`
 }
 
 type DatabaseQuerySuggestion struct {

@@ -23,5 +23,6 @@ query GetDatabaseMetadata {
       supportsDatabaseSwitch
       supportsModifiers
     }
+    systemSchemas
   }
 }

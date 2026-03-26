@@ -1683,6 +1683,7 @@ func (r *queryResolver) DatabaseMetadata(ctx context.Context) (*model.DatabaseMe
 			SupportsDatabaseSwitch: metadata.Capabilities.SupportsDatabaseSwitch,
 			SupportsModifiers:      metadata.Capabilities.SupportsModifiers,
 		},
+		SystemSchemas: metadata.SystemSchemas,
 	}, nil
 }
 
