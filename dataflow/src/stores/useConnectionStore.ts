@@ -108,12 +108,9 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
   fetchSchemas: async (_connectionId, database) => {
     const creds = useAuthStore.getState().credentials;
     if (!creds) return [];
-    if (creds.Database !== database) {
-      const switched = await useAuthStore.getState().switchDatabase(database);
-      if (!switched) return [];
-    }
     const { data, error } = await graphqlClient.query<GetSchemaQuery>({
       query: GetSchemaDocument,
+      context: { database },
     });
     if (error) {
       console.error('[useConnectionStore] fetchSchemas failed:', error);
@@ -125,14 +122,11 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
   fetchTables: async (_connectionId, database, schema?) => {
     const creds = useAuthStore.getState().credentials;
     if (!creds) return [];
-    if (creds.Database !== database) {
-      const switched = await useAuthStore.getState().switchDatabase(database);
-      if (!switched) return [];
-    }
     const schemaParam = schema ?? database;
     const { data, error } = await graphqlClient.query<GetStorageUnitsQuery, GetStorageUnitsQueryVariables>({
       query: GetStorageUnitsDocument,
       variables: { schema: schemaParam },
+      context: { database },
     });
     if (error) {
       console.error('[useConnectionStore] fetchTables failed:', error);
