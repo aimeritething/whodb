@@ -162,7 +162,13 @@ export function CollectionDetailView({ connectionId, databaseName, collectionNam
                 }
 
                 if (result?.Row) {
-                    const parsedDocs = result.Row.Rows.map(row => JSON.parse(row[0]));
+                    const parsedDocs = result.Row.Rows.map(row => {
+                        try {
+                            return JSON.parse(row[0]);
+                        } catch {
+                            return { _raw: row[0] };
+                        }
+                    });
                     setDocuments(parsedDocs);
                     setTotalDocuments(result.Row.TotalCount);
                 }
@@ -197,8 +203,15 @@ export function CollectionDetailView({ connectionId, databaseName, collectionNam
             const graphqlSchema = resolveSchemaParam(conn.type, databaseName);
             const values = Object.entries(newDoc).map(([key, value]) => ({
                 Key: key,
-                Value: typeof value === 'object' ? JSON.stringify(value) : String(value ?? ''),
+                Value: typeof value === 'object' && value !== null
+                    ? JSON.stringify(value)
+                    : String(value ?? ''),
             }));
+
+            if (values.length === 0) {
+                showAlert("Error", "Document must have at least one field", "error");
+                return;
+            }
 
             const { data: result, errors } = await addRowMutation({
                 variables: {
