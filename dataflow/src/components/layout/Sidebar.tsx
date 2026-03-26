@@ -354,47 +354,13 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
 
   const confirmDropCollection = useCallback(async () => {
     if (activeModal?.type !== "drop_collection") return;
-    const params = activeModal.params;
-
-    const conn = connections.find((c) => c.id === params.connectionId);
-    if (!conn) return;
-
-    try {
-      const response = await fetch("/api/connections/drop-collection", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: conn.type.toLowerCase(),
-          host: conn.host,
-          port: conn.port,
-          user: conn.user,
-          password: conn.password,
-          databaseName: params.databaseName,
-          collectionName: params.collectionName,
-        }),
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        showAlert("Success", `Collection "${params.collectionName}" dropped successfully.`, "success");
-        selectItem(null);
-        const dbNodeId = `${params.connectionId}-${params.databaseName}`;
-        refreshNode({
-          id: dbNodeId,
-          name: params.databaseName,
-          type: "database",
-          connectionId: params.connectionId,
-          metadata: { database: params.databaseName },
-        });
-      } else {
-        showAlert("Error", `Failed to drop collection: ${result.error}`, "error");
-      }
-    } catch (error: any) {
-      showAlert("Error", `An error occurred: ${error.message}`, "error");
-    } finally {
-      closeModal();
-    }
-  }, [activeModal, connections, showAlert, selectItem, refreshNode, closeModal]);
+    showAlert(
+        "Not Supported",
+        "Drop collection is not yet supported via the GraphQL API. Use a MongoDB client to drop collections directly.",
+        "info",
+    );
+    closeModal();
+  }, [activeModal, showAlert, closeModal]);
 
   // Determine context menu items based on the right-clicked node type
   const contextMenuItems = (() => {

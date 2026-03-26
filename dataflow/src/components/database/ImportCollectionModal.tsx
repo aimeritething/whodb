@@ -3,6 +3,8 @@ import { Upload, X, Loader2, FileJson, FileType, CheckCircle2, FileUp } from "lu
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { useConnectionStore } from "@/stores/useConnectionStore";
+import { useAddRowMutation } from '@graphql';
+import { resolveSchemaParam } from '@/utils/database-features';
 
 interface ImportCollectionModalProps {
     isOpen: boolean;
@@ -15,6 +17,7 @@ interface ImportCollectionModalProps {
 
 export function ImportCollectionModal({ isOpen, onClose, connectionId, databaseName, collectionName, onSuccess }: ImportCollectionModalProps) {
     const { connections } = useConnectionStore();
+    const [addRowMutation] = useAddRowMutation();
     const [format, setFormat] = useState<'json' | 'csv'>('json');
     const [file, setFile] = useState<File | null>(null);
     const [isImporting, setIsImporting] = useState(false);
@@ -52,111 +55,69 @@ export function ImportCollectionModal({ isOpen, onClose, connectionId, databaseN
     };
 
     const handleImport = async () => {
-        if (!file) {
-            setError("Please select a file to import");
-            return;
-        }
-
+        if (!file) { setError("Please select a file to import"); return; }
         setIsImporting(true);
         setProgress(0);
         setProgressMessage('Reading file...');
         setError(null);
 
         try {
-            // Get connection details
             const connection = connections.find(c => c.id === connectionId);
-            if (!connection) {
-                throw new Error('Connection not found');
+            if (!connection) throw new Error('Connection not found');
+
+            const graphqlSchema = resolveSchemaParam(connection.type, databaseName);
+            const fileText = await file.text();
+
+            let documents: Record<string, any>[];
+            if (format === 'json') {
+                const parsed = JSON.parse(fileText);
+                documents = Array.isArray(parsed) ? parsed : [parsed];
+            } else {
+                const lines = fileText.split('\n').filter(l => l.trim());
+                if (lines.length < 2) throw new Error('CSV file must have a header row and at least one data row');
+                const headers = lines[0].split(',').map(h => h.trim());
+                documents = lines.slice(1).map(line => {
+                    const values = line.split(',').map(v => v.trim());
+                    const doc: Record<string, string> = {};
+                    headers.forEach((h, i) => { doc[h] = values[i] ?? ''; });
+                    return doc;
+                });
             }
 
-            // Read file content and encode as base64
-            const fileContent = await readFileAsBase64(file);
+            if (documents.length === 0) throw new Error('No documents found in file');
+            setProgressMessage(`Importing ${documents.length} documents...`);
 
-            const response = await fetch('/api/connections/import-collection', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    connectionId,
-                    databaseName,
-                    collectionName,
-                    format,
-                    fileContent,
-                    // Pass connection details
-                    type: connection.type,
-                    host: connection.host,
-                    port: connection.port,
-                    user: connection.user,
-                    password: connection.password
-                }),
-            });
+            let successCount = 0;
+            for (let i = 0; i < documents.length; i++) {
+                const doc = documents[i];
+                const values = Object.entries(doc)
+                    .filter(([key]) => key !== '_id')
+                    .map(([key, value]) => ({
+                        Key: key,
+                        Value: typeof value === 'object' && value !== null
+                            ? JSON.stringify(value) : String(value ?? ''),
+                    }));
 
-            // Handle SSE streaming
-            const reader = response.body?.getReader();
-            const decoder = new TextDecoder();
+                const { data: result, errors } = await addRowMutation({
+                    variables: { schema: graphqlSchema, storageUnit: collectionName, values },
+                    context: { database: databaseName },
+                });
 
-            if (!reader) {
-                throw new Error('Failed to read response stream');
+                if (errors?.length) throw new Error(`Failed at document ${i + 1}: ${errors[0].message}`);
+                if (result?.AddRow.Status) successCount++;
+
+                setProgress(Math.round(((i + 1) / documents.length) * 100));
+                setProgressMessage(`Imported ${successCount} of ${documents.length} documents...`);
+                setInsertedCount(successCount);
             }
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const text = decoder.decode(value);
-                const lines = text.split('\n');
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        try {
-                            const data = JSON.parse(line.slice(6));
-
-                            if (data.error) {
-                                setError(data.error);
-                                setIsImporting(false);
-                                return;
-                            }
-
-                            if (data.progress !== undefined) {
-                                setProgress(data.progress);
-                            }
-                            if (data.message) {
-                                setProgressMessage(data.message);
-                            }
-                            if (data.insertedCount !== undefined) {
-                                setInsertedCount(data.insertedCount);
-                            }
-
-                            // Handle completion
-                            if (data.progress === 100) {
-                                setIsSuccess(true);
-                                onSuccess?.();
-                            }
-                        } catch (e) {
-                            // Ignore parse errors for incomplete data
-                        }
-                    }
-                }
-            }
-
+            setIsSuccess(true);
+            onSuccess?.();
         } catch (e: any) {
             setError(e.message || 'An error occurred');
         } finally {
             setIsImporting(false);
         }
-    };
-
-    const readFileAsBase64 = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-                const result = reader.result as string;
-                // Remove data URL prefix (e.g., "data:application/json;base64,")
-                const base64 = result.split(',')[1];
-                resolve(base64);
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
     };
 
     return (

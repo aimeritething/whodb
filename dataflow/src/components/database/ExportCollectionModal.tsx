@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 import { useConnectionStore } from "@/stores/useConnectionStore";
+import { addAuthHeader } from '@/config/auth-headers';
+import { resolveSchemaParam } from '@/utils/database-features';
 
 interface ExportCollectionModalProps {
     isOpen: boolean;
@@ -19,8 +21,6 @@ export function ExportCollectionModal({ isOpen, onClose, connectionId, databaseN
     const [filter, setFilter] = useState('');
     const [limit, setLimit] = useState<number | ''>('');
     const [isExporting, setIsExporting] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [progressMessage, setProgressMessage] = useState('');
     const [isSuccess, setIsSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -31,8 +31,6 @@ export function ExportCollectionModal({ isOpen, onClose, connectionId, databaseN
             setFilter('');
             setLimit('');
             setIsExporting(false);
-            setProgress(0);
-            setProgressMessage('');
             setIsSuccess(false);
             setError(null);
         }
@@ -42,97 +40,49 @@ export function ExportCollectionModal({ isOpen, onClose, connectionId, databaseN
 
     const handleExport = async () => {
         setIsExporting(true);
-        setProgress(0);
-        setProgressMessage('Starting export...');
         setError(null);
 
         try {
-            // Get connection details
             const connection = connections.find(c => c.id === connectionId);
-            if (!connection) {
-                throw new Error('Connection not found');
-            }
+            if (!connection) throw new Error('Connection not found');
 
-            // Parse filter JSON
-            let filterObj = {};
-            if (filter.trim()) {
-                try {
-                    filterObj = JSON.parse(filter);
-                } catch (e) {
-                    throw new Error('Invalid filter JSON format');
-                }
-            }
+            const graphqlSchema = resolveSchemaParam(connection.type, databaseName);
+            // json → ndjson, csv stays csv
+            const backendFormat = format === 'json' ? 'ndjson' : 'csv';
 
-            const response = await fetch('/api/connections/export-collection', {
+            const response = await fetch('/api/export', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...addAuthHeader({}, databaseName),
+                },
                 body: JSON.stringify({
-                    connectionId,
-                    databaseName,
-                    collectionName,
-                    format,
-                    filter: filterObj,
-                    limit: limit || undefined,
-                    // Pass connection details
-                    type: connection.type,
-                    host: connection.host,
-                    port: connection.port,
-                    user: connection.user,
-                    password: connection.password
+                    schema: graphqlSchema,
+                    storageUnit: collectionName,
+                    format: backendFormat,
                 }),
             });
 
-            // Handle SSE streaming
-            const reader = response.body?.getReader();
-            const decoder = new TextDecoder();
-
-            if (!reader) {
-                throw new Error('Failed to read response stream');
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || `Export failed with status ${response.status}`);
             }
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+            const disposition = response.headers.get('Content-Disposition');
+            const filenameMatch = disposition?.match(/filename="(.+)"/);
+            const filename = filenameMatch?.[1] ?? `${collectionName}_export.${format === 'json' ? 'ndjson' : 'csv'}`;
 
-                const text = decoder.decode(value);
-                const lines = text.split('\n');
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
 
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        try {
-                            const data = JSON.parse(line.slice(6));
-
-                            if (data.error) {
-                                setError(data.error);
-                                setIsExporting(false);
-                                return;
-                            }
-
-                            if (data.progress !== undefined) {
-                                setProgress(data.progress);
-                            }
-                            if (data.message) {
-                                setProgressMessage(data.message);
-                            }
-
-                            // Handle download when export is complete
-                            if (data.downloadUrl && data.progress === 100) {
-                                const link = document.createElement('a');
-                                link.href = data.downloadUrl;
-                                link.download = data.fileName || `${collectionName}_export.${format}`;
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-
-                                setIsSuccess(true);
-                            }
-                        } catch (e) {
-                            // Ignore parse errors for incomplete data
-                        }
-                    }
-                }
-            }
-
+            setIsSuccess(true);
         } catch (e: any) {
             setError(e.message || 'An error occurred');
         } finally {
@@ -240,22 +190,6 @@ export function ExportCollectionModal({ isOpen, onClose, connectionId, databaseN
                                     />
                                 </div>
                             </div>
-
-                            {/* Progress & Error */}
-                            {isExporting && (
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-xs text-muted-foreground">
-                                        <span>{progressMessage || 'Exporting...'}</span>
-                                        <span>{Math.round(progress)}%</span>
-                                    </div>
-                                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-primary transition-all duration-200"
-                                            style={{ width: `${progress}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            )}
 
                             {error && (
                                 <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-start gap-2">
