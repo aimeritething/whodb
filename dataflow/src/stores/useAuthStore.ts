@@ -11,7 +11,6 @@ import {
   setAuthCredentials,
   clearAuth,
   restoreFromStorage,
-  getAuth,
 } from '@/config/auth-store';
 import {
   isSealosContext,
@@ -28,8 +27,6 @@ interface AuthState {
   error: string | null;
   /** Call once on app mount to bootstrap auth. */
   initialize: () => Promise<void>;
-  /** Switch the active database. Re-runs Login mutation to verify. */
-  switchDatabase: (newDatabase: string) => Promise<boolean>;
 }
 
 /** Execute a Login mutation via the Apollo client (no hook required). */
@@ -59,33 +56,6 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ error: 'No credentials available', status: 'error' });
       }
     }
-  },
-
-  switchDatabase: async (newDatabase) => {
-    const auth = getAuth();
-    if (!auth || auth.kind !== 'inline') return false;
-
-    const current = auth.credentials;
-    const loginInput: LoginCredentials = {
-      Type: current.Type,
-      Hostname: current.Hostname,
-      Username: current.Username,
-      Password: current.Password,
-      Database: newDatabase,
-      Advanced: current.Advanced,
-    };
-
-    try {
-      const ok = await loginMutate(loginInput);
-      if (!ok) return false;
-    } catch {
-      return false;
-    }
-
-    const updatedCreds: AuthCredentials = { ...current, Database: newDatabase };
-    setAuthCredentials(updatedCreds);
-    set({ credentials: updatedCreds });
-    return true;
   },
 }));
 
