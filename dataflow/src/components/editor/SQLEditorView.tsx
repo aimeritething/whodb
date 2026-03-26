@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Play, AlignLeft, Clock, CheckCircle, AlertCircle, FileText, Activity, Loader2, XCircle, CheckCircle2, GalleryVerticalEnd, PenTool } from "lucide-react";
+import { format } from 'sql-formatter';
 import { cn } from "@/lib/utils";
 import MonacoEditor from "./MonacoEditorWrapper";
 import type { Monaco } from "@monaco-editor/react";
@@ -39,8 +40,6 @@ export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorVie
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<Monaco | null>(null);
-    const [isFormatting, setIsFormatting] = useState(false);
-
     const handleRun = async () => {
         if (!query.trim()) return;
 
@@ -96,35 +95,16 @@ export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorVie
         }
     };
 
-    // Handle SQL Format
-    const handleFormat = async () => {
+    const handleFormat = () => {
         if (!query.trim()) return;
-
-        setIsFormatting(true);
         try {
-            const response = await fetch('/api/query/format', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sql: query }),
-            });
-
-            const data = await response.json();
-
-            if (data.success && data.formattedSql) {
-                setQuery(data.formattedSql);
-                // Update the editor content
-                if (editorRef.current) {
-                    editorRef.current.setValue(data.formattedSql);
-                }
-            } else {
-                setErrorMessage(data.error || 'Failed to format SQL');
-                setActiveResultTab('message');
+            const formatted = format(query);
+            setQuery(formatted);
+            if (editorRef.current) {
+                editorRef.current.setValue(formatted);
             }
-        } catch (error: any) {
-            setErrorMessage(error.message || 'Failed to format SQL');
-            setActiveResultTab('message');
-        } finally {
-            setIsFormatting(false);
+        } catch {
+            // sql-formatter can't parse the query — leave it as-is
         }
     };
 
@@ -217,11 +197,11 @@ export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorVie
                         </button>
                         <button
                             onClick={handleFormat}
-                            disabled={!query.trim() || isFormatting}
+                            disabled={!query.trim()}
                             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {isFormatting ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlignLeft className="h-4 w-4" />}
-                            {isFormatting ? 'Formatting...' : 'Format'}
+                            <AlignLeft className="h-4 w-4" />
+                            Format
                         </button>
                     </div>
                 </div>
