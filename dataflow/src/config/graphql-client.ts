@@ -36,6 +36,7 @@ export const graphqlClient = new ApolloClient({
   cache: new InMemoryCache(),
   defaultOptions: {
     query: { fetchPolicy: 'no-cache' },
+    watchQuery: { fetchPolicy: 'no-cache' },
     mutate: { fetchPolicy: 'no-cache' },
   },
 });

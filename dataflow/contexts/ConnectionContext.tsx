@@ -80,9 +80,9 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const createdAtRef = useRef(new Date().toISOString());
 
-  const [getDatabases] = useGetDatabaseLazyQuery();
-  const [getSchemas] = useGetSchemaLazyQuery();
-  const [getStorageUnits] = useGetStorageUnitsLazyQuery();
+  const [getDatabases] = useGetDatabaseLazyQuery({ fetchPolicy: 'no-cache' });
+  const [getSchemas] = useGetSchemaLazyQuery({ fetchPolicy: 'no-cache' });
+  const [getStorageUnits] = useGetStorageUnitsLazyQuery({ fetchPolicy: 'no-cache' });
 
   // Single connection derived from AuthContext credentials
   const connections = useMemo<Connection[]>(() => {
