@@ -20,8 +20,11 @@ const httpLink = createHttpLink({
   credentials: 'include',
 });
 
-const authLink = setContext((_, { headers }) => ({
-  headers: addAuthHeader(headers),
+const authLink = setContext((_, previousContext) => ({
+  headers: addAuthHeader(
+    previousContext.headers,
+    previousContext.database,
+  ),
 }));
 
 const errorLink = onError(({ networkError }) => {
