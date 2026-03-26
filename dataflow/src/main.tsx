@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ApolloProvider } from '@apollo/client';
-import { graphqlClient } from '@/src/config/graphql-client';
-import { AuthProvider } from '@/src/contexts/AuthContext';
+import { graphqlClient } from '@/config/graphql-client';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { ConnectionProvider } from '@/contexts/ConnectionContext';
 import { MainLayout } from '@/components/layout/MainLayout';
 import './globals.css';

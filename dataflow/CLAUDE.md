@@ -36,16 +36,16 @@ No test framework is configured.
 
 ### Client State
 
-- **React Context** (`contexts/`): `ConnectionContext` (connection list in localStorage, stub API functions), `TabContext` (open tabs, active tab)
-- **Zustand stores** (`stores/`): `useAnalysisStore` (dashboards, components, layout — in-memory only)
+- **React Context** (`src/contexts/`): `AuthContext`, `ConnectionContext` (connection list in localStorage, stub API functions), `TabContext` (open tabs, active tab)
+- **Zustand stores** (`src/stores/`): `useAnalysisStore` (dashboards, components, layout — in-memory only)
 
 ### Component Organization
 
-- `components/layout/` — MainLayout, ActivityBar (sidebar nav), Sidebar (tree browser), TabBar, TabContent
-- `components/database/` — table/collection/Redis views and CRUD modals (~28 files, API calls pending WhoDB wiring)
-- `components/analysis/` — dashboard builder with draggable grid widgets (react-grid-layout)
-- `components/editor/` — SQL editor with Monaco (query execution pending WhoDB wiring)
-- `components/ui/` — shared primitives (Button, Input, Badge, Modal, ContextMenu)
+- `src/components/layout/` — MainLayout, ActivityBar (sidebar nav), Sidebar (tree browser), TabBar, TabContent
+- `src/components/database/` — table/collection/Redis views and CRUD modals (~28 files, API calls pending WhoDB wiring)
+- `src/components/analysis/` — dashboard builder with draggable grid widgets (react-grid-layout)
+- `src/components/editor/` — SQL editor with Monaco (query execution pending WhoDB wiring)
+- `src/components/ui/` — shared primitives (Button, Input, Badge, Modal, ContextMenu)
 
 ### Key Libraries
 
@@ -65,7 +65,7 @@ WhoDB core (Go) will serve as the backend via GraphQL API. The frontend componen
 
 ## Conventions
 
-- Path alias: `@/*` maps to the project root (configured in both `vite.config.ts` and `tsconfig.json`)
-- Styling: `cn()` utility from `lib/utils.ts` (clsx + tailwind-merge). CSS variables defined in `src/index.css` (Nebula Pro Palette).
+- Path alias: `@/*` maps to `src/` (configured in both `vite.config.ts` and `tsconfig.json`)
+- Styling: `cn()` utility from `src/lib/utils.ts` (clsx + tailwind-merge). CSS variables defined in `src/globals.css` (Nebula Pro Palette).
 - Connection types are uppercase enums: `'MYSQL' | 'POSTGRES' | 'MONGODB' | 'REDIS'`
 - Fonts: Inter (sans) + JetBrains Mono (monospace), loaded via Google Fonts in `index.html`

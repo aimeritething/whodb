@@ -13,21 +13,13 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": ["./*"],
+      "@/*": ["./src/*"],
       "@graphql": ["./src/generated/graphql.tsx"]
     }
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "components/**/*.ts",
-    "components/**/*.tsx",
-    "contexts/**/*.ts",
-    "contexts/**/*.tsx",
-    "stores/**/*.ts",
-    "stores/**/*.tsx",
-    "lib/**/*.ts",
-    "types/**/*.ts",
     "vite.config.ts"
   ],
   "exclude": ["node_modules", "build"]

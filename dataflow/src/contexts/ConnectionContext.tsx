@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useMemo, useRef, ReactNode } from 'react';
-import { useAuth } from '@/src/contexts/AuthContext';
-import type { AuthCredentials } from '@/src/config/auth-store';
+import { useAuth } from '@/contexts/AuthContext';
+import type { AuthCredentials } from '@/config/auth-store';
 import {
   useGetDatabaseLazyQuery,
   useGetSchemaLazyQuery,

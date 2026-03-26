@@ -42,9 +42,9 @@ import {
     type WhereCondition,
     type SortCondition,
 } from '@graphql';
-import { transformRowsResult, type TableData } from '@/src/utils/graphql-transforms';
-import { resolveSchemaParam, isNoSQL } from '@/src/utils/database-features';
-import { parseSearchToWhereCondition, mergeSearchWithWhere } from '@/src/utils/search-parser';
+import { transformRowsResult, type TableData } from '@/utils/graphql-transforms';
+import { resolveSchemaParam, isNoSQL } from '@/utils/database-features';
+import { parseSearchToWhereCondition, mergeSearchWithWhere } from '@/utils/search-parser';
 
 interface TableDetailViewProps {
     connectionId: string;

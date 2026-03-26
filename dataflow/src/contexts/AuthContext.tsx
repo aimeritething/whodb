@@ -20,13 +20,13 @@ import {
   clearAuth,
   restoreFromStorage,
   getAuth,
-} from '@/src/config/auth-store';
+} from '@/config/auth-store';
 import {
   isSealosContext,
   mapSealosDbType,
   getDefaultDatabase,
   decryptSealosCredential,
-} from '@/src/config/sealos';
+} from '@/config/sealos';
 
 type AuthStatus = 'loading' | 'authenticated' | 'error';
 
