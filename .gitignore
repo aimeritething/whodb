@@ -64,3 +64,4 @@ dataflow/.next
 dataflow/build/
 *.env.local
 docs/superpowers/
+dataflow/docs/superpowers/
