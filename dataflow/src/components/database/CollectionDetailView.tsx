@@ -111,18 +111,32 @@ export function CollectionDetailView({ connectionId, databaseName, collectionNam
             const graphqlSchema = resolveSchemaParam(conn.type, databaseName);
 
             // Build WhereCondition from activeFilter
-            // activeFilter shape: { fieldName: { operator: "$eq", value: "..." } }
-            const filterConditions: WhereCondition[] = Object.entries(activeFilter)
-                .filter(([_, cond]: [string, any]) => cond.operator && cond.value !== undefined)
-                .map(([fieldName, cond]: [string, any]) => ({
-                    Type: WhereConditionType.Atomic,
-                    Atomic: {
-                        Key: fieldName,
-                        Operator: cond.operator.replace('$', ''),
-                        Value: String(cond.value),
-                        ColumnType: 'string',
-                    },
-                }));
+            // FilterCollectionModal outputs MongoDB-native format:
+            //   $eq:    { field: value }
+            //   $regex: { field: { $regex: "...", $options: "i" } }
+            //   others: { field: { $gt: value } }
+            const filterConditions: WhereCondition[] = [];
+            for (const [fieldName, cond] of Object.entries(activeFilter)) {
+                if (cond === undefined || cond === null) continue;
+                if (typeof cond !== 'object' || Array.isArray(cond)) {
+                    // Primitive value → $eq
+                    filterConditions.push({
+                        Type: WhereConditionType.Atomic,
+                        Atomic: { Key: fieldName, Operator: 'eq', Value: String(cond), ColumnType: 'string' },
+                    });
+                } else {
+                    // Object with MongoDB operators: { $regex: "...", $options: "..." } or { $gt: value }
+                    for (const [op, val] of Object.entries(cond as Record<string, any>)) {
+                        if (op === '$options') continue; // Skip $options (handled with $regex)
+                        const operator = op.replace('$', '');
+                        const value = Array.isArray(val) ? val.join(', ') : String(val ?? '');
+                        filterConditions.push({
+                            Type: WhereConditionType.Atomic,
+                            Atomic: { Key: fieldName, Operator: operator, Value: value, ColumnType: 'string' },
+                        });
+                    }
+                }
+            }
 
             // Add search term as regex on 'document' column if present
             if (searchTerm.trim()) {
