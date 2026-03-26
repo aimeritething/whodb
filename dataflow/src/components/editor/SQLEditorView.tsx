@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Play, Square, Save, AlignLeft, Clock, CheckCircle, AlertCircle, FileText, Activity, Loader2, XCircle, CheckCircle2, GalleryVerticalEnd, PenTool } from "lucide-react";
+import { Play, AlignLeft, Clock, CheckCircle, AlertCircle, FileText, Activity, Loader2, XCircle, CheckCircle2, GalleryVerticalEnd, PenTool } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MonacoEditor from "./MonacoEditorWrapper";
 import type { Monaco } from "@monaco-editor/react";
@@ -24,80 +24,9 @@ export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorVie
     const [queryResults, setQueryResults] = useState<any>(null);
     const [executionTime, setExecutionTime] = useState<number | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [schemaMetadata, setSchemaMetadata] = useState<any>(null);
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<Monaco | null>(null);
-    const initializedRef = useRef(false);
-
-    // New state for additional features
-    const [currentQueryId, setCurrentQueryId] = useState<string | null>(null);
-    const [showSaveModal, setShowSaveModal] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
     const [isFormatting, setIsFormatting] = useState(false);
-    const [saveName, setSaveName] = useState("");
-    const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-    // Fetch schema metadata when context changes
-    useEffect(() => {
-        if (context?.connectionId) {
-            fetchSchemaMetadata();
-        }
-    }, [context?.connectionId, context?.databaseName, context?.schemaName]);
-
-    // Update default query when schema metadata is loaded (only if no initial SQL provided)
-    useEffect(() => {
-        // Skip if we have initial SQL or already initialized
-        if (initialSql || initializedRef.current) return;
-
-        if (schemaMetadata?.tables && schemaMetadata.tables.length > 0) {
-            const firstTable = schemaMetadata.tables[0];
-            const tableName = firstTable.name;
-            // For PostgreSQL with schema, include schema prefix
-            const fullTableName = context?.schemaName
-                ? `${context.schemaName}.${tableName}`
-                : tableName;
-            const newQuery = `-- Query for database: ${context?.databaseName || 'default'}\nSELECT * FROM ${fullTableName} LIMIT 100;`;
-            setQuery(newQuery);
-            initializedRef.current = true;
-        } else if (context?.databaseName) {
-            // No tables found, provide a SELECT-based fallback query
-            const conn = connections.find(c => c.id === context.connectionId);
-            let defaultQuery = `-- Database: ${context.databaseName}\n`;
-            if (conn?.type === 'MYSQL') {
-                defaultQuery += `SELECT * FROM information_schema.tables WHERE table_schema = DATABASE() LIMIT 100;`;
-            } else if (conn?.type === 'POSTGRES') {
-                const schema = context.schemaName || 'public';
-                defaultQuery += `SELECT table_name FROM information_schema.tables WHERE table_schema = '${schema}' LIMIT 100;`;
-            } else {
-                defaultQuery += `SELECT 1;`;
-            }
-            setQuery(defaultQuery);
-            initializedRef.current = true;
-        }
-    }, [schemaMetadata, context?.databaseName, context?.schemaName, initialSql]);
-
-    const fetchSchemaMetadata = async () => {
-        if (!context) return;
-
-        // Find the connection object
-        const connection = connections.find(c => c.id === context.connectionId);
-        if (!connection) return;
-
-        try {
-            const params = new URLSearchParams({
-                connectionId: context.connectionId,
-                ...(context.databaseName && { database: context.databaseName }),
-                ...(context.schemaName && { schema: context.schemaName }),
-                connection: JSON.stringify(connection),
-            });
-
-            const response = await fetch(`/api/schema/metadata?${params}`);
-            const data = await response.json();
-            setSchemaMetadata(data);
-        } catch (error) {
-            console.error('Failed to fetch schema metadata:', error);
-        }
-    };
 
     const handleRun = async () => {
         if (!context?.connectionId) {
@@ -117,8 +46,6 @@ export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorVie
         setIsExecuting(true);
         setErrorMessage(null);
         const startTime = Date.now();
-        const queryId = `query_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        setCurrentQueryId(queryId);
 
         try {
             const response = await fetch('/api/query/execute', {
@@ -163,7 +90,6 @@ export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorVie
             setActiveResultTab('message');
         } finally {
             setIsExecuting(false);
-            setCurrentQueryId(null);
         }
     };
 
@@ -196,68 +122,6 @@ export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorVie
             setActiveResultTab('message');
         } finally {
             setIsFormatting(false);
-        }
-    };
-
-    // Handle Save Query
-    const handleSave = async () => {
-        if (!saveName.trim() || !query.trim()) {
-            setSaveMessage({ type: 'error', text: 'Please enter a name for the query' });
-            return;
-        }
-
-        setIsSaving(true);
-        setSaveMessage(null);
-
-        try {
-            const response = await fetch('/api/query/save', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: saveName,
-                    sql: query,
-                    connectionId: context?.connectionId || '',
-                    databaseName: context?.databaseName,
-                    schemaName: context?.schemaName,
-                }),
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                setSaveMessage({ type: 'success', text: 'Query saved successfully!' });
-                setTimeout(() => {
-                    setShowSaveModal(false);
-                    setSaveName('');
-                    setSaveMessage(null);
-                }, 1500);
-            } else {
-                setSaveMessage({ type: 'error', text: data.error || 'Failed to save query' });
-            }
-        } catch (error: any) {
-            setSaveMessage({ type: 'error', text: error.message || 'Failed to save query' });
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    // Handle Stop Query
-    const handleStop = async () => {
-        if (!currentQueryId) return;
-
-        try {
-            await fetch('/api/query/stop', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ queryId: currentQueryId }),
-            });
-
-            setIsExecuting(false);
-            setCurrentQueryId(null);
-            setErrorMessage('Query cancelled by user');
-            setActiveResultTab('message');
-        } catch (error: any) {
-            console.error('Failed to stop query:', error);
         }
     };
 
@@ -311,103 +175,6 @@ export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorVie
         };
     }, [isResizing, resize, stopResizing]);
 
-    const setupAutocompletion = (monaco: Monaco) => {
-        // Register SQL completions provider
-        monaco.languages.registerCompletionItemProvider('sql', {
-            provideCompletionItems: (model: any, position: any) => {
-                const word = model.getWordUntilPosition(position);
-                const range = {
-                    startLineNumber: position.lineNumber,
-                    endLineNumber: position.lineNumber,
-                    startColumn: word.startColumn,
-                    endColumn: word.endColumn,
-                };
-
-                const suggestions: any[] = [];
-
-                // Add table suggestions
-                if (schemaMetadata?.tables) {
-                    schemaMetadata.tables.forEach((table: any) => {
-                        suggestions.push({
-                            label: table.name,
-                            kind: monaco.languages.CompletionItemKind.Class,
-                            insertText: table.name,
-                            detail: 'Table',
-                            documentation: `Table: ${table.name}`,
-                            range,
-                        });
-
-                        // Add column suggestions for each table
-                        table.columns?.forEach((column: any) => {
-                            suggestions.push({
-                                label: `${table.name}.${column.name}`,
-                                kind: monaco.languages.CompletionItemKind.Field,
-                                insertText: `${table.name}.${column.name}`,
-                                detail: `${column.type} - ${table.name}.${column.name}`,
-                                documentation: column.description || `Column ${column.name} in table ${table.name}`,
-                                range,
-                            });
-
-                            // Also add just the column name
-                            suggestions.push({
-                                label: column.name,
-                                kind: monaco.languages.CompletionItemKind.Property,
-                                insertText: column.name,
-                                detail: `${column.type}`,
-                                documentation: column.description || `Column: ${column.name}`,
-                                range,
-                            });
-                        });
-                    });
-                }
-
-                // Add SQL keywords
-                const sqlKeywords = [
-                    'SELECT', 'FROM', 'WHERE', 'JOIN', 'INNER', 'LEFT', 'RIGHT', 'OUTER',
-                    'ON', 'AND', 'OR', 'NOT', 'IN', 'EXISTS', 'LIKE', 'BETWEEN',
-                    'ORDER', 'BY', 'GROUP', 'HAVING', 'LIMIT', 'OFFSET',
-                    'INSERT', 'INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE',
-                    'CREATE', 'TABLE', 'DROP', 'ALTER', 'ADD', 'COLUMN',
-                    'PRIMARY', 'KEY', 'FOREIGN', 'REFERENCES', 'INDEX',
-                    'DISTINCT', 'AS', 'NULL', 'IS', 'ASC', 'DESC',
-                ];
-
-                sqlKeywords.forEach((keyword) => {
-                    suggestions.push({
-                        label: keyword,
-                        kind: monaco.languages.CompletionItemKind.Keyword,
-                        insertText: keyword,
-                        detail: 'SQL Keyword',
-                        range,
-                    });
-                });
-
-                // Add SQL functions
-                const sqlFunctions = [
-                    'COUNT', 'SUM', 'AVG', 'MIN', 'MAX',
-                    'UPPER', 'LOWER', 'CONCAT', 'SUBSTRING', 'LENGTH',
-                    'TRIM', 'LTRIM', 'RTRIM', 'REPLACE',
-                    'NOW', 'CURRENT_DATE', 'CURRENT_TIME', 'CURRENT_TIMESTAMP',
-                    'DATE', 'TIME', 'YEAR', 'MONTH', 'DAY',
-                    'COALESCE', 'NULLIF', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END',
-                ];
-
-                sqlFunctions.forEach((func) => {
-                    suggestions.push({
-                        label: func,
-                        kind: monaco.languages.CompletionItemKind.Function,
-                        insertText: `${func}()`,
-                        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                        detail: 'SQL Function',
-                        range,
-                    });
-                });
-
-                return { suggestions };
-            },
-        });
-    };
-
     return (
         <div className="flex h-full flex-col bg-background" ref={containerRef}>
             {/* Context Info Bar */}
@@ -446,30 +213,6 @@ export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorVie
                             Run
                         </button>
                         <button
-                            onClick={handleStop}
-                            disabled={!isExecuting}
-                            className={cn(
-                                "p-2 rounded-md transition-colors",
-                                "text-muted-foreground transition-colors",
-                                isExecuting
-                                    ? "text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    : "opacity-50 cursor-not-allowed"
-                            )}
-                            title="Stop"
-                        >
-                            <Square className="h-4 w-4 fill-current" />
-                        </button>
-                        {/* Save button hidden
-                        <button
-                            onClick={() => setShowSaveModal(true)}
-                            disabled={!query.trim()}
-                            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <Save className="h-4 w-4" />
-                            Save
-                        </button>
-                        */}
-                        <button
                             onClick={handleFormat}
                             disabled={!query.trim() || isFormatting}
                             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -506,11 +249,6 @@ export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorVie
                         onMount={(editorInstance: editor.IStandaloneCodeEditor, monacoInstance: Monaco) => {
                             editorRef.current = editorInstance;
                             monacoRef.current = monacoInstance;
-                            try {
-                                setupAutocompletion(monacoInstance);
-                            } catch (err) {
-                                console.error('Failed to setup autocompletion:', err);
-                            }
                         }}
                     />
                 </div>
@@ -713,67 +451,6 @@ export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorVie
                 </div>
             </div>
 
-            {/* Save Query Modal */}
-            {showSaveModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-                        <div className="px-6 py-4 border-b">
-                            <h2 className="text-lg font-semibold">Save Query</h2>
-                        </div>
-                        <div className="px-6 py-4 space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Query Name
-                                </label>
-                                <input
-                                    type="text"
-                                    value={saveName}
-                                    onChange={(e) => setSaveName(e.target.value)}
-                                    placeholder="Enter query name..."
-                                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                    autoFocus
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    SQL Preview
-                                </label>
-                                <pre className="w-full px-3 py-2 bg-gray-50 border rounded-md text-xs font-mono overflow-auto max-h-32">
-                                    {query.slice(0, 500)}{query.length > 500 ? '...' : ''}
-                                </pre>
-                            </div>
-                            {saveMessage && (
-                                <div className={cn(
-                                    "px-3 py-2 rounded-md text-sm",
-                                    saveMessage.type === 'success' ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-                                )}>
-                                    {saveMessage.text}
-                                </div>
-                            )}
-                        </div>
-                        <div className="px-6 py-4 border-t flex justify-end gap-3">
-                            <button
-                                onClick={() => {
-                                    setShowSaveModal(false);
-                                    setSaveName('');
-                                    setSaveMessage(null);
-                                }}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleSave}
-                                disabled={isSaving || !saveName.trim()}
-                                className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                                {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-                                {isSaving ? 'Saving...' : 'Save Query'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
