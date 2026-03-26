@@ -22,7 +22,6 @@ interface TabState {
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
   updateTab: (tabId: string, updates: Partial<Tab>) => void;
-  getTab: (tabId: string) => Tab | undefined;
   findExistingTab: (type: TabType, connectionId: string, identifier: string, databaseName?: string) => Tab | undefined;
   closeOtherTabs: (tabId: string) => void;
   closeAllTabs: () => void;
@@ -98,8 +97,6 @@ export const useTabStore = create<TabState>((set, get) => ({
       tabs: state.tabs.map((tab) => (tab.id === tabId ? { ...tab, ...updates } : tab)),
     }));
   },
-
-  getTab: (tabId) => get().tabs.find((t) => t.id === tabId),
 
   closeOtherTabs: (tabId) => {
     set((state) => {

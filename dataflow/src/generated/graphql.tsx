@@ -751,24 +751,12 @@ export type DeleteRowMutationVariables = Exact<{
 
 export type DeleteRowMutation = { __typename?: 'Mutation', DeleteRow: { __typename?: 'StatusResponse', Status: boolean } };
 
-export type LoginWithProfileMutationVariables = Exact<{
-  profile: LoginProfileInput;
-}>;
-
-
-export type LoginWithProfileMutation = { __typename?: 'Mutation', LoginWithProfile: { __typename?: 'StatusResponse', Status: boolean } };
-
 export type LoginMutationVariables = Exact<{
   credentials: LoginCredentials;
 }>;
 
 
 export type LoginMutation = { __typename?: 'Mutation', Login: { __typename?: 'StatusResponse', Status: boolean } };
-
-export type LogoutMutationVariables = Exact<{ [key: string]: never; }>;
-
-
-export type LogoutMutation = { __typename?: 'Mutation', Logout: { __typename?: 'StatusResponse', Status: boolean } };
 
 export type UpdateStorageUnitMutationVariables = Exact<{
   schema: Scalars['String']['input'];
@@ -807,11 +795,6 @@ export type GetDatabaseQueryVariables = Exact<{
 
 
 export type GetDatabaseQuery = { __typename?: 'Query', Database: Array<string> };
-
-export type GetProfilesQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type GetProfilesQuery = { __typename?: 'Query', Profiles: Array<{ __typename?: 'LoginProfile', Alias?: string | null, Id: string, Type: DatabaseType, Hostname?: string | null, Database?: string | null, IsEnvironmentDefined: boolean, Source: string, SSLConfigured: boolean }> };
 
 export type RawExecuteQueryVariables = Exact<{
   query: Scalars['String']['input'];
@@ -950,39 +933,6 @@ export function useDeleteRowMutation(baseOptions?: Apollo.MutationHookOptions<De
 export type DeleteRowMutationHookResult = ReturnType<typeof useDeleteRowMutation>;
 export type DeleteRowMutationResult = Apollo.MutationResult<DeleteRowMutation>;
 export type DeleteRowMutationOptions = Apollo.BaseMutationOptions<DeleteRowMutation, DeleteRowMutationVariables>;
-export const LoginWithProfileDocument = gql`
-    mutation LoginWithProfile($profile: LoginProfileInput!) {
-  LoginWithProfile(profile: $profile) {
-    Status
-  }
-}
-    `;
-export type LoginWithProfileMutationFn = Apollo.MutationFunction<LoginWithProfileMutation, LoginWithProfileMutationVariables>;
-
-/**
- * __useLoginWithProfileMutation__
- *
- * To run a mutation, you first call `useLoginWithProfileMutation` within a React component and pass it any options that fit your needs.
- * When your component renders, `useLoginWithProfileMutation` returns a tuple that includes:
- * - A mutate function that you can call at any time to execute the mutation
- * - An object with fields that represent the current status of the mutation's execution
- *
- * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
- *
- * @example
- * const [loginWithProfileMutation, { data, loading, error }] = useLoginWithProfileMutation({
- *   variables: {
- *      profile: // value for 'profile'
- *   },
- * });
- */
-export function useLoginWithProfileMutation(baseOptions?: Apollo.MutationHookOptions<LoginWithProfileMutation, LoginWithProfileMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<LoginWithProfileMutation, LoginWithProfileMutationVariables>(LoginWithProfileDocument, options);
-      }
-export type LoginWithProfileMutationHookResult = ReturnType<typeof useLoginWithProfileMutation>;
-export type LoginWithProfileMutationResult = Apollo.MutationResult<LoginWithProfileMutation>;
-export type LoginWithProfileMutationOptions = Apollo.BaseMutationOptions<LoginWithProfileMutation, LoginWithProfileMutationVariables>;
 export const LoginDocument = gql`
     mutation Login($credentials: LoginCredentials!) {
   Login(credentials: $credentials) {
@@ -1016,38 +966,6 @@ export function useLoginMutation(baseOptions?: Apollo.MutationHookOptions<LoginM
 export type LoginMutationHookResult = ReturnType<typeof useLoginMutation>;
 export type LoginMutationResult = Apollo.MutationResult<LoginMutation>;
 export type LoginMutationOptions = Apollo.BaseMutationOptions<LoginMutation, LoginMutationVariables>;
-export const LogoutDocument = gql`
-    mutation Logout {
-  Logout {
-    Status
-  }
-}
-    `;
-export type LogoutMutationFn = Apollo.MutationFunction<LogoutMutation, LogoutMutationVariables>;
-
-/**
- * __useLogoutMutation__
- *
- * To run a mutation, you first call `useLogoutMutation` within a React component and pass it any options that fit your needs.
- * When your component renders, `useLogoutMutation` returns a tuple that includes:
- * - A mutate function that you can call at any time to execute the mutation
- * - An object with fields that represent the current status of the mutation's execution
- *
- * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
- *
- * @example
- * const [logoutMutation, { data, loading, error }] = useLogoutMutation({
- *   variables: {
- *   },
- * });
- */
-export function useLogoutMutation(baseOptions?: Apollo.MutationHookOptions<LogoutMutation, LogoutMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<LogoutMutation, LogoutMutationVariables>(LogoutDocument, options);
-      }
-export type LogoutMutationHookResult = ReturnType<typeof useLogoutMutation>;
-export type LogoutMutationResult = Apollo.MutationResult<LogoutMutation>;
-export type LogoutMutationOptions = Apollo.BaseMutationOptions<LogoutMutation, LogoutMutationVariables>;
 export const UpdateStorageUnitDocument = gql`
     mutation UpdateStorageUnit($schema: String!, $storageUnit: String!, $values: [RecordInput!]!, $updatedColumns: [String!]!) {
   UpdateStorageUnit(
@@ -1290,52 +1208,6 @@ export type GetDatabaseQueryHookResult = ReturnType<typeof useGetDatabaseQuery>;
 export type GetDatabaseLazyQueryHookResult = ReturnType<typeof useGetDatabaseLazyQuery>;
 export type GetDatabaseSuspenseQueryHookResult = ReturnType<typeof useGetDatabaseSuspenseQuery>;
 export type GetDatabaseQueryResult = Apollo.QueryResult<GetDatabaseQuery, GetDatabaseQueryVariables>;
-export const GetProfilesDocument = gql`
-    query GetProfiles {
-  Profiles {
-    Alias
-    Id
-    Type
-    Hostname
-    Database
-    IsEnvironmentDefined
-    Source
-    SSLConfigured
-  }
-}
-    `;
-
-/**
- * __useGetProfilesQuery__
- *
- * To run a query within a React component, call `useGetProfilesQuery` and pass it any options that fit your needs.
- * When your component renders, `useGetProfilesQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useGetProfilesQuery({
- *   variables: {
- *   },
- * });
- */
-export function useGetProfilesQuery(baseOptions?: Apollo.QueryHookOptions<GetProfilesQuery, GetProfilesQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<GetProfilesQuery, GetProfilesQueryVariables>(GetProfilesDocument, options);
-      }
-export function useGetProfilesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetProfilesQuery, GetProfilesQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<GetProfilesQuery, GetProfilesQueryVariables>(GetProfilesDocument, options);
-        }
-export function useGetProfilesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetProfilesQuery, GetProfilesQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<GetProfilesQuery, GetProfilesQueryVariables>(GetProfilesDocument, options);
-        }
-export type GetProfilesQueryHookResult = ReturnType<typeof useGetProfilesQuery>;
-export type GetProfilesLazyQueryHookResult = ReturnType<typeof useGetProfilesLazyQuery>;
-export type GetProfilesSuspenseQueryHookResult = ReturnType<typeof useGetProfilesSuspenseQuery>;
-export type GetProfilesQueryResult = Apollo.QueryResult<GetProfilesQuery, GetProfilesQueryVariables>;
 export const RawExecuteDocument = gql`
     query RawExecute($query: String!) {
   RawExecute(query: $query) {

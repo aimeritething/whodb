@@ -22,18 +22,16 @@ export function getAuthorizationHeader(databaseOverride?: string): string | null
   const auth = getAuth();
   if (!auth) return null;
 
-  const tokenPayload = auth.kind === 'profile'
-    ? { Id: auth.profile.Id, Database: databaseOverride ?? auth.profile.Database }
-    : {
-        Id: auth.credentials.Id,
-        Type: auth.credentials.Type,
-        Hostname: auth.credentials.Hostname,
-        Username: auth.credentials.Username,
-        Password: auth.credentials.Password,
-        Database: databaseOverride ?? auth.credentials.Database,
-        Advanced: auth.credentials.Advanced ?? [],
-        IsProfile: false,
-      };
+  const tokenPayload = {
+    Id: auth.Id,
+    Type: auth.Type,
+    Hostname: auth.Hostname,
+    Username: auth.Username,
+    Password: auth.Password,
+    Database: databaseOverride ?? auth.Database,
+    Advanced: auth.Advanced ?? [],
+    IsProfile: false,
+  };
 
   const jsonString = JSON.stringify(tokenPayload);
   const utf8Bytes = encodeURIComponent(jsonString).replace(

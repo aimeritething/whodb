@@ -1,12 +1,10 @@
 import React, { useState, useCallback } from "react";
 
-import { useConnectionStore, type Connection } from "@/stores/useConnectionStore";
+import { useConnectionStore } from "@/stores/useConnectionStore";
 import { useTabStore } from "@/stores/useTabStore";
 import { ContextMenu } from "../ui/ContextMenu";
 import { ConfirmationModal } from "../ui/ConfirmationModal";
 import { AlertModal } from "../ui/AlertModal";
-import { ConnectionModal } from "../connection/ConnectionModal";
-import { DeleteConnectionModal } from "../connection/DeleteConnectionModal";
 import { CreateDatabaseModal } from "../database/CreateDatabaseModal";
 import { CreateTableModal } from "../database/CreateTableModal";
 import { EditDatabaseModal } from "../database/EditDatabaseModal";
@@ -48,7 +46,7 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
 
   const {
     expandedItems, treeData, isLoading,
-    toggleItem, fetchNodeChildren, refreshNode, collapseNode,
+    toggleItem, fetchNodeChildren, refreshNode,
   } = useSidebarTree();
 
   const {
@@ -168,18 +166,6 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
           });
           break;
         }
-        case "edit_connection":
-          openModal({
-            type: "connection",
-            params: { editingConnection: connections.find((c) => c.id === node.id) as Connection },
-          });
-          break;
-        case "delete_connection":
-          openModal({
-            type: "delete_connection",
-            params: { connectionId: node.id, connectionName: node.name },
-          });
-          break;
         case "new_database":
           openModal({ type: "create_database", params: { connectionId: node.id } });
           break;
@@ -348,9 +334,6 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
             toggleItem(node);
           }
           break;
-        case "disconnect":
-          collapseNode(node.id);
-          break;
         case "toggle_system_objects":
           toggleSystemObjects(node.id);
           // Re-fetch this node's children with the new filter
@@ -364,7 +347,7 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
     },
     [
       contextMenu, connections, openTab, openModal,
-      expandedItems, fetchNodeChildren, toggleItem, collapseNode,
+      expandedItems, fetchNodeChildren, toggleItem,
       toggleSystemObjects,
     ],
   );
@@ -485,25 +468,6 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
           y={contextMenu.y}
           onClose={() => setContextMenu(null)}
           items={contextMenuItems}
-        />
-      )}
-
-      {/* Connection Modal (new + edit) */}
-      {activeModal?.type === "connection" && (
-        <ConnectionModal
-          isOpen
-          onClose={closeModal}
-          initialData={"editingConnection" in activeModal.params ? activeModal.params.editingConnection : undefined}
-        />
-      )}
-
-      {/* Delete Connection Modal */}
-      {activeModal?.type === "delete_connection" && (
-        <DeleteConnectionModal
-          isOpen
-          onClose={closeModal}
-          connectionId={activeModal.params.connectionId}
-          connectionName={activeModal.params.connectionName}
         />
       )}
 

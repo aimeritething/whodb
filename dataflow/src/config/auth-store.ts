@@ -24,38 +24,22 @@ export interface AuthCredentials {
   Advanced?: Array<{ Key: string; Value: string }>;
 }
 
-export interface SavedProfileCredentials {
-  Id: string;
-  Type: string;
-  Database: string;
-}
-
-type CurrentAuth =
-  | { kind: 'inline'; credentials: AuthCredentials }
-  | { kind: 'profile'; profile: SavedProfileCredentials }
-  | null;
-
-let currentAuth: CurrentAuth = null;
+let currentAuth: AuthCredentials | null = null;
 
 /** Set credentials after a successful Login mutation. Persists to sessionStorage. */
 export function setAuthCredentials(credentials: AuthCredentials): void {
-  currentAuth = { kind: 'inline', credentials };
+  currentAuth = credentials;
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(credentials));
 }
 
-/** Set credentials after a successful LoginWithProfile mutation. */
-export function setProfileAuth(profile: SavedProfileCredentials): void {
-  currentAuth = { kind: 'profile', profile };
-}
-
-/** Clear credentials on logout. Removes from sessionStorage. */
+/** Clear credentials. Removes from sessionStorage. */
 export function clearAuth(): void {
   currentAuth = null;
   sessionStorage.removeItem(STORAGE_KEY);
 }
 
 /** Read current auth state (used by authLink). */
-export function getAuth(): CurrentAuth {
+export function getAuth(): AuthCredentials | null {
   return currentAuth;
 }
 
@@ -69,7 +53,7 @@ export function restoreFromStorage(): AuthCredentials | null {
   if (!stored) return null;
   try {
     const credentials: AuthCredentials = JSON.parse(stored);
-    currentAuth = { kind: 'inline', credentials };
+    currentAuth = credentials;
     return credentials;
   } catch {
     sessionStorage.removeItem(STORAGE_KEY);

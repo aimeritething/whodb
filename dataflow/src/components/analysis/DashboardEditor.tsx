@@ -1,9 +1,8 @@
 import React from "react";
 import { useAnalysisStore } from "@/stores/useAnalysisStore";
-import { Save, Eye, Share2, Settings, Download, Plus, Type, Layout } from "lucide-react";
+import { Plus, Layout } from "lucide-react";
 
 import { EditorCanvas } from "./EditorCanvas";
-import { cn } from "@/lib/utils";
 import { ChartSelectorModal } from "./ChartSelectorModal";
 import { MaximizeChartModal } from "./MaximizeChartModal";
 import { ComponentSettingsModal } from "./ComponentSettingsModal";

@@ -1,15 +1,9 @@
 /**
  * Sealos integration helpers.
  *
- * Detects Sealos dbprovider context, maps language codes, maps KubeBlocks
- * database types to WhoDB plugin types, and decrypts AES-encrypted credentials.
+ * Detects Sealos dbprovider context, maps KubeBlocks database types to
+ * WhoDB plugin types, and decrypts AES-encrypted credentials.
  */
-
-/** Sealos Desktop language code → WhoDB i18n locale */
-const langMap: Record<string, string> = {
-  zh: 'zh_CN',
-  en: 'en_US',
-};
 
 /**
  * Detect whether the current URL was opened by the Sealos dbprovider.
@@ -17,11 +11,6 @@ const langMap: Record<string, string> = {
  */
 export function isSealosContext(params: URLSearchParams): boolean {
   return params.has('dbType');
-}
-
-/** Map a Sealos language code to a WhoDB locale. */
-export function mapSealosLang(lang: string | null): string {
-  return langMap[lang ?? ''] ?? 'en_US';
 }
 
 /** Maps KubeBlocks database type names to WhoDB DatabaseType ids. */

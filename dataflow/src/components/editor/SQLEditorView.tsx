@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Play, AlignLeft, Clock, CheckCircle, AlertCircle, FileText, Activity, Loader2, XCircle, CheckCircle2, GalleryVerticalEnd, PenTool } from "lucide-react";
+import { Play, AlignLeft, CheckCircle, AlertCircle, FileText, Loader2, XCircle, CheckCircle2, GalleryVerticalEnd, PenTool } from "lucide-react";
 import { format } from 'sql-formatter';
 import { cn } from "@/lib/utils";
 import MonacoEditor from "./MonacoEditorWrapper";
@@ -31,7 +31,7 @@ function isSQLQueryAction(code?: string): boolean {
 export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorViewProps) {
     const { connections } = useConnectionStore();
     const [rawExecute] = useRawExecuteLazyQuery({ fetchPolicy: 'no-cache' });
-    const [activeResultTab, setActiveResultTab] = useState<'result' | 'message' | 'profile' | 'status'>('result');
+    const [activeResultTab, setActiveResultTab] = useState<'result' | 'message'>('result');
     const [query, setQuery] = useState(initialSql || "");
     const [isExecuting, setIsExecuting] = useState(false);
     const [queryResults, setQueryResults] = useState<any>(null);
@@ -274,26 +274,6 @@ export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorVie
                             <CheckCircle className="h-3.5 w-3.5" />
                             Message
                         </button>
-                        <button
-                            onClick={() => setActiveResultTab('profile')}
-                            className={cn(
-                                "flex items-center gap-2 px-4 py-2 text-xs font-medium border-b-2 transition-colors",
-                                activeResultTab === 'profile' ? "border-primary text-primary bg-background" : "border-transparent text-muted-foreground hover:text-foreground"
-                            )}
-                        >
-                            <Clock className="h-3.5 w-3.5" />
-                            Profile
-                        </button>
-                        <button
-                            onClick={() => setActiveResultTab('status')}
-                            className={cn(
-                                "flex items-center gap-2 px-4 py-2 text-xs font-medium border-b-2 transition-colors",
-                                activeResultTab === 'status' ? "border-primary text-primary bg-background" : "border-transparent text-muted-foreground hover:text-foreground"
-                            )}
-                        >
-                            <Activity className="h-3.5 w-3.5" />
-                            Status
-                        </button>
                     </div>
 
                     {/* Result Content */}
@@ -420,16 +400,6 @@ export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorVie
                                 ) : (
                                     <div className="text-muted-foreground">No query executed yet.</div>
                                 )}
-                            </div>
-                        )}
-                        {activeResultTab === 'profile' && (
-                            <div className="p-4 text-sm text-muted-foreground flex items-center justify-center h-full">
-                                Query profiling is not enabled.
-                            </div>
-                        )}
-                        {activeResultTab === 'status' && (
-                            <div className="p-4 text-sm text-muted-foreground flex items-center justify-center h-full">
-                                Server status: Connected
                             </div>
                         )}
                     </div>

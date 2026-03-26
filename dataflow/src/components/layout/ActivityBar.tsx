@@ -1,8 +1,8 @@
 import React from "react";
-import { Database, Terminal, BarChart2, Bot, Settings, Layers, LayoutDashboard, MessageSquare } from "lucide-react";
+import { Database, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type ActivityTab = 'connections' | 'sql-editor' | 'analysis' | 'settings';
+export type ActivityTab = 'connections' | 'analysis';
 
 interface ActivityBarProps {
     activeTab: ActivityTab;
@@ -14,8 +14,6 @@ export function ActivityBar({ activeTab, onTabChange }: ActivityBarProps) {
         { id: 'connections', icon: Database, label: 'Database Connections' },
         { id: 'analysis', icon: LayoutDashboard, label: 'Data Analysis' },
     ];
-
-    const bottomTabs: { id: ActivityTab; icon: React.ElementType; label: string }[] = [];
 
     const renderTab = (tab: { id: ActivityTab; icon: React.ElementType; label: string }) => {
         const Icon = tab.icon;
@@ -42,9 +40,6 @@ export function ActivityBar({ activeTab, onTabChange }: ActivityBarProps) {
         <div className="flex h-full w-16 flex-col items-center justify-between border-r bg-background py-4">
             <div className="flex flex-col gap-4">
                 {tabs.map(renderTab)}
-            </div>
-            <div className="flex flex-col gap-4">
-                {bottomTabs.map(renderTab)}
             </div>
         </div>
     );

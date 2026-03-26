@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 
 import { ActivityBar, ActivityTab } from "./ActivityBar";
@@ -6,11 +6,7 @@ import { AnalysisView } from "../analysis/AnalysisView";
 import { TabBar } from "./TabBar";
 import { TabContent } from "./TabContent";
 
-interface MainLayoutProps {
-    children?: React.ReactNode;
-}
-
-export function MainLayout({ children }: MainLayoutProps) {
+export function MainLayout() {
     const [activeTab, setActiveTab] = useState<ActivityTab>('connections');
     const [collectionRefreshTrigger, setCollectionRefreshTrigger] = useState(0);
 
@@ -45,11 +41,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                     </>
                 ) : activeTab === 'analysis' ? (
                     <AnalysisView />
-                ) : (
-                    <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                        {activeTab === 'settings' && "Settings View (Coming Soon)"}
-                    </div>
-                )}
+                ) : null}
 
             </main>
         </div>

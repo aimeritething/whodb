@@ -41,7 +41,6 @@ interface AnalysisState {
     createDashboard: (name: string, description?: string) => void;
     deleteDashboard: (id: string) => void;
     openDashboard: (id: string) => void;
-    closeDashboard: () => void;
     updateDashboard: (id: string, updates: Partial<Dashboard>) => void;
 
     addComponent: (type: ComponentType, config?: any) => void;
@@ -98,10 +97,6 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
 
     openDashboard: (id) => {
         set({ activeDashboardId: id, isEditorMode: false, selectedComponentId: null });
-    },
-
-    closeDashboard: () => {
-        set({ activeDashboardId: null, selectedComponentId: null });
     },
 
     updateDashboard: (id, updates) => {

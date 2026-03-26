@@ -41,9 +41,6 @@ export interface SelectedItem {
 interface ConnectionState {
   connections: Connection[];
   selectedItem: SelectedItem | null;
-  removeConnection: (id: string) => void;
-  updateConnection: (id: string, updates: Partial<Connection>) => void;
-  editConnection: (id: string, updates: Partial<Connection>) => void;
   createDatabase: (connectionId: string, databaseName: string, charset: string, collation: string) => Promise<boolean>;
   updateDatabase: (connectionId: string, databaseName: string, newName: string) => Promise<boolean>;
   deleteDatabase: (connectionId: string, databaseName: string) => Promise<boolean>;
@@ -102,11 +99,6 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
     });
     set({ systemSchemas: data?.DatabaseMetadata?.systemSchemas ?? [] });
   },
-
-  // Connection management is a no-op in Sealos single-credential mode
-  removeConnection: () => {},
-  updateConnection: () => {},
-  editConnection: () => {},
 
   selectItem: (item) => set({ selectedItem: item }),
 

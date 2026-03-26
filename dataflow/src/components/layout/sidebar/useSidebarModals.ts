@@ -1,10 +1,7 @@
 import { useReducer, useCallback, useState } from "react";
-import type { Connection } from "@/stores/useConnectionStore";
 
 /** All possible modal types and their parameter shapes */
 export type ModalState =
-  | { type: "connection"; params: { editingConnection?: Connection } }
-  | { type: "delete_connection"; params: { connectionId: string; connectionName: string } }
   | { type: "create_database"; params: { connectionId: string } }
   | { type: "create_table"; params: { connectionId: string; databaseName: string; schema?: string } }
   | { type: "edit_database"; params: { connectionId: string; databaseName: string } }

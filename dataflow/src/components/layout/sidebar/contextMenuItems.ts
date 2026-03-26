@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  Terminal, Plus, Upload, Download, Edit2, Trash2, Unplug,
+  Terminal, Plus, Upload, Download, Edit2, Trash2,
   RefreshCw, Eraser, Copy, Eye, EyeOff,
 } from "lucide-react";
 import type { ContextMenuItem } from "@/components/ui/ContextMenu";
@@ -48,11 +48,6 @@ export function getConnectionMenuItems(
           { label: "Import Database", onClick: () => onAction("import_database"), icon: React.createElement(Upload, { className: "h-4 w-4" }) },
         ] as ContextMenuItem[]
       : []),
-    { separator: true },
-    { label: "Edit Connection", onClick: () => onAction("edit_connection"), icon: React.createElement(Edit2, { className: "h-4 w-4" }) },
-    { label: "Delete Connection", onClick: () => onAction("delete_connection"), icon: React.createElement(Trash2, { className: "h-4 w-4 text-red-500" }), danger: true },
-    { separator: true },
-    { label: "Close Connection", onClick: () => onAction("disconnect"), icon: React.createElement(Unplug, { className: "h-4 w-4" }) },
     { separator: true },
     refreshItem(onAction),
     ...systemItems,
