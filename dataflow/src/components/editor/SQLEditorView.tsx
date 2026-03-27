@@ -6,6 +6,7 @@ import MonacoEditor from "./MonacoEditorWrapper";
 import type { editor } from 'monaco-editor';
 import { useConnectionStore } from "@/stores/useConnectionStore";
 import { useRawExecuteLazyQuery } from '@graphql';
+import { getEditorLanguage, isReadOperation } from "@/utils/database-features";
 
 interface SQLEditorViewProps {
     context?: {
@@ -17,19 +18,9 @@ interface SQLEditorViewProps {
     onSqlChange?: (sql: string) => void;
 }
 
-function isSQLQueryAction(code?: string): boolean {
-    if (code == null) return true;
-    const cleaned = code
-        .split('\n')
-        .filter((line) => !line.trim().startsWith('--'))
-        .join('\n')
-        .trim()
-        .toLowerCase();
-    return /^(select|with|values|show|explain|describe)\b/.test(cleaned);
-}
-
 export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorViewProps) {
     const { connections } = useConnectionStore();
+    const connectionType = connections.find((c) => c.id === context?.connectionId)?.type ?? 'POSTGRES';
     const [rawExecute] = useRawExecuteLazyQuery({ fetchPolicy: 'no-cache' });
     const [activeResultTab, setActiveResultTab] = useState<'result' | 'message'>('result');
     const [query, setQuery] = useState(initialSql || "");
@@ -65,7 +56,7 @@ export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorVie
                 const raw = data.RawExecute;
                 const columns = raw.Columns.map((c) => c.Name);
 
-                if (isSQLQueryAction(query) || raw.Rows.length > 0) {
+                if (isReadOperation(connectionType, query ?? '') || raw.Rows.length > 0) {
                     // Query result — show table
                     const rows = raw.Rows.map((row) =>
                         Object.fromEntries(columns.map((col, i) => [col, row[i]]))
@@ -195,14 +186,16 @@ export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorVie
                             {isExecuting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-current" />}
                             Run
                         </button>
-                        <button
-                            onClick={handleFormat}
-                            disabled={!query.trim()}
-                            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <AlignLeft className="h-4 w-4" />
-                            Format
-                        </button>
+                        {getEditorLanguage(connectionType) === 'sql' && (
+                            <button
+                                onClick={handleFormat}
+                                disabled={!query.trim()}
+                                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <AlignLeft className="h-4 w-4" />
+                                Format
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -213,7 +206,7 @@ export function SQLEditorView({ context, initialSql, onSqlChange }: SQLEditorVie
                 <div className="flex-1 overflow-hidden" style={{ marginBottom: isResizing ? 0 : 0 }}>
                     <MonacoEditor
                         height="100%"
-                        defaultLanguage="sql"
+                        language={getEditorLanguage(connectionType)}
                         value={query}
                         onChange={(value: string | undefined) => {
                             const v = value || '';
