@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { graphqlClient } from '@/config/graphql-client';
 import { useAuthStore } from '@/stores/useAuthStore';
 import type { AuthCredentials } from '@/config/auth-store';
+import { getAuth } from '@/config/auth-store';
 import {
   GetDatabaseDocument,
   type GetDatabaseQuery,
@@ -13,7 +14,20 @@ import {
   GetStorageUnitsDocument,
   type GetStorageUnitsQuery,
   type GetStorageUnitsQueryVariables,
+  ExecuteConfirmedSqlDocument,
+  type ExecuteConfirmedSqlMutation,
+  type ExecuteConfirmedSqlMutationVariables,
+  AddStorageUnitDocument,
+  type AddStorageUnitMutation,
+  type AddStorageUnitMutationVariables,
+  type RecordInput,
 } from '@graphql';
+import type { SqlDialect } from '@/utils/ddl-sql';
+import {
+  createDatabaseSQL, dropDatabaseSQL, renameDatabaseSQL,
+  dropTableSQL, truncateTableSQL, deleteAllRowsSQL,
+  renameTableSQL, copyTableStructureSQL, copyTableWithDataSQL,
+} from '@/utils/ddl-sql';
 
 export interface Connection {
   id: string;
@@ -41,12 +55,14 @@ export interface SelectedItem {
 interface ConnectionState {
   connections: Connection[];
   selectedItem: SelectedItem | null;
-  createDatabase: (connectionId: string, databaseName: string, charset: string, collation: string) => Promise<boolean>;
-  updateDatabase: (connectionId: string, databaseName: string, newName: string) => Promise<boolean>;
-  deleteDatabase: (connectionId: string, databaseName: string) => Promise<boolean>;
-  createTable: (connectionId: string, databaseName: string, tableName: string, columns: any[]) => Promise<boolean>;
-  updateTable: (connectionId: string, databaseName: string, tableName: string, columns: any[]) => Promise<boolean>;
-  deleteTable: (connectionId: string, databaseName: string, tableName: string) => Promise<boolean>;
+  createDatabase: (databaseName: string) => Promise<DDLResult>;
+  renameDatabase: (oldName: string, newName: string) => Promise<DDLResult>;
+  deleteDatabase: (databaseName: string) => Promise<DDLResult>;
+  createTable: (schema: string, tableName: string, fields: RecordInput[]) => Promise<DDLResult>;
+  renameTable: (databaseName: string, schema: string | undefined, oldName: string, newName: string) => Promise<DDLResult>;
+  deleteTable: (databaseName: string, schema: string | undefined, tableName: string) => Promise<DDLResult>;
+  clearTableData: (databaseName: string, schema: string | undefined, tableName: string, mode: 'truncate' | 'delete') => Promise<DDLResult>;
+  copyTable: (databaseName: string, schema: string | undefined, sourceTable: string, targetTable: string, copyData: boolean) => Promise<DDLResult>;
   selectItem: (item: SelectedItem | null) => void;
   fetchDatabases: (connectionId: string) => Promise<string[]>;
   fetchSchemas: (connectionId: string, database: string) => Promise<string[]>;
@@ -56,6 +72,45 @@ interface ConnectionState {
   showSystemObjectsFor: Set<string>;
   toggleSystemObjects: (nodeId: string) => void;
   fetchSystemSchemas: () => Promise<void>;
+}
+
+export interface DDLResult {
+  success: boolean;
+  message?: string;
+}
+
+/** Map auth store Type (e.g. "Postgres") to SqlDialect. */
+function getDialect(): SqlDialect {
+  const dbType = getAuth()?.Type;
+  const map: Record<string, SqlDialect> = {
+    Postgres: 'POSTGRES', MySQL: 'MYSQL', MariaDB: 'MARIADB',
+    SQLite3: 'SQLITE3', ClickHouse: 'CLICKHOUSE',
+  };
+  return map[dbType ?? ''] ?? 'POSTGRES';
+}
+
+/** Execute a DDL statement via ExecuteConfirmedSQL and return a result. */
+async function executeDDL(sql: string, database?: string): Promise<DDLResult> {
+  try {
+    const { data, errors } = await graphqlClient.mutate<
+      ExecuteConfirmedSqlMutation,
+      ExecuteConfirmedSqlMutationVariables
+    >({
+      mutation: ExecuteConfirmedSqlDocument,
+      variables: { query: sql, operationType: 'DDL' },
+      context: database ? { database } : undefined,
+    });
+    if (errors?.length) {
+      return { success: false, message: errors[0].message };
+    }
+    const msg = data?.ExecuteConfirmedSQL;
+    if (msg?.Type === 'error') {
+      return { success: false, message: msg.Text };
+    }
+    return { success: true, message: msg?.Text };
+  } catch (err: any) {
+    return { success: false, message: err.message ?? 'Unknown error' };
+  }
 }
 
 const connectionTypeMap: Record<string, Connection['type']> = {
@@ -149,29 +204,71 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
     })) ?? [];
   },
 
-  createDatabase: async () => {
-    console.warn('createDatabase: pending Phase 4 GraphQL wiring');
-    return false;
+  createDatabase: async (databaseName) => {
+    const sql = createDatabaseSQL(getDialect(), databaseName);
+    return executeDDL(sql);
   },
-  updateDatabase: async () => {
-    console.warn('updateDatabase: pending Phase 4 GraphQL wiring');
-    return false;
+
+  renameDatabase: async (oldName, newName) => {
+    const sql = renameDatabaseSQL(getDialect(), oldName, newName);
+    if (!sql) {
+      return { success: false, message: 'Rename database is not supported for this database type' };
+    }
+    return executeDDL(sql);
   },
-  deleteDatabase: async () => {
-    console.warn('deleteDatabase: pending Phase 4 GraphQL wiring');
-    return false;
+
+  deleteDatabase: async (databaseName) => {
+    const sql = dropDatabaseSQL(getDialect(), databaseName);
+    return executeDDL(sql);
   },
-  createTable: async () => {
-    console.warn('createTable: pending Phase 4 GraphQL wiring');
-    return false;
+
+  createTable: async (schema, tableName, fields) => {
+    try {
+      const { data, errors } = await graphqlClient.mutate<
+        AddStorageUnitMutation,
+        AddStorageUnitMutationVariables
+      >({
+        mutation: AddStorageUnitDocument,
+        variables: { schema, storageUnit: tableName, fields },
+      });
+      if (errors?.length) {
+        return { success: false, message: errors[0].message };
+      }
+      return { success: data?.AddStorageUnit.Status ?? false };
+    } catch (err: any) {
+      return { success: false, message: err.message ?? 'Unknown error' };
+    }
   },
-  updateTable: async () => {
-    console.warn('updateTable: pending Phase 4 GraphQL wiring');
-    return false;
+
+  renameTable: async (databaseName, schema, oldName, newName) => {
+    const sql = renameTableSQL(getDialect(), oldName, newName, schema);
+    return executeDDL(sql, databaseName);
   },
-  deleteTable: async () => {
-    console.warn('deleteTable: pending Phase 4 GraphQL wiring');
-    return false;
+
+  deleteTable: async (databaseName, schema, tableName) => {
+    const sql = dropTableSQL(getDialect(), tableName, schema);
+    return executeDDL(sql, databaseName);
+  },
+
+  clearTableData: async (databaseName, schema, tableName, mode) => {
+    const dialect = getDialect();
+    const sql = mode === 'truncate'
+      ? truncateTableSQL(dialect, tableName, schema)
+      : deleteAllRowsSQL(dialect, tableName, schema);
+    return executeDDL(sql, databaseName);
+  },
+
+  copyTable: async (databaseName, schema, sourceTable, targetTable, copyData) => {
+    const dialect = getDialect();
+    const sql = copyData
+      ? copyTableWithDataSQL(dialect, sourceTable, targetTable, schema)
+      : copyTableStructureSQL(dialect, sourceTable, targetTable, schema);
+    const statements = sql.split('\n').filter(s => s.trim());
+    for (const stmt of statements) {
+      const result = await executeDDL(stmt, databaseName);
+      if (!result.success) return result;
+    }
+    return { success: true };
   },
 }));
 
