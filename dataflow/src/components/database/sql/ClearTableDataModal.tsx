@@ -1,114 +1,205 @@
-import React, { useState } from "react";
-import { X, Eraser, Loader2, CheckCircle, AlertCircle } from "lucide-react";
-import { useConnectionStore } from "@/stores/useConnectionStore";
-import { cn } from "@/lib/utils";
+import { createContext, use, useState, useCallback, type ReactNode } from 'react'
+import { Eraser } from 'lucide-react'
+import { useConnectionStore } from '@/stores/useConnectionStore'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
+import { ModalForm, useModalForm } from '@/components/database/modals/ModalForm'
+import { useModalState } from '@/components/database/modals/useModalState'
 
-interface ClearTableDataModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  databaseName: string;
-  schema?: string;
-  tableName: string;
-  onSuccess?: () => void;
+// ---------------------------------------------------------------------------
+// Context
+// ---------------------------------------------------------------------------
+
+interface ClearTableDataCtxValue {
+  mode: 'truncate' | 'delete'
+  setMode: (v: 'truncate' | 'delete') => void
+  tableName: string
 }
 
-export function ClearTableDataModal({ isOpen, onClose, databaseName, schema, tableName, onSuccess }: ClearTableDataModalProps) {
-  const { clearTableData } = useConnectionStore();
-  const [mode, setMode] = useState<'truncate' | 'delete'>('truncate');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+const ClearTableDataCtx = createContext<ClearTableDataCtxValue | null>(null)
 
-  if (!isOpen) return null;
+/** Hook to access ClearTableData domain context. Throws outside provider. */
+function useClearTableDataCtx(): ClearTableDataCtxValue {
+  const ctx = use(ClearTableDataCtx)
+  if (!ctx) throw new Error('useClearTableDataCtx must be used within ClearTableDataProvider')
+  return ctx
+}
 
-  const handleClear = async () => {
-    setIsProcessing(true);
-    const res = await clearTableData(databaseName, schema, tableName, mode);
-    setResult({ success: res.success, message: res.success ? 'Data cleared successfully' : (res.message ?? 'Failed to clear data') });
-    setIsProcessing(false);
-    if (res.success) onSuccess?.();
-  };
+// ---------------------------------------------------------------------------
+// Provider
+// ---------------------------------------------------------------------------
 
-  const handleClose = () => {
-    setResult(null);
-    setMode('truncate');
-    onClose();
-  };
+/** Owns business logic for clearing all data from a SQL table. */
+function ClearTableDataProvider({
+  databaseName,
+  schema,
+  tableName,
+  onSuccess,
+  children,
+}: {
+  databaseName: string
+  schema?: string
+  tableName: string
+  onSuccess?: () => void
+  children: ReactNode
+}) {
+  const { clearTableData } = useConnectionStore()
+  const [mode, setMode] = useState<'truncate' | 'delete'>('truncate')
+  const { state, actions: baseActions } = useModalState()
+
+  const actions = {
+    ...baseActions,
+    submit: async () => {
+      baseActions.setSubmitting(true)
+      const result = await clearTableData(databaseName, schema, tableName, mode)
+      baseActions.setSubmitting(false)
+      if (result.success) {
+        onSuccess?.()
+      } else {
+        baseActions.setAlert({
+          type: 'error',
+          title: 'Failed to clear data',
+          message: result.message ?? 'Unknown error',
+        })
+      }
+    },
+  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-xl bg-background shadow-2xl border animate-in fade-in zoom-in duration-200">
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Eraser className="h-5 w-5 text-orange-500" />
-            Clear Table Data
-          </h2>
-          <button onClick={handleClose} className="rounded-full p-1 hover:bg-muted transition-colors">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <ClearTableDataCtx value={{ mode, setMode, tableName }}>
+      <ModalForm.Provider
+        state={state}
+        actions={actions}
+        meta={{ title: 'Clear Table Data', icon: Eraser, isDestructive: true }}
+      >
+        {children}
+      </ModalForm.Provider>
+    </ClearTableDataCtx>
+  )
+}
 
-        <div className="px-6 py-4 space-y-4">
-          {!result ? (
-            <>
-              <div className="rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 p-3">
-                <p className="text-sm text-orange-800 dark:text-orange-200">
-                  This will remove <strong>all data</strong> from <strong>{tableName}</strong>. This action cannot be undone.
-                </p>
-              </div>
+// ---------------------------------------------------------------------------
+// Subcomponents
+// ---------------------------------------------------------------------------
 
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground uppercase">Mode</label>
-                <div className="space-y-2">
-                  <label className={cn(
-                    "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
-                    mode === 'truncate' ? "border-orange-400 bg-orange-50/50 dark:bg-orange-950/20" : "hover:bg-muted/50"
-                  )}>
-                    <input type="radio" name="mode" value="truncate" checked={mode === 'truncate'}
-                      onChange={() => setMode('truncate')} className="mt-0.5" />
-                    <div>
-                      <div className="text-sm font-medium">Fast (TRUNCATE)</div>
-                      <div className="text-xs text-muted-foreground">Resets auto-increment counters. Skips row-level triggers. Fastest for large tables.</div>
-                    </div>
-                  </label>
-                  <label className={cn(
-                    "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
-                    mode === 'delete' ? "border-orange-400 bg-orange-50/50 dark:bg-orange-950/20" : "hover:bg-muted/50"
-                  )}>
-                    <input type="radio" name="mode" value="delete" checked={mode === 'delete'}
-                      onChange={() => setMode('delete')} className="mt-0.5" />
-                    <div>
-                      <div className="text-sm font-medium">Safe (DELETE)</div>
-                      <div className="text-xs text-muted-foreground">Preserves auto-increment state. Fires row-level triggers. Slower on large tables.</div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className={cn(
-              "rounded-lg p-4 flex items-start gap-3",
-              result.success ? "bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-200"
-                : "bg-red-50 dark:bg-red-950/30 text-red-800 dark:text-red-200"
-            )}>
-              {result.success ? <CheckCircle className="h-5 w-5 shrink-0 mt-0.5" /> : <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />}
-              <p className="text-sm">{result.message}</p>
+/** Warning banner about data loss. */
+function ClearTableDataWarning() {
+  const { tableName } = useClearTableDataCtx()
+
+  return (
+    <div className="rounded-lg bg-destructive/5 p-3 text-sm border border-destructive/10">
+      <p className="text-muted-foreground">
+        This will remove <strong className="text-foreground">all data</strong> from{' '}
+        <strong className="text-foreground">{tableName}</strong>. This action cannot be undone.
+      </p>
+    </div>
+  )
+}
+
+/** Radio selector for TRUNCATE vs DELETE mode. */
+function ClearTableDataModeSelector() {
+  const { mode, setMode } = useClearTableDataCtx()
+  const { state } = useModalForm()
+
+  return (
+    <div className="space-y-2">
+      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        Mode
+      </label>
+      <div className="space-y-2">
+        <label
+          className={cn(
+            'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
+            mode === 'truncate' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50',
+          )}
+        >
+          <input
+            type="radio"
+            name="clearMode"
+            checked={mode === 'truncate'}
+            onChange={() => setMode('truncate')}
+            disabled={state.isSubmitting}
+            className="mt-0.5"
+          />
+          <div>
+            <div className="text-sm font-medium">Fast (TRUNCATE)</div>
+            <div className="text-xs text-muted-foreground">
+              Resets auto-increment counters. Skips row-level triggers. Fastest for large tables.
             </div>
+          </div>
+        </label>
+        <label
+          className={cn(
+            'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
+            mode === 'delete' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50',
           )}
-        </div>
-
-        <div className="flex justify-end gap-2 border-t px-6 py-4">
-          <button onClick={handleClose} className="px-4 py-2 text-sm rounded-lg hover:bg-muted transition-colors">
-            {result ? 'Close' : 'Cancel'}
-          </button>
-          {!result && (
-            <button onClick={handleClear} disabled={isProcessing}
-              className="px-4 py-2 text-sm rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50 flex items-center gap-2">
-              {isProcessing && <Loader2 className="h-4 w-4 animate-spin" />}
-              Clear Data
-            </button>
-          )}
-        </div>
+        >
+          <input
+            type="radio"
+            name="clearMode"
+            checked={mode === 'delete'}
+            onChange={() => setMode('delete')}
+            disabled={state.isSubmitting}
+            className="mt-0.5"
+          />
+          <div>
+            <div className="text-sm font-medium">Safe (DELETE)</div>
+            <div className="text-xs text-muted-foreground">
+              Preserves auto-increment state. Fires row-level triggers. Slower on large tables.
+            </div>
+          </div>
+        </label>
       </div>
     </div>
-  );
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Modal
+// ---------------------------------------------------------------------------
+
+interface ClearTableDataModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  databaseName: string
+  schema?: string
+  tableName: string
+  onSuccess?: () => void
+}
+
+/** Modal for clearing all data from a SQL table (TRUNCATE or DELETE). */
+export function ClearTableDataModal({
+  open,
+  onOpenChange,
+  databaseName,
+  schema,
+  tableName,
+  onSuccess,
+}: ClearTableDataModalProps) {
+  const handleSuccess = useCallback(() => {
+    onSuccess?.()
+    onOpenChange(false)
+  }, [onSuccess, onOpenChange])
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <ClearTableDataProvider
+          databaseName={databaseName}
+          schema={schema}
+          tableName={tableName}
+          onSuccess={handleSuccess}
+        >
+          <ModalForm.Header />
+          <ClearTableDataWarning />
+          <ClearTableDataModeSelector />
+          <ModalForm.Alert />
+          <ModalForm.Footer>
+            <ModalForm.CancelButton />
+            <ModalForm.SubmitButton label="Clear Data" />
+          </ModalForm.Footer>
+        </ClearTableDataProvider>
+      </DialogContent>
+    </Dialog>
+  )
 }

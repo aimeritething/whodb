@@ -568,8 +568,8 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
         const p = activeModal.params;
         return (
           <ClearTableDataModal
-            isOpen
-            onClose={closeModal}
+            open
+            onOpenChange={(open) => { if (!open) closeModal(); }}
             databaseName={p.databaseName}
             schema={p.schema}
             tableName={p.tableName}
