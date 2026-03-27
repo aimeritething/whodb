@@ -9,17 +9,17 @@ import { CreateDatabaseModal } from "../database/CreateDatabaseModal";
 import { EditDatabaseModal } from "../database/EditDatabaseModal";
 import { DeleteDatabaseModal } from "../database/DeleteDatabaseModal";
 import { ExportDatabaseModal } from "../database/ExportDatabaseModal";
-import { ImportDatabaseModal } from "../database/ImportDatabaseModal";
+
 import { CreateTableModal } from "../database/sql/CreateTableModal";
 import { EditTableModal } from "../database/sql/EditTableModal";
 import { DeleteTableModal } from "../database/sql/DeleteTableModal";
 import { ExportDataModal } from "../database/sql/ExportDataModal";
-import { ImportDataModal } from "../database/sql/ImportDataModal";
+
 import { EmptyTableModal } from "../database/sql/EmptyTableModal";
 import { TruncateTableModal } from "../database/sql/TruncateTableModal";
 import { CopyTableModal } from "../database/sql/CopyTableModal";
 import { ExportCollectionModal } from "../database/mongodb/ExportCollectionModal";
-import { ImportCollectionModal } from "../database/mongodb/ImportCollectionModal";
+
 
 import type { TreeNodeData } from "./sidebar/types";
 import { connectionToNode, EXPANDABLE_TYPES } from "./sidebar/types";
@@ -230,40 +230,6 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
             params: { connectionId: node.connectionId, databaseName: node.name },
           });
           break;
-        case "import_database":
-          openModal({
-            type: "import_database",
-            params: {
-              connectionId: node.type === "connection" ? node.id : node.connectionId,
-              databaseName: node.type === "connection" ? "" : node.name,
-            },
-          });
-          break;
-        case "import_data":
-          if (node.type === "database") {
-            const conn = connections.find((c) => c.id === node.connectionId);
-            const isPostgres = conn?.type === "POSTGRES";
-            openModal({
-              type: "import_data",
-              params: {
-                connectionId: node.connectionId,
-                databaseName: node.name,
-                schema: isPostgres ? "public" : undefined,
-                tableName: undefined,
-              },
-            });
-          } else {
-            openModal({
-              type: "import_data",
-              params: {
-                connectionId: node.connectionId,
-                databaseName: node.metadata.database!,
-                schema: node.metadata.schema,
-                tableName: node.name,
-              },
-            });
-          }
-          break;
         case "empty_table":
           openModal({
             type: "empty_table",
@@ -300,16 +266,6 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
         case "export_collection":
           openModal({
             type: "export_collection",
-            params: {
-              connectionId: node.connectionId,
-              databaseName: node.metadata.database!,
-              collectionName: node.name,
-            },
-          });
-          break;
-        case "import_collection":
-          openModal({
-            type: "import_collection",
             params: {
               connectionId: node.connectionId,
               databaseName: node.metadata.database!,
@@ -574,44 +530,6 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
         );
       })()}
 
-      {/* Import Database Modal */}
-      {activeModal?.type === "import_database" && (() => {
-        const p = activeModal.params;
-        return (
-          <ImportDatabaseModal
-            isOpen
-            onClose={closeModal}
-            connectionId={p.connectionId}
-            databaseName={p.databaseName}
-          />
-        );
-      })()}
-
-      {/* Import Data Modal */}
-      {activeModal?.type === "import_data" && (() => {
-        const p = activeModal.params;
-        return (
-          <ImportDataModal
-            isOpen
-            onClose={closeModal}
-            connectionId={p.connectionId}
-            databaseName={p.databaseName}
-            schema={p.schema}
-            tableName={p.tableName}
-            onSuccess={() => {
-              if (!p.tableName) {
-                const conn = connections.find((c) => c.id === p.connectionId);
-                const isPostgres = conn?.type === "POSTGRES";
-                if (isPostgres && p.schema) {
-                  refreshSchemaOrDb(p.connectionId, p.databaseName, p.schema);
-                } else {
-                  refreshSchemaOrDb(p.connectionId, p.databaseName);
-                }
-              }
-            }}
-          />
-        );
-      })()}
 
       {/* Empty Table Modal */}
       {activeModal?.type === "empty_table" && (() => {
@@ -678,19 +596,6 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
         );
       })()}
 
-      {/* Import Collection Modal */}
-      {activeModal?.type === "import_collection" && (() => {
-        const p = activeModal.params;
-        return (
-          <ImportCollectionModal
-            isOpen
-            onClose={closeModal}
-            connectionId={p.connectionId}
-            databaseName={p.databaseName}
-            collectionName={p.collectionName}
-          />
-        );
-      })()}
 
       {/* Drop Collection Confirmation Modal */}
       {activeModal?.type === "drop_collection" && (
