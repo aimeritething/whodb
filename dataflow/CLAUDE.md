@@ -32,7 +32,6 @@ No test framework is configured.
 - **No AI layer** — `lib/ai/` has been removed
 - **No database drivers** — `mongodb`, `mysql2`, `pg`, `redis` packages removed
 - **No persistence layer** — conversations, dashboards, connections are not persisted
-- **Frontend components remain** — database views, editor, dashboard builder exist but have non-functional API calls (pending WhoDB integration)
 
 ### Client State
 
