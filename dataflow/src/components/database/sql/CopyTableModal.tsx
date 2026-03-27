@@ -7,14 +7,15 @@ import { Input } from "@/components/ui/Input";
 interface CopyTableModalProps {
     isOpen: boolean;
     onClose: () => void;
-    connectionId: string;
+    connectionId?: string;
     databaseName: string;
+    schema?: string;
     tableName: string;
     onSuccess?: () => void;
 }
 
-export function CopyTableModal({ isOpen, onClose, connectionId, databaseName, tableName, onSuccess }: CopyTableModalProps) {
-    const { connections } = useConnectionStore();
+export function CopyTableModal({ isOpen, onClose, databaseName, schema, tableName, onSuccess }: CopyTableModalProps) {
+    const { copyTable } = useConnectionStore();
     const [newTableName, setNewTableName] = useState(`${tableName}_copy`);
     const [copyOption, setCopyOption] = useState<"structure" | "structure_data">("structure_data");
     const [isProcessing, setIsProcessing] = useState(false);
@@ -28,37 +29,14 @@ export function CopyTableModal({ isOpen, onClose, connectionId, databaseName, ta
         setIsProcessing(true);
         setResult(null);
 
-        const conn = connections.find(c => c.id === connectionId);
-        if (!conn) {
-            setResult({ success: false, message: "Connection not found" });
-            setIsProcessing(false);
-            return;
-        }
-
         try {
-            const response = await fetch('/api/connections/copy-table', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: conn.type.toLowerCase(),
-                    host: conn.host,
-                    port: conn.port,
-                    user: conn.user,
-                    password: conn.password,
-                    database: databaseName,
-                    sourceTable: tableName,
-                    targetTable: newTableName,
-                    copyData: copyOption === "structure_data"
-                }),
+            const copyData = copyOption === 'structure_data';
+            const ddlResult = await copyTable(databaseName, schema, tableName, newTableName, copyData);
+            setResult({
+                success: ddlResult.success,
+                message: ddlResult.success ? 'Table copied successfully' : (ddlResult.message ?? 'Failed to copy table'),
             });
-
-            const data = await response.json();
-            if (data.success) {
-                setResult({ success: true, message: `Table copied successfully to "${newTableName}".` });
-                if (onSuccess) onSuccess();
-            } else {
-                setResult({ success: false, message: data.error || "Failed to copy table" });
-            }
+            if (ddlResult.success) onSuccess?.();
         } catch (error: any) {
             setResult({ success: false, message: error.message || "An error occurred" });
         } finally {
