@@ -21,14 +21,15 @@ export function DeleteDatabaseModal({ isOpen, onClose, connectionId, databaseNam
         if (confirmName !== databaseName) return;
 
         setIsDeleting(true);
-        const success = await deleteDatabase(connectionId, databaseName);
+        const result = await deleteDatabase(databaseName);
         setIsDeleting(false);
 
-        if (success && onSuccess) {
-            onSuccess();
+        if (result.success) {
+            onSuccess?.();
+            onClose();
+        } else {
+            console.error("Failed to delete database:", result.message);
         }
-
-        onClose();
     };
 
     return (

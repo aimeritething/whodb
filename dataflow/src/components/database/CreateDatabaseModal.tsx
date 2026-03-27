@@ -12,8 +12,6 @@ interface CreateDatabaseModalProps {
 export function CreateDatabaseModal({ isOpen, onClose, connectionId, onSuccess }: CreateDatabaseModalProps) {
     const { createDatabase } = useConnectionStore();
     const [dbName, setDbName] = useState("");
-    const [charset, setCharset] = useState("utf8mb4");
-    const [collation, setCollation] = useState("utf8mb4_general_ci");
     const [isCreating, setIsCreating] = useState(false);
 
     if (!isOpen) return null;
@@ -22,11 +20,11 @@ export function CreateDatabaseModal({ isOpen, onClose, connectionId, onSuccess }
         if (!dbName) return;
 
         setIsCreating(true);
-        const success = await createDatabase(connectionId, dbName, charset, collation);
+        const result = await createDatabase(dbName);
         setIsCreating(false);
 
-        if (success && onSuccess) {
-            onSuccess(); // Trigger refresh
+        if (result.success) {
+            onSuccess?.();
         }
 
         onClose();
@@ -59,40 +57,6 @@ export function CreateDatabaseModal({ isOpen, onClose, connectionId, onSuccess }
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                Character Set
-                            </label>
-                            <div className="relative">
-                                <select
-                                    value={charset}
-                                    onChange={(e) => setCharset(e.target.value)}
-                                    className="w-full appearance-none rounded-md border bg-muted/30 px-3 py-2 text-sm outline-none focus:border-purple-500"
-                                >
-                                    <option value="utf8mb4">utf8mb4</option>
-                                    <option value="utf8">utf8</option>
-                                    <option value="latin1">latin1</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                Collation
-                            </label>
-                            <div className="relative">
-                                <select
-                                    value={collation}
-                                    onChange={(e) => setCollation(e.target.value)}
-                                    className="w-full appearance-none rounded-md border bg-muted/30 px-3 py-2 text-sm outline-none focus:border-purple-500"
-                                >
-                                    <option value="utf8mb4_general_ci">utf8mb4_general_ci</option>
-                                    <option value="utf8mb4_unicode_ci">utf8mb4_unicode_ci</option>
-                                    <option value="utf8mb4_bin">utf8mb4_bin</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <div className="flex items-center justify-end gap-3 border-t bg-muted/5 px-6 py-4">
