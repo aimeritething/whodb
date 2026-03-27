@@ -139,6 +139,100 @@ export function buildEChartsOption(
 }
 
 /**
+ * Build an ECharts option from a stored widget config.
+ * Single source of truth for chart rendering — used by DashboardWidget,
+ * MaximizeChartModal, and any other component that renders a saved chart.
+ *
+ * Reads `config.chartConfig.options` (legend, grid lines, data labels) when
+ * available (charts created via ChartCreateModal), with sensible defaults
+ * for legacy charts that lack it.
+ */
+export function buildWidgetChartOption(config: any): any | null {
+    if (!config?.series) return null;
+
+    const chartOpts = config.chartConfig as ChartConfig | undefined;
+    const showLegend = chartOpts?.options?.showLegend ?? false;
+    const showGridLines = chartOpts?.options?.showGridLines ?? true;
+    const showDataLabels = chartOpts?.options?.showDataLabels ?? false;
+
+    const isPie = config.type === 'pie';
+
+    if (isPie) {
+        return {
+            tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+            legend: showLegend ? { orient: 'horizontal', bottom: 0 } : undefined,
+            series: config.series.map((s: any) => ({
+                name: s.name,
+                type: 'pie',
+                radius: ['40%', '70%'],
+                itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+                data: Array.isArray(s.data)
+                    ? s.data.map((d: any, i: number) => {
+                        if (typeof d === 'object' && d.value !== undefined) return d;
+                        return { value: d, name: config.xAxis?.[i] || `Item ${i + 1}` };
+                    })
+                    : [],
+                label: { show: showDataLabels, formatter: '{b}' },
+                emphasis: {
+                    itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' },
+                },
+            })),
+        };
+    }
+
+    // Non-pie charts (bar, line, area)
+    const isHorizontal = config.direction === 'horizontal';
+    const useDualAxis = config.series.some((s: any) => s.yAxisIndex === 1);
+
+    const series = config.series.map((s: any) => {
+        let seriesType = s.type || config.type || 'bar';
+        let extra: any = {};
+        if (seriesType === 'area') {
+            seriesType = 'line';
+            extra = { areaStyle: { opacity: 0.2 } };
+        }
+        return {
+            ...s,
+            type: seriesType,
+            ...extra,
+            itemStyle: seriesType === 'bar'
+                ? { borderRadius: isHorizontal ? [0, 4, 4, 0] : [4, 4, 0, 0], ...s.itemStyle }
+                : s.itemStyle,
+            symbol: seriesType === 'line' ? 'circle' : undefined,
+            symbolSize: 6,
+            label: showDataLabels
+                ? { show: true, position: isHorizontal ? 'right' : 'top' }
+                : undefined,
+        };
+    });
+
+    const option: any = {
+        tooltip: { trigger: 'axis' },
+        legend: showLegend
+            ? { data: config.series.map((s: any) => s.name), bottom: 0 }
+            : undefined,
+        grid: {
+            left: '3%', right: '4%',
+            bottom: showLegend ? '12%' : '3%',
+            top: '10%', containLabel: true,
+        },
+        series,
+    };
+
+    if (isHorizontal) {
+        option.xAxis = { type: 'value', splitLine: { show: showGridLines, lineStyle: { type: 'dashed' } } };
+        option.yAxis = { type: 'category', data: config.xAxis || [], axisLine: { show: false }, axisTick: { show: false } };
+    } else {
+        option.xAxis = { type: 'category', data: config.xAxis || [], axisLine: { show: false }, axisTick: { show: false } };
+        option.yAxis = useDualAxis
+            ? [{ type: 'value', splitLine: { show: showGridLines, lineStyle: { type: 'dashed' } } }, { type: 'value' }]
+            : { type: 'value', splitLine: { show: showGridLines, lineStyle: { type: 'dashed' } } };
+    }
+
+    return option;
+}
+
+/**
  * Convert ChartConfig + QueryData into the config/data shape
  * that DashboardWidget's WidgetContent expects for type='chart'.
  *

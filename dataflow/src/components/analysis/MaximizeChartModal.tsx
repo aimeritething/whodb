@@ -1,7 +1,8 @@
 import React from "react";
 import { useAnalysisStore } from "@/stores/useAnalysisStore";
 import { X } from "lucide-react";
-import ReactECharts from 'echarts-for-react';
+import { SafeECharts } from "@/components/ui/SafeECharts";
+import { buildWidgetChartOption } from "./chart-utils";
 import { cn } from "@/lib/utils";
 
 interface MaximizeChartModalProps {
@@ -17,33 +18,7 @@ export function MaximizeChartModal({ isOpen, onClose, componentId }: MaximizeCha
 
     if (!isOpen || !component) return null;
 
-    const isPie = component.config?.type === 'pie';
-    const option: any = {
-        tooltip: { trigger: isPie ? 'item' : 'axis' },
-        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-        series: component.config?.series?.map((s: any) => ({
-            ...s,
-            type: component.config.type || 'bar',
-            itemStyle: isPie ? undefined : { borderRadius: [4, 4, 0, 0], color: '#3b82f6' }
-        })) || []
-    };
-
-    if (!isPie) {
-        option.xAxis = component.config?.direction === 'horizontal'
-            ? { type: 'value' }
-            : { type: 'category', data: component.config?.xAxis || [] };
-        option.yAxis = component.config?.direction === 'horizontal'
-            ? { type: 'category', data: component.config?.xAxis || [] }
-            : { type: 'value' };
-    }
-
-    if (component.config?.direction === 'horizontal') {
-        option.series = option.series.map((s: any) => ({
-            ...s,
-            itemStyle: { borderRadius: [0, 4, 4, 0], color: '#3b82f6' },
-            label: { show: true, position: 'right' }
-        }));
-    }
+    const chartOption = component.type === 'chart' ? buildWidgetChartOption(component.config) : null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm p-8">
@@ -60,11 +35,10 @@ export function MaximizeChartModal({ isOpen, onClose, componentId }: MaximizeCha
                     </button>
                 </div>
                 <div className="flex-1 p-6 min-h-0 overflow-auto">
-                    {component.type === 'chart' && (
-                        <ReactECharts
-                            option={option}
-                            style={{ height: '100%', width: '100%' }}
-                            opts={{ renderer: 'svg' }}
+                    {component.type === 'chart' && chartOption && (
+                        <SafeECharts
+                            option={chartOption}
+                            className="h-full w-full"
                         />
                     )}
                     {component.type === 'table' && component.data?.rows && (

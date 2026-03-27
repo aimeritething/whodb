@@ -3,6 +3,7 @@ import { DashboardComponent, useAnalysisStore } from "@/stores/useAnalysisStore"
 import { cn } from "@/lib/utils";
 import { MoreHorizontal, Trash2, Maximize2, Settings } from "lucide-react";
 import { SafeECharts } from "@/components/ui/SafeECharts";
+import { buildWidgetChartOption } from "./chart-utils";
 
 interface DashboardWidgetProps {
     component: DashboardComponent;
@@ -112,105 +113,16 @@ export function DashboardWidget({
 
 function WidgetContent({ component }: { component: DashboardComponent }) {
     switch (component.type) {
-        case 'chart':
-            if (!component.config || !component.config.series) return <div className="flex items-center justify-center h-full text-muted-foreground text-xs">No chart data</div>;
-
-            const isPie = component.config.type === 'pie';
-
-            let option: any;
-
-            if (isPie) {
-                // Pie chart needs special handling - data should be {value, name} pairs
-                option = {
-                    tooltip: {
-                        trigger: 'item',
-                        formatter: '{b}: {c} ({d}%)'
-                    },
-                    // No legend - labels on pie slices are sufficient
-                    series: component.config.series.map((s: any) => ({
-                        name: s.name,
-                        type: 'pie',
-                        radius: ['40%', '70%'], // Donut style looks more modern
-                        itemStyle: {
-                            borderRadius: 5,
-                            borderColor: '#fff',
-                            borderWidth: 2
-                        },
-                        // Transform data to include names from xAxis
-                        data: Array.isArray(s.data)
-                            ? s.data.map((d: any, i: number) => {
-                                // If data is already {value, name} format, use as-is
-                                if (typeof d === 'object' && d.value !== undefined) {
-                                    return d;
-                                }
-                                // Otherwise, create {value, name} from data and xAxis
-                                return {
-                                    value: d,
-                                    name: component.config.xAxis?.[i] || `Item ${i + 1}`
-                                };
-                            })
-                            : [],
-                        label: {
-                            show: true,
-                            formatter: '{b}'
-                        },
-                        emphasis: {
-                            itemStyle: {
-                                shadowBlur: 10,
-                                shadowOffsetX: 0,
-                                shadowColor: 'rgba(0, 0, 0, 0.5)'
-                            }
-                        }
-                    }))
-                };
-            } else {
-                // Non-pie charts (bar, line, area, etc.)
-                option = {
-                    tooltip: { trigger: 'axis', className: 'text-xs' },
-                    grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
-                    series: component.config.series.map((s: any) => {
-                        let seriesType = s.type || component.config.type || 'bar';
-                        let extra = {};
-                        if (seriesType === 'area') {
-                            seriesType = 'line';
-                            extra = { areaStyle: { opacity: 0.2 } };
-                        }
-                        return {
-                            ...s,
-                            type: seriesType,
-                            ...extra,
-                            itemStyle: seriesType === 'bar' ? { borderRadius: [4, 4, 0, 0], color: '#3b82f6', ...s.itemStyle } : s.itemStyle,
-                            symbol: seriesType === 'line' ? 'circle' : undefined,
-                            symbolSize: 6,
-                        };
-                    })
-                };
-
-                const useDualAxis = component.config.series.some((s: any) => s.yAxisIndex === 1);
-
-                option.xAxis = component.config.direction === 'horizontal'
-                    ? { type: 'value', splitLine: { show: true, lineStyle: { type: 'dashed' } } }
-                    : { type: 'category', data: component.config.xAxis || [], axisLine: { show: false }, axisTick: { show: false } };
-
-                option.yAxis = component.config.direction === 'horizontal'
-                    ? { type: 'category', data: component.config.xAxis || [], axisLine: { show: false }, axisTick: { show: false } }
-                    : (useDualAxis ? [{ type: 'value', splitLine: { lineStyle: { type: 'dashed' } } }, { type: 'value' }] : { type: 'value', splitLine: { lineStyle: { type: 'dashed' } } });
-
-                if (component.config.direction === 'horizontal') {
-                    option.series = option.series.map((s: any) => ({
-                        ...s,
-                        itemStyle: { borderRadius: [0, 4, 4, 0], color: '#3b82f6', ...s.itemStyle },
-                        label: { show: true, position: 'right' }
-                    }));
-                }
-            }
-
+        case 'chart': {
+            const option = buildWidgetChartOption(component.config);
+            if (!option) return <div className="flex items-center justify-center h-full text-muted-foreground text-xs">No chart data</div>;
             return (
                 <SafeECharts
                     option={option}
                     className="h-full w-full overflow-hidden"
                 />
             );
+        }
 
         case 'table':
             if (!component.data?.rows) return <div>No data</div>;
