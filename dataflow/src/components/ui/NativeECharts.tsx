@@ -55,7 +55,7 @@ export const NativeECharts = memo(function NativeECharts({ option, style, classN
             const width = container.clientWidth;
             const height = container.clientHeight;
 
-            const { svgDataURLToPNG } = await import('@/lib/export-utils');
+            const { svgDataURLToPNG } = await import('@/utils/export-utils');
             return svgDataURLToPNG(svgDataURL, width, height, pixelRatio);
         },
     }));

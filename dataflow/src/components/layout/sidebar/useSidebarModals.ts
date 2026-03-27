@@ -10,7 +10,7 @@ export type ModalState =
   | { type: "edit_table"; params: { connectionId: string; databaseName: string; schema?: string; tableName: string } }
   | { type: "delete_table"; params: { connectionId: string; databaseName: string; schema?: string; tableName: string } }
   | { type: "export_data"; params: { connectionId: string; databaseName: string; schema: string | null; tableName: string } }
-  | { type: "export_database"; params: { connectionId: string; databaseName: string } }
+  | { type: "export_database"; params: { connectionId: string; databaseName: string; schema: string } }
   | { type: "clear_table_data"; params: { connectionId: string; databaseName: string; schema?: string; tableName: string } }
   | { type: "copy_table"; params: { connectionId: string; databaseName: string; schema?: string; tableName: string } }
   | { type: "rename_table"; params: { connectionId: string; databaseName: string; schema?: string; tableName: string } }

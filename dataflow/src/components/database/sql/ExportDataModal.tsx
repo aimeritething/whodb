@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Download, FileJson, FileSpreadsheet, FileCode, FileText, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRawExecuteLazyQuery } from "@/generated/graphql";
-import { toCSV, toJSON, toSQL, toExcel, downloadBlob } from "@/lib/export-utils";
+import { toCSV, toJSON, toSQL, toExcel, downloadBlob } from "@/utils/export-utils";
 
 interface ExportDataModalProps {
     isOpen: boolean;

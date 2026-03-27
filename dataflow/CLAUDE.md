@@ -70,5 +70,6 @@ WhoDB core (Go) will serve as the backend via GraphQL API. The frontend componen
 
 - Path alias: `@/*` maps to `src/` (configured in both `vite.config.ts` and `tsconfig.json`)
 - Styling: `cn()` utility from `src/lib/utils.ts` (clsx + tailwind-merge). CSS variables defined in `src/globals.css` (Nebula Pro Palette).
+- `src/lib/` is reserved for shadcn's `utils.ts` only. All application utilities go in `src/utils/`.
 - Connection types are uppercase enums: `'MYSQL' | 'POSTGRES' | 'MONGODB' | 'REDIS'`
 - Fonts: Inter (sans) + JetBrains Mono (monospace), loaded via Google Fonts in `index.html`

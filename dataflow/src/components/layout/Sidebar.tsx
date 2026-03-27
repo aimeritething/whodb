@@ -234,12 +234,16 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
             },
           });
           break;
-        case "export_database":
+        case "export_database": {
+          const conn = connections.find(c => c.id === node.connectionId);
+          const dbType = conn?.type ?? '';
+          const schema = dbType === 'POSTGRES' ? 'public' : dbType === 'MYSQL' || dbType === 'CLICKHOUSE' ? node.name : '';
           openModal({
             type: "export_database",
-            params: { connectionId: node.connectionId, databaseName: node.name },
+            params: { connectionId: node.connectionId, databaseName: node.name, schema },
           });
           break;
+        }
         case "clear_table_data":
           openModal({
             type: "clear_table_data",
@@ -553,6 +557,7 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
             onClose={closeModal}
             connectionId={p.connectionId}
             databaseName={p.databaseName}
+            schema={p.schema}
           />
         );
       })()}
