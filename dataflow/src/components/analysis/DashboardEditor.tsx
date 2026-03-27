@@ -1,6 +1,7 @@
 import React from "react";
 import { useAnalysisStore } from "@/stores/useAnalysisStore";
 import { Plus, Layout } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { EditorCanvas } from "./EditorCanvas";
 import { ChartCreateModal } from "./ChartCreateModal";
@@ -67,7 +68,8 @@ export function DashboardEditor() {
 
 
                 {/* Center Canvas */}
-                <div className="flex-1 overflow-auto bg-muted/5 relative p-8">
+                <ScrollArea className="flex-1 bg-muted/5 relative">
+                    <div className="p-8">
                     <div className="min-h-full mx-auto max-w-[1600px] bg-background rounded-xl shadow-sm border border-border/40 min-h-[800px] transition-all duration-300">
                         {dashboard.components.length > 0 ? (
                             <EditorCanvas
@@ -98,7 +100,8 @@ export function DashboardEditor() {
                             </div>
                         )}
                     </div>
-                </div>
+                    </div>
+                </ScrollArea>
             </div>
 
             <ChartCreateModal

@@ -3,6 +3,7 @@ import { useAnalysisStore } from "@/stores/useAnalysisStore";
 import { Plus, Search, LayoutDashboard, SlidersHorizontal, Edit2, Trash2, PlusCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContextMenu } from "../ui/ContextMenu";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function DashboardSidebar() {
     const { dashboards, activeDashboardId, openDashboard, createDashboard, updateDashboard, deleteDashboard, isDashboardNameExists } = useAnalysisStore();
@@ -132,7 +133,8 @@ export function DashboardSidebar() {
             </div>
 
             {/* List */}
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            <ScrollArea className="flex-1">
+                <div className="p-2 space-y-1">
                 {filteredDashboards.map(dashboard => (
                     <div
                         key={dashboard.id}
@@ -152,7 +154,8 @@ export function DashboardSidebar() {
                         <span className="truncate">{dashboard.name}</span>
                     </div>
                 ))}
-            </div>
+                </div>
+            </ScrollArea>
 
             {/* Context Menu */}
             {contextMenu && (
