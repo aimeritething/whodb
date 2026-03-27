@@ -353,7 +353,7 @@ export function CollectionDetailView({ connectionId, databaseName, collectionNam
     if (error) {
         return (
             <div className="flex h-full items-center justify-center bg-muted/5">
-                <div className="text-center p-8 bg-background rounded-xl shadow-nebula-card border">
+                <div className="text-center p-8 bg-background rounded-xl shadow-sm border">
                     <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-sm text-muted-foreground">{error}</p>
                 </div>
@@ -445,7 +445,7 @@ export function CollectionDetailView({ connectionId, databaseName, collectionNam
                                 "rounded-xl border p-4 group relative transition-all duration-200 cursor-pointer",
                                 selectedDocIndex === idx
                                     ? "bg-blue-50 border-blue-100 shadow-sm"
-                                    : "bg-background border-border/50 hover:bg-muted/30 hover:shadow-nebula-card"
+                                    : "bg-background border-border/50 hover:bg-muted/30 hover:shadow-sm"
                             )}
                         >
                             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
@@ -578,7 +578,7 @@ export function CollectionDetailView({ connectionId, databaseName, collectionNam
             {/* Add Modal */}
             {showAddModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-                    <div className="bg-card w-full max-w-2xl rounded-xl shadow-nebula-modal border animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
+                    <div className="bg-card w-full max-w-2xl rounded-xl shadow-2xl border animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
                         <div className="flex items-center justify-between p-6 border-b">
                             <h3 className="text-lg font-semibold">Add New Document</h3>
                             <Button
@@ -619,7 +619,7 @@ export function CollectionDetailView({ connectionId, databaseName, collectionNam
             {/* Edit Modal */}
             {editingDoc && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-                    <div className="bg-card w-full max-w-2xl rounded-xl shadow-nebula-modal border animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
+                    <div className="bg-card w-full max-w-2xl rounded-xl shadow-2xl border animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
                         <div className="flex items-center justify-between p-6 border-b">
                             <h3 className="text-lg font-semibold">Edit Document</h3>
                             <Button

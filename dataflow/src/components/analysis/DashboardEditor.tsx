@@ -62,7 +62,7 @@ export function DashboardEditor() {
 
                 {/* Center Canvas */}
                 <div className="flex-1 overflow-auto bg-muted/5 relative p-8">
-                    <div className="min-h-full mx-auto max-w-[1600px] bg-background rounded-xl shadow-nebula-card border border-border/40 min-h-[800px] transition-all duration-300">
+                    <div className="min-h-full mx-auto max-w-[1600px] bg-background rounded-xl shadow-sm border border-border/40 min-h-[800px] transition-all duration-300">
                         {dashboard.components.length > 0 ? (
                             <EditorCanvas
                                 dashboard={dashboard}

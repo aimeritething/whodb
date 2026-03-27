@@ -561,7 +561,7 @@ export function TableDetailView({ connectionId, databaseName, tableName, schema 
     if (error) {
         return (
             <div className="flex h-full items-center justify-center bg-muted/5">
-                <div className="text-center p-8 bg-background rounded-xl shadow-nebula-card border">
+                <div className="text-center p-8 bg-background rounded-xl shadow-sm border">
                     <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-sm text-muted-foreground">{error}</p>
                     <Button variant="outline" className="mt-4" onClick={() => handleSubmitRequest()}>
@@ -683,7 +683,7 @@ export function TableDetailView({ connectionId, databaseName, tableName, schema 
 
             {/* Data Grid */}
             <div className="flex-1 overflow-hidden bg-muted/5 p-6 flex flex-col">
-                <div className="bg-background rounded-xl shadow-nebula-card border border-border/50 overflow-hidden flex-1 flex flex-col">
+                <div className="bg-background rounded-xl shadow-sm border border-border/50 overflow-hidden flex-1 flex flex-col">
                     {loading && !data ? (
                         <div className="flex flex-1 items-center justify-center">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />

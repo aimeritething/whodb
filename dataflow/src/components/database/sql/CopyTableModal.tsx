@@ -108,7 +108,7 @@ export function CopyTableModal({ isOpen, onClose, connectionId, databaseName, ta
                                             value="structure"
                                             checked={copyOption === "structure"}
                                             onChange={(e) => setCopyOption(e.target.value as any)}
-                                            className="h-4 w-4 border-primary text-primary ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                            className="h-4 w-4 border-primary text-primary focus-visible:ring-2 focus-visible:ring-ring"
                                         />
                                         <label htmlFor="structure" className="text-sm font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Structure Only</label>
                                     </div>
@@ -120,7 +120,7 @@ export function CopyTableModal({ isOpen, onClose, connectionId, databaseName, ta
                                             value="structure_data"
                                             checked={copyOption === "structure_data"}
                                             onChange={(e) => setCopyOption(e.target.value as any)}
-                                            className="h-4 w-4 border-primary text-primary ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                            className="h-4 w-4 border-primary text-primary focus-visible:ring-2 focus-visible:ring-ring"
                                         />
                                         <label htmlFor="structure_data" className="text-sm font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Structure and Data</label>
                                     </div>

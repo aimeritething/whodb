@@ -140,7 +140,7 @@ export function FilterCollectionModal({ isOpen, onClose, onApply, fields, initia
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-            <div className="bg-card w-full max-w-2xl rounded-xl shadow-nebula-modal border animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
+            <div className="bg-card w-full max-w-2xl rounded-xl shadow-2xl border animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
                 <div className="flex items-center justify-between p-6 border-b">
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                         <Filter className="h-5 w-5 text-primary" />

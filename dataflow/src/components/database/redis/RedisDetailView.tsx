@@ -422,7 +422,7 @@ export function RedisDetailView({ connectionId, databaseName }: RedisDetailViewP
 
             {/* Data Grid */}
             <div className="flex-1 overflow-hidden bg-muted/5 p-6 flex flex-col">
-                <div className="bg-background rounded-xl shadow-nebula-card border border-border/50 overflow-hidden flex-1 flex flex-col">
+                <div className="bg-background rounded-xl shadow-sm border border-border/50 overflow-hidden flex-1 flex flex-col">
                     {isLoading && keys.length === 0 ? (
                         <div className="flex flex-1 items-center justify-center">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
