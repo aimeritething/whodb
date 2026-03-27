@@ -1,0 +1,179 @@
+import { createContext, use, type ReactNode } from 'react'
+import { AlertCircle, CheckCircle, Info, Loader2, X } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import {
+  DialogClose,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/Button'
+import { cn } from '@/lib/utils'
+import type { ModalActions, ModalAlert, ModalContextValue, ModalState } from './types'
+
+/** Context shared between ModalForm compound components. */
+const ModalFormContext = createContext<ModalContextValue | null>(null)
+
+/**
+ * Hook for per-modal subcomponents to access the ModalForm context.
+ * Throws if used outside `ModalForm.Provider`.
+ *
+ * Compound components (Header, Alert, Footer, etc.) use this internally.
+ * Per-modal field components can also use it to read base state (e.g., `isSubmitting`).
+ */
+export function useModalForm(): ModalContextValue {
+  const ctx = use(ModalFormContext)
+  if (!ctx) throw new Error('useModalForm must be used within ModalForm.Provider')
+  return ctx
+}
+
+// ---------------------------------------------------------------------------
+// Compound subcomponents
+// ---------------------------------------------------------------------------
+
+/** Provides ModalForm context to compound subcomponents. */
+function ModalFormProvider<S extends ModalState, A extends ModalActions>({
+  children,
+  state,
+  actions,
+  meta,
+}: { children: ReactNode } & ModalContextValue<S, A>) {
+  return (
+    <ModalFormContext value={{ state, actions, meta }}>
+      {children}
+    </ModalFormContext>
+  )
+}
+
+/** Renders the modal title with optional icon and description. Uses Dialog primitives. */
+function ModalFormHeader() {
+  const { meta } = useModalForm()
+  const Icon = meta.icon
+
+  return (
+    <DialogHeader>
+      <DialogTitle className="flex items-center gap-2">
+        {Icon && <Icon className="h-5 w-5" />}
+        {meta.title}
+      </DialogTitle>
+      {meta.description && (
+        <DialogDescription>{meta.description}</DialogDescription>
+      )}
+    </DialogHeader>
+  )
+}
+
+const ALERT_ICONS: Record<ModalAlert['type'], LucideIcon> = {
+  success: CheckCircle,
+  error: AlertCircle,
+  info: Info,
+}
+
+const ALERT_STYLES: Record<ModalAlert['type'], string> = {
+  success: 'border-success/20 bg-success/5 text-success',
+  error: 'border-destructive/20 bg-destructive/5 text-destructive',
+  info: 'border-primary/20 bg-primary/5 text-primary',
+}
+
+/** Renders an inline dismissible alert banner. Returns `null` when no alert is active. */
+function ModalFormAlert() {
+  const { state, actions } = useModalForm()
+  if (!state.alert) return null
+
+  const { type, title, message } = state.alert
+  const Icon = ALERT_ICONS[type]
+
+  return (
+    <div className={cn('flex items-start gap-3 rounded-lg border p-3', ALERT_STYLES[type])}>
+      {Icon && <Icon className="mt-0.5 h-4 w-4 shrink-0" />}
+      <div className="flex-1 space-y-0.5">
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-sm opacity-80">{message}</p>
+      </div>
+      <button
+        type="button"
+        onClick={actions.closeAlert}
+        className="shrink-0 rounded-sm opacity-70 hover:opacity-100"
+      >
+        <X className="h-3.5 w-3.5" />
+        <span className="sr-only">Dismiss alert</span>
+      </button>
+    </div>
+  )
+}
+
+/**
+ * Layout wrapper for modal action buttons.
+ * When no children are provided, renders default Cancel + Submit buttons.
+ */
+function ModalFormFooter({ children }: { children?: ReactNode }) {
+  return (
+    <DialogFooter>
+      {children ?? (
+        <>
+          <ModalFormCancelButton />
+          <ModalFormSubmitButton />
+        </>
+      )}
+    </DialogFooter>
+  )
+}
+
+/** Submit button that shows a loading spinner when `isSubmitting` is true. */
+function ModalFormSubmitButton({ label }: { label?: string }) {
+  const { state, actions, meta } = useModalForm()
+
+  return (
+    <Button
+      type="button"
+      onClick={actions.submit}
+      disabled={state.isSubmitting}
+      variant={meta.isDestructive ? 'destructive' : 'default'}
+    >
+      {state.isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+      {label ?? (meta.isDestructive ? 'Delete' : 'Submit')}
+    </Button>
+  )
+}
+
+/** Cancel button that closes the parent Dialog via Radix `DialogClose`. */
+function ModalFormCancelButton() {
+  return (
+    <DialogClose asChild>
+      <Button type="button" variant="outline">
+        Cancel
+      </Button>
+    </DialogClose>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Namespace export
+// ---------------------------------------------------------------------------
+
+/**
+ * Compound component for composing modal UIs within the Vercel Composition Pattern.
+ *
+ * Usage:
+ * ```tsx
+ * <Dialog open={open} onOpenChange={onOpenChange}>
+ *   <DialogContent>
+ *     <MyModalProvider>
+ *       <ModalForm.Header />
+ *       <MyCustomFields />
+ *       <ModalForm.Alert />
+ *       <ModalForm.Footer />
+ *     </MyModalProvider>
+ *   </DialogContent>
+ * </Dialog>
+ * ```
+ */
+export const ModalForm = {
+  Provider: ModalFormProvider,
+  Header: ModalFormHeader,
+  Alert: ModalFormAlert,
+  Footer: ModalFormFooter,
+  SubmitButton: ModalFormSubmitButton,
+  CancelButton: ModalFormCancelButton,
+}
