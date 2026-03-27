@@ -3,6 +3,7 @@ import { X, FileCode, Table, Database, Trash2, SearchX, SplitSquareHorizontal } 
 import { useTabStore, type Tab, type TabType } from '@/stores/useTabStore';
 import { cn } from '@/lib/utils';
 import { ContextMenu } from '@/components/ui/ContextMenu';
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 function getTabIcon(type: TabType) {
     switch (type) {
@@ -98,17 +99,19 @@ export function TabBar() {
     };
 
     return (
-        <div className="flex items-center border-b border-border bg-muted/30 overflow-x-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-            {tabs.map(tab => (
-                <TabItem
-                    key={tab.id}
-                    tab={tab}
-                    isActive={tab.id === activeTabId}
-                    onActivate={() => setActiveTab(tab.id)}
-                    onClose={(e) => handleClose(e, tab.id)}
-                    onContextMenu={(e) => handleContextMenu(e, tab.id)}
-                />
-            ))}
+        <ScrollArea className="border-b border-border bg-muted/30">
+            <div className="flex items-center">
+                {tabs.map(tab => (
+                    <TabItem
+                        key={tab.id}
+                        tab={tab}
+                        isActive={tab.id === activeTabId}
+                        onActivate={() => setActiveTab(tab.id)}
+                        onClose={(e) => handleClose(e, tab.id)}
+                        onContextMenu={(e) => handleContextMenu(e, tab.id)}
+                    />
+                ))}
+            </div>
 
             {contextMenu && (
                 <ContextMenu
@@ -135,6 +138,6 @@ export function TabBar() {
                     ]}
                 />
             )}
-        </div>
+        </ScrollArea>
     );
 }
