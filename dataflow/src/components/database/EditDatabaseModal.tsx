@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { X, Database, Save, Loader2 } from "lucide-react";
 import { useConnectionStore } from "@/stores/useConnectionStore";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface EditDatabaseModalProps {
     isOpen: boolean;
@@ -43,9 +45,9 @@ export function EditDatabaseModal({ isOpen, onClose, connectionId, databaseName,
                         <Database className="h-5 w-5 text-purple-500" />
                         Rename Database
                     </h2>
-                    <button onClick={onClose} className="rounded-full p-1 hover:bg-muted transition-colors">
+                    <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8">
                         <X className="h-5 w-5" />
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="p-6 space-y-4">
@@ -53,32 +55,21 @@ export function EditDatabaseModal({ isOpen, onClose, connectionId, databaseName,
                         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                             Database Name
                         </label>
-                        <input
-                            type="text"
+                        <Input
                             value={newName}
                             onChange={(e) => setNewName(e.target.value)}
                             placeholder="Enter database name"
-                            className="w-full rounded-md border border-purple-200 bg-background px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                         />
                     </div>
 
                 </div>
 
                 <div className="flex items-center justify-end gap-3 border-t bg-muted/5 px-6 py-4">
-                    <button
-                        onClick={onClose}
-                        className="rounded-md px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleSave}
-                        disabled={!newName || isSaving}
-                        className="rounded-md bg-purple-500 px-4 py-2 text-sm font-medium text-white hover:bg-purple-600 transition-colors disabled:opacity-50 flex items-center gap-2"
-                    >
+                    <Button variant="ghost" onClick={onClose}>Cancel</Button>
+                    <Button onClick={handleSave} disabled={!newName || isSaving} className="gap-2">
                         {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                         Save Changes
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>

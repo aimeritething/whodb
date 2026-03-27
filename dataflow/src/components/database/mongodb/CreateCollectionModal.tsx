@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { AlertModal } from "@/components/ui/AlertModal";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { X, Database, Save, Loader2 } from "lucide-react";
 import { useConnectionStore } from "@/stores/useConnectionStore";
 import { resolveSchemaParam } from "@/utils/database-features";
@@ -85,41 +87,30 @@ export function CreateCollectionModal({ isOpen, onClose, connectionId, databaseN
                             <Database className="h-5 w-5 text-green-500" />
                             Create Collection
                         </h2>
-                        <button onClick={onClose} className="rounded-full p-1 hover:bg-muted transition-colors">
+                        <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8">
                             <X className="h-5 w-5" />
-                        </button>
+                        </Button>
                     </div>
 
                     <div className="p-6">
                         <label className="mb-1.5 block text-xs font-medium text-muted-foreground uppercase">
                             Collection Name
                         </label>
-                        <input
-                            type="text"
+                        <Input
                             value={collectionName}
                             onChange={(e) => setCollectionName(e.target.value)}
                             placeholder="e.g., users"
-                            className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                             onKeyDown={(e) => { if (e.key === "Enter" && collectionName) handleSave(); }}
                             autoFocus
                         />
                     </div>
 
                     <div className="flex items-center justify-end gap-3 border-t bg-muted/5 px-6 py-4">
-                        <button
-                            onClick={onClose}
-                            className="rounded-md px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            disabled={!collectionName || isSaving}
-                            className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                        >
+                        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+                        <Button onClick={handleSave} disabled={!collectionName || isSaving} className="gap-2">
                             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                             Create Collection
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>
