@@ -1,77 +1,153 @@
-import React, { useState, useEffect } from "react";
-import { X, Database, Save, Loader2 } from "lucide-react";
-import { useConnectionStore } from "@/stores/useConnectionStore";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { createContext, use, useState, useCallback, type ReactNode } from 'react'
+import { Database } from 'lucide-react'
+import { useConnectionStore } from '@/stores/useConnectionStore'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/Input'
+import { ModalForm, useModalForm } from '@/components/database/modals/ModalForm'
+import { useModalState } from '@/components/database/modals/useModalState'
 
-interface EditDatabaseModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    connectionId: string;
-    databaseName: string;
-    onSuccess?: () => void;
+// ---------------------------------------------------------------------------
+// Context
+// ---------------------------------------------------------------------------
+
+interface EditDatabaseCtxValue {
+  newName: string
+  setNewName: (v: string) => void
+  databaseName: string
 }
 
-export function EditDatabaseModal({ isOpen, onClose, connectionId, databaseName, onSuccess }: EditDatabaseModalProps) {
-    const { renameDatabase } = useConnectionStore();
-    const [newName, setNewName] = useState(databaseName);
-    const [isSaving, setIsSaving] = useState(false);
+const EditDatabaseCtx = createContext<EditDatabaseCtxValue | null>(null)
 
-    useEffect(() => {
-        setNewName(databaseName);
-    }, [databaseName]);
+function useEditDatabaseCtx(): EditDatabaseCtxValue {
+  const ctx = use(EditDatabaseCtx)
+  if (!ctx) throw new Error('useEditDatabaseCtx must be used within EditDatabaseProvider')
+  return ctx
+}
 
-    if (!isOpen) return null;
+// ---------------------------------------------------------------------------
+// Provider
+// ---------------------------------------------------------------------------
 
-    const handleSave = async () => {
-        if (!newName || newName === databaseName) return;
+/** Owns business logic for renaming a database. */
+function EditDatabaseProvider({
+  connectionId,
+  databaseName,
+  onSuccess,
+  children,
+}: {
+  connectionId: string
+  databaseName: string
+  onSuccess?: () => void
+  children: ReactNode
+}) {
+  const { renameDatabase } = useConnectionStore()
+  const [newName, setNewName] = useState(databaseName)
+  const { state, actions: baseActions } = useModalState()
 
-        setIsSaving(true);
-        const result = await renameDatabase(databaseName, newName);
-        setIsSaving(false);
+  const actions = {
+    ...baseActions,
+    submit: async () => {
+      if (!newName || newName === databaseName) return
+      baseActions.setSubmitting(true)
+      const result = await renameDatabase(databaseName, newName)
+      baseActions.setSubmitting(false)
+      if (result.success) {
+        onSuccess?.()
+      } else {
+        baseActions.setAlert({
+          type: 'error',
+          title: 'Failed to rename database',
+          message: result.message ?? 'Unknown error',
+        })
+      }
+    },
+  }
 
-        if (result.success) {
-            onSuccess?.();
-        }
+  return (
+    <EditDatabaseCtx value={{ newName, setNewName, databaseName }}>
+      <ModalForm.Provider
+        state={state}
+        actions={actions}
+        meta={{ title: 'Rename Database', icon: Database }}
+      >
+        {children}
+      </ModalForm.Provider>
+    </EditDatabaseCtx>
+  )
+}
 
-        onClose();
-    };
+// ---------------------------------------------------------------------------
+// Subcomponents
+// ---------------------------------------------------------------------------
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-xl bg-background shadow-2xl border animate-in fade-in zoom-in duration-200">
-                <div className="flex items-center justify-between border-b px-6 py-4">
-                    <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <Database className="h-5 w-5 text-purple-500" />
-                        Rename Database
-                    </h2>
-                    <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8">
-                        <X className="h-5 w-5" />
-                    </Button>
-                </div>
+/** Input field for the new database name. */
+function EditDatabaseFields() {
+  const { newName, setNewName } = useEditDatabaseCtx()
+  const { state } = useModalForm()
 
-                <div className="p-6 space-y-4">
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                            Database Name
-                        </label>
-                        <Input
-                            value={newName}
-                            onChange={(e) => setNewName(e.target.value)}
-                            placeholder="Enter database name"
-                        />
-                    </div>
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        Database Name
+      </label>
+      <Input
+        value={newName}
+        onChange={(e) => setNewName(e.target.value)}
+        placeholder="Enter database name"
+        disabled={state.isSubmitting}
+      />
+    </div>
+  )
+}
 
-                </div>
+/** Submit button disabled when name is empty or unchanged. */
+function EditSubmitButton() {
+  const { newName, databaseName } = useEditDatabaseCtx()
+  return <ModalForm.SubmitButton label="Save Changes" disabled={!newName || newName === databaseName} />
+}
 
-                <div className="flex items-center justify-end gap-3 border-t bg-muted/5 px-6 py-4">
-                    <Button variant="ghost" onClick={onClose}>Cancel</Button>
-                    <Button onClick={handleSave} disabled={!newName || isSaving} className="gap-2">
-                        {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                        Save Changes
-                    </Button>
-                </div>
-            </div>
-        </div>
-    );
+// ---------------------------------------------------------------------------
+// Modal
+// ---------------------------------------------------------------------------
+
+interface EditDatabaseModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  connectionId: string
+  databaseName: string
+  onSuccess?: () => void
+}
+
+/** Modal for renaming a database. */
+export function EditDatabaseModal({
+  open,
+  onOpenChange,
+  connectionId,
+  databaseName,
+  onSuccess,
+}: EditDatabaseModalProps) {
+  const handleSuccess = useCallback(() => {
+    onSuccess?.()
+    onOpenChange(false)
+  }, [onSuccess, onOpenChange])
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <EditDatabaseProvider
+          connectionId={connectionId}
+          databaseName={databaseName}
+          onSuccess={handleSuccess}
+        >
+          <ModalForm.Header />
+          <EditDatabaseFields />
+          <ModalForm.Alert />
+          <ModalForm.Footer>
+            <ModalForm.CancelButton />
+            <EditSubmitButton />
+          </ModalForm.Footer>
+        </EditDatabaseProvider>
+      </DialogContent>
+    </Dialog>
+  )
 }
