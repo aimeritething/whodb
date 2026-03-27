@@ -1,155 +1,200 @@
-import React, { useState } from "react";
-import { X, Copy, Loader2, CheckCircle, AlertCircle } from "lucide-react";
-import { useConnectionStore } from "@/stores/useConnectionStore";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { createContext, use, useState, useCallback, type ReactNode } from 'react'
+import { Copy } from 'lucide-react'
+import { useConnectionStore } from '@/stores/useConnectionStore'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/Input'
+import { ModalForm, useModalForm } from '@/components/database/modals/ModalForm'
+import { useModalState } from '@/components/database/modals/useModalState'
 
-interface CopyTableModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    connectionId?: string;
-    databaseName: string;
-    schema?: string;
-    tableName: string;
-    onSuccess?: () => void;
+// ---------------------------------------------------------------------------
+// Context
+// ---------------------------------------------------------------------------
+
+interface CopyTableCtxValue {
+  newTableName: string
+  setNewTableName: (v: string) => void
+  copyOption: 'structure' | 'structure_data'
+  setCopyOption: (v: 'structure' | 'structure_data') => void
+  tableName: string
 }
 
-export function CopyTableModal({ isOpen, onClose, databaseName, schema, tableName, onSuccess }: CopyTableModalProps) {
-    const { copyTable } = useConnectionStore();
-    const [newTableName, setNewTableName] = useState(`${tableName}_copy`);
-    const [copyOption, setCopyOption] = useState<"structure" | "structure_data">("structure_data");
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+const CopyTableCtx = createContext<CopyTableCtxValue | null>(null)
 
-    if (!isOpen) return null;
+/** Hook to access CopyTable domain context. Throws outside provider. */
+function useCopyTableCtx(): CopyTableCtxValue {
+  const ctx = use(CopyTableCtx)
+  if (!ctx) throw new Error('useCopyTableCtx must be used within CopyTableProvider')
+  return ctx
+}
 
-    const handleCopy = async () => {
-        if (!newTableName.trim()) return;
+// ---------------------------------------------------------------------------
+// Provider
+// ---------------------------------------------------------------------------
 
-        setIsProcessing(true);
-        setResult(null);
+/** Owns business logic for copying a SQL table (structure only or with data). */
+function CopyTableProvider({
+  databaseName,
+  schema,
+  tableName,
+  onSuccess,
+  children,
+}: {
+  databaseName: string
+  schema?: string
+  tableName: string
+  onSuccess?: () => void
+  children: ReactNode
+}) {
+  const { copyTable } = useConnectionStore()
+  const [newTableName, setNewTableName] = useState(`${tableName}_copy`)
+  const [copyOption, setCopyOption] = useState<'structure' | 'structure_data'>('structure_data')
+  const { state, actions: baseActions } = useModalState()
 
-        try {
-            const copyData = copyOption === 'structure_data';
-            const ddlResult = await copyTable(databaseName, schema, tableName, newTableName, copyData);
-            setResult({
-                success: ddlResult.success,
-                message: ddlResult.success ? 'Table copied successfully' : (ddlResult.message ?? 'Failed to copy table'),
-            });
-            if (ddlResult.success) onSuccess?.();
-        } catch (error: any) {
-            setResult({ success: false, message: error.message || "An error occurred" });
-        } finally {
-            setIsProcessing(false);
-        }
-    };
+  const actions = {
+    ...baseActions,
+    submit: async () => {
+      if (!newTableName.trim()) return
+      baseActions.setSubmitting(true)
+      const copyData = copyOption === 'structure_data'
+      const result = await copyTable(databaseName, schema, tableName, newTableName, copyData)
+      baseActions.setSubmitting(false)
+      if (result.success) {
+        onSuccess?.()
+      } else {
+        baseActions.setAlert({
+          type: 'error',
+          title: 'Failed to copy table',
+          message: result.message ?? 'Unknown error',
+        })
+      }
+    },
+  }
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-xl bg-background shadow-2xl border animate-in fade-in zoom-in duration-200">
-                <div className="flex items-center justify-between border-b px-6 py-4">
-                    <h2 className="text-lg font-semibold flex items-center gap-2 text-foreground">
-                        <Copy className="h-5 w-5 text-primary" />
-                        Copy Table
-                    </h2>
-                    <button onClick={onClose} className="rounded-full p-1 hover:bg-muted transition-colors">
-                        <X className="h-5 w-5" />
-                    </button>
-                </div>
+  return (
+    <CopyTableCtx value={{ newTableName, setNewTableName, copyOption, setCopyOption, tableName }}>
+      <ModalForm.Provider
+        state={state}
+        actions={actions}
+        meta={{ title: 'Copy Table', icon: Copy }}
+      >
+        {children}
+      </ModalForm.Provider>
+    </CopyTableCtx>
+  )
+}
 
-                <div className="p-6 space-y-6">
-                    {!result ? (
-                        <>
-                            <div className="space-y-2">
-                                <label htmlFor="source-table" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Source Table</label>
-                                <Input id="source-table" value={tableName} disabled className="bg-muted" />
-                            </div>
+// ---------------------------------------------------------------------------
+// Subcomponents
+// ---------------------------------------------------------------------------
 
-                            <div className="space-y-2">
-                                <label htmlFor="target-table" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">New Table Name</label>
-                                <Input
-                                    id="target-table"
-                                    value={newTableName}
-                                    onChange={(e) => setNewTableName(e.target.value)}
-                                    placeholder="Enter new table name"
-                                />
-                            </div>
+/** Source table (disabled), new table name input, and copy option radios. */
+function CopyTableFields() {
+  const { newTableName, setNewTableName, copyOption, setCopyOption, tableName } = useCopyTableCtx()
+  const { state } = useModalForm()
 
-                            <div className="space-y-3">
-                                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Copy Options</label>
-                                <div className="flex flex-col gap-2">
-                                    <div className="flex items-center space-x-2">
-                                        <input
-                                            type="radio"
-                                            id="structure"
-                                            name="copyOption"
-                                            value="structure"
-                                            checked={copyOption === "structure"}
-                                            onChange={(e) => setCopyOption(e.target.value as any)}
-                                            className="h-4 w-4 border-primary text-primary focus-visible:ring-2 focus-visible:ring-ring"
-                                        />
-                                        <label htmlFor="structure" className="text-sm font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Structure Only</label>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <input
-                                            type="radio"
-                                            id="structure_data"
-                                            name="copyOption"
-                                            value="structure_data"
-                                            checked={copyOption === "structure_data"}
-                                            onChange={(e) => setCopyOption(e.target.value as any)}
-                                            className="h-4 w-4 border-primary text-primary focus-visible:ring-2 focus-visible:ring-ring"
-                                        />
-                                        <label htmlFor="structure_data" className="text-sm font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Structure and Data</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </>
-                    ) : (
-                        <div className={`rounded-lg p-4 text-sm border flex items-start gap-3 ${result.success
-                            ? "bg-green-50 text-green-800 border-green-100"
-                            : "bg-red-50 text-red-800 border-red-100"
-                            }`}>
-                            {result.success ? (
-                                <CheckCircle className="h-5 w-5 shrink-0 text-green-600" />
-                            ) : (
-                                <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
-                            )}
-                            <div>
-                                <p className="font-medium">{result.success ? "Success" : "Error"}</p>
-                                <p className="mt-1">{result.message}</p>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="flex items-center justify-end gap-3 border-t bg-muted/5 px-6 py-4">
-                    {!result ? (
-                        <>
-                            <Button variant="ghost" onClick={onClose} disabled={isProcessing}>
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={handleCopy}
-                                disabled={isProcessing || !newTableName.trim()}
-                            >
-                                {isProcessing ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Copying...
-                                    </>
-                                ) : (
-                                    "Copy Table"
-                                )}
-                            </Button>
-                        </>
-                    ) : (
-                        <Button onClick={onClose}>
-                            Close
-                        </Button>
-                    )}
-                </div>
-            </div>
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          Source Table
+        </label>
+        <Input value={tableName} disabled />
+      </div>
+      <div className="space-y-1.5">
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          New Table Name
+        </label>
+        <Input
+          value={newTableName}
+          onChange={(e) => setNewTableName(e.target.value)}
+          placeholder="Enter new table name"
+          disabled={state.isSubmitting}
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          Copy Options
+        </label>
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="copyOption"
+              checked={copyOption === 'structure'}
+              onChange={() => setCopyOption('structure')}
+              disabled={state.isSubmitting}
+              className="h-4 w-4"
+            />
+            <span className="text-sm">Structure Only</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="copyOption"
+              checked={copyOption === 'structure_data'}
+              onChange={() => setCopyOption('structure_data')}
+              disabled={state.isSubmitting}
+              className="h-4 w-4"
+            />
+            <span className="text-sm">Structure and Data</span>
+          </label>
         </div>
-    );
+      </div>
+    </div>
+  )
+}
+
+/** Submit button disabled when new table name is empty. */
+function CopyTableSubmitButton() {
+  const { newTableName } = useCopyTableCtx()
+  return <ModalForm.SubmitButton label="Copy Table" disabled={!newTableName.trim()} />
+}
+
+// ---------------------------------------------------------------------------
+// Modal
+// ---------------------------------------------------------------------------
+
+interface CopyTableModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  databaseName: string
+  schema?: string
+  tableName: string
+  onSuccess?: () => void
+}
+
+/** Modal for copying a SQL table's structure and optionally data. */
+export function CopyTableModal({
+  open,
+  onOpenChange,
+  databaseName,
+  schema,
+  tableName,
+  onSuccess,
+}: CopyTableModalProps) {
+  const handleSuccess = useCallback(() => {
+    onSuccess?.()
+    onOpenChange(false)
+  }, [onSuccess, onOpenChange])
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <CopyTableProvider
+          databaseName={databaseName}
+          schema={schema}
+          tableName={tableName}
+          onSuccess={handleSuccess}
+        >
+          <ModalForm.Header />
+          <CopyTableFields />
+          <ModalForm.Alert />
+          <ModalForm.Footer>
+            <ModalForm.CancelButton />
+            <CopyTableSubmitButton />
+          </ModalForm.Footer>
+        </CopyTableProvider>
+      </DialogContent>
+    </Dialog>
+  )
 }
