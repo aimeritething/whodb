@@ -113,7 +113,7 @@ export function getTableMenuItems(callbacks: MenuCallbacks): ContextMenuItem[] {
   return [
     { label: "Export Data", onClick: () => onAction("export_data"), icon: React.createElement(Download, { className: "h-4 w-4" }) },
     { separator: true },
-    { label: "Clear Data", onClick: () => onAction("truncate_table"), icon: React.createElement(Eraser, { className: "h-4 w-4 text-orange-500" }) },
+    { label: "Clear Data", onClick: () => onAction("clear_table_data"), icon: React.createElement(Eraser, { className: "h-4 w-4 text-orange-500" }) },
     { label: "Duplicate Table", onClick: () => onAction("copy_table"), icon: React.createElement(Copy, { className: "h-4 w-4 text-blue-500" }) },
     { separator: true },
     { label: "Design Table", onClick: () => onAction("edit_table"), icon: React.createElement(Edit2, { className: "h-4 w-4" }) },

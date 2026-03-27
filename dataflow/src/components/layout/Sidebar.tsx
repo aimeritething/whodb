@@ -15,9 +15,9 @@ import { EditTableModal } from "../database/sql/EditTableModal";
 import { DeleteTableModal } from "../database/sql/DeleteTableModal";
 import { ExportDataModal } from "../database/sql/ExportDataModal";
 
-import { EmptyTableModal } from "../database/sql/EmptyTableModal";
-import { TruncateTableModal } from "../database/sql/TruncateTableModal";
+import { ClearTableDataModal } from "../database/sql/ClearTableDataModal";
 import { CopyTableModal } from "../database/sql/CopyTableModal";
+import { RenameTableModal } from "../database/sql/RenameTableModal";
 import { ExportCollectionModal } from "../database/mongodb/ExportCollectionModal";
 
 
@@ -230,20 +230,9 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
             params: { connectionId: node.connectionId, databaseName: node.name },
           });
           break;
-        case "empty_table":
+        case "clear_table_data":
           openModal({
-            type: "empty_table",
-            params: {
-              connectionId: node.connectionId,
-              databaseName: node.metadata.database!,
-              schema: node.metadata?.schema,
-              tableName: node.name,
-            },
-          });
-          break;
-        case "truncate_table":
-          openModal({
-            type: "truncate_table",
+            type: "clear_table_data",
             params: {
               connectionId: node.connectionId,
               databaseName: node.metadata.database!,
@@ -255,6 +244,17 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
         case "copy_table":
           openModal({
             type: "copy_table",
+            params: {
+              connectionId: node.connectionId,
+              databaseName: node.metadata.database!,
+              schema: node.metadata?.schema,
+              tableName: node.name,
+            },
+          });
+          break;
+        case "rename_table":
+          openModal({
+            type: "rename_table",
             params: {
               connectionId: node.connectionId,
               databaseName: node.metadata.database!,
@@ -420,6 +420,7 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
             onClose={closeModal}
             connectionId={p.connectionId}
             databaseName={p.databaseName}
+            schema={p.schema}
             onSuccess={() => {
               refreshSchemaOrDb(
                 p.connectionId,
@@ -491,8 +492,8 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
           <DeleteTableModal
             isOpen
             onClose={closeModal}
-            connectionId={p.connectionId}
             databaseName={p.databaseName}
+            schema={p.schema}
             tableName={p.tableName}
             onSuccess={() => {
               selectItem(null);
@@ -531,32 +532,15 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
       })()}
 
 
-      {/* Empty Table Modal */}
-      {activeModal?.type === "empty_table" && (() => {
+      {/* Clear Table Data Modal */}
+      {activeModal?.type === "clear_table_data" && (() => {
         const p = activeModal.params;
         return (
-          <EmptyTableModal
+          <ClearTableDataModal
             isOpen
             onClose={closeModal}
-            connectionId={p.connectionId}
             databaseName={p.databaseName}
-            tableName={p.tableName}
-            onSuccess={() => {
-              (window as any).__refreshTableDetailView?.();
-            }}
-          />
-        );
-      })()}
-
-      {/* Truncate Table Modal */}
-      {activeModal?.type === "truncate_table" && (() => {
-        const p = activeModal.params;
-        return (
-          <TruncateTableModal
-            isOpen
-            onClose={closeModal}
-            connectionId={p.connectionId}
-            databaseName={p.databaseName}
+            schema={p.schema}
             tableName={p.tableName}
             onSuccess={() => {
               (window as any).__refreshTableDetailView?.();
@@ -572,8 +556,25 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
           <CopyTableModal
             isOpen
             onClose={closeModal}
-            connectionId={p.connectionId}
             databaseName={p.databaseName}
+            schema={p.schema}
+            tableName={p.tableName}
+            onSuccess={() => {
+              refreshSchemaOrDb(p.connectionId, p.databaseName, p.schema);
+            }}
+          />
+        );
+      })()}
+
+      {/* Rename Table Modal */}
+      {activeModal?.type === "rename_table" && (() => {
+        const p = activeModal.params;
+        return (
+          <RenameTableModal
+            isOpen
+            onClose={closeModal}
+            databaseName={p.databaseName}
+            schema={p.schema}
             tableName={p.tableName}
             onSuccess={() => {
               refreshSchemaOrDb(p.connectionId, p.databaseName, p.schema);
