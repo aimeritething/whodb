@@ -17,6 +17,13 @@ export interface DashboardComponent {
     };
     data?: any;
     config?: any;
+    /** SQL query string bound to this component for data refresh. */
+    query?: string;
+    /** Database/schema context for re-executing the query. */
+    queryContext?: {
+        database?: string;
+        schema?: string;
+    };
 }
 
 export interface Dashboard {

@@ -18,10 +18,16 @@ interface SQLEditorViewProps {
     } | null;
     initialSql?: string;
     onSqlChange?: (sql: string) => void;
+    /** Called after a successful read query with the result columns, rows, and execution context. */
+    onQueryResults?: (
+        columns: string[],
+        rows: Record<string, any>[],
+        context: { database?: string; schema?: string },
+    ) => void;
 }
 
 /** SQL editor with integrated database/schema selectors and query execution. */
-export function SQLEditorView({ tabId, context, initialSql, onSqlChange }: SQLEditorViewProps) {
+export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQueryResults }: SQLEditorViewProps) {
     const { connections } = useConnectionStore();
     const connectionType = connections.find((c) => c.id === context?.connectionId)?.type ?? 'POSTGRES';
     const [rawExecute] = useRawExecuteLazyQuery({ fetchPolicy: 'no-cache' });
@@ -127,6 +133,10 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange }: SQLEd
                         info: `${raw.TotalCount} row${raw.TotalCount === 1 ? '' : 's'}`,
                     }]);
                     setActiveResultTab('result');
+                    onQueryResults?.(columns, rows, {
+                        database: selectedDatabase || context?.databaseName,
+                        schema: selectedSchema || context?.schemaName,
+                    });
                 } else {
                     // Action (INSERT/UPDATE/DELETE) — show success message
                     setQueryResults([{
