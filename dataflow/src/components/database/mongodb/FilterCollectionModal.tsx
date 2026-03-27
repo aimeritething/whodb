@@ -3,6 +3,7 @@ import { Filter, X, Plus, Trash2, Search, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 
 interface FilterCollectionModalProps {
     isOpen: boolean;
@@ -174,34 +175,27 @@ export function FilterCollectionModal({ isOpen, onClose, onApply, fields, initia
                                         {/* Field Selector */}
                                         <div className="col-span-4">
                                             <label className="text-xs font-medium text-muted-foreground mb-1 block">Field</label>
-                                            <div className="relative">
-                                                <select
-                                                    className="w-full text-sm bg-background border rounded-md h-9 px-3 appearance-none focus:outline-none focus:ring-1 focus:ring-primary"
-                                                    value={condition.field}
-                                                    onChange={(e) => updateCondition(condition.id, { field: e.target.value })}
-                                                >
-                                                    <option value="" disabled>Select field</option>
-                                                    {fields.map(field => (
-                                                        <option key={field} value={field}>{field}</option>
-                                                    ))}
-                                                </select>
-                                                {/* Fallback input if field not in list (for dynamic schema) */}
-                                                {/* For now assuming fields list covers it or we add 'custom' option */}
-                                            </div>
+                                            <Select value={condition.field} onValueChange={(v) => updateCondition(condition.id, { field: v })}>
+                                                <SelectTrigger className="w-full h-9 text-sm">
+                                                    <SelectValue placeholder="Select field" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {fields.map(field => <SelectItem key={field} value={field}>{field}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
 
                                         {/* Operator Selector */}
                                         <div className="col-span-3">
                                             <label className="text-xs font-medium text-muted-foreground mb-1 block">Operator</label>
-                                            <select
-                                                className="w-full text-sm bg-background border rounded-md h-9 px-3 appearance-none focus:outline-none focus:ring-1 focus:ring-primary"
-                                                value={condition.operator}
-                                                onChange={(e) => updateCondition(condition.id, { operator: e.target.value })}
-                                            >
-                                                {OPERATORS.map(op => (
-                                                    <option key={op.value} value={op.value}>{op.label}</option>
-                                                ))}
-                                            </select>
+                                            <Select value={condition.operator} onValueChange={(v) => updateCondition(condition.id, { operator: v })}>
+                                                <SelectTrigger className="w-full h-9 text-sm">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {OPERATORS.map(op => <SelectItem key={op.value} value={op.value}>{op.label}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
 
                                         {/* Value Input */}
