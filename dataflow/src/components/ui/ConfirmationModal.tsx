@@ -1,7 +1,14 @@
 import React from 'react';
-import { X, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { Button } from './Button';
-import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/Input';
+import {
+    AlertDialog,
+    AlertDialogContent,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogFooter,
+} from './alert-dialog';
 
 interface ConfirmationModalProps {
     isOpen: boolean;
@@ -38,8 +45,6 @@ export function ConfirmationModal({
         }
     }, [isOpen]);
 
-    if (!isOpen) return null;
-
     const isConfirmDisabled = (verificationText && inputValue !== verificationText) || isLoading;
 
     const handleConfirm = async () => {
@@ -55,25 +60,16 @@ export function ConfirmationModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-background w-full max-w-md rounded-xl shadow-2xl border animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-between px-6 py-4 border-b">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
+        <AlertDialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+            <AlertDialogContent aria-describedby={undefined}>
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
                         {isDestructive && <AlertTriangle className="h-5 w-5 text-destructive" />}
                         {title}
-                    </h3>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={onClose}
-                        disabled={isLoading}
-                        className="h-8 w-8 rounded-full"
-                    >
-                        <X className="h-4 w-4" />
-                    </Button>
-                </div>
+                    </AlertDialogTitle>
+                </AlertDialogHeader>
 
-                <div className="p-6 space-y-4">
+                <div className="space-y-4">
                     <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/10 text-destructive text-sm font-medium">
                         {message}
                     </div>
@@ -83,19 +79,19 @@ export function ConfirmationModal({
                             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 {verificationLabel || `Type "${verificationText}" to confirm`}
                             </label>
-                            <input
+                            <Input
                                 type="text"
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
                                 placeholder={verificationText}
-                                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-destructive transition-all font-mono"
+                                className="font-mono focus-visible:border-destructive focus-visible:ring-destructive/50"
                                 onPaste={(e) => e.preventDefault()}
                             />
                         </div>
                     )}
                 </div>
 
-                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-muted/20 rounded-b-xl">
+                <AlertDialogFooter>
                     <Button
                         variant="ghost"
                         onClick={onClose}
@@ -116,8 +112,8 @@ export function ConfirmationModal({
                             </div>
                         ) : confirmText}
                     </Button>
-                </div>
-            </div>
-        </div>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     );
 }

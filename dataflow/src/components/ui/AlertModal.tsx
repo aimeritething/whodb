@@ -1,7 +1,13 @@
-import React from 'react';
-import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { Button } from './Button';
 import { cn } from '@/lib/utils';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from './dialog';
 
 interface AlertModalProps {
     isOpen: boolean;
@@ -20,8 +26,6 @@ export function AlertModal({
     type = 'info',
     buttonText = "OK"
 }: AlertModalProps) {
-    if (!isOpen) return null;
-
     const getIcon = () => {
         switch (type) {
             case 'success':
@@ -36,31 +40,23 @@ export function AlertModal({
     const getButtonVariant = () => {
         switch (type) {
             case 'success':
-                return 'default'; // Or a specific success variant if added to Button
+                return 'default' as const;
             case 'error':
-                return 'destructive';
+                return 'destructive' as const;
             default:
-                return 'default';
+                return 'default' as const;
         }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-background w-full max-w-sm rounded-xl shadow-2xl border animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-between px-6 py-4 border-b">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
+        <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+            <DialogContent className="max-w-sm gap-0 p-0" showCloseButton={false} aria-describedby={undefined}>
+                <DialogHeader className="flex-row items-center justify-between px-6 py-4 border-b space-y-0">
+                    <DialogTitle className="flex items-center gap-2">
                         {getIcon()}
                         {title}
-                    </h3>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={onClose}
-                        className="h-8 w-8 rounded-full"
-                    >
-                        <X className="h-4 w-4" />
-                    </Button>
-                </div>
+                    </DialogTitle>
+                </DialogHeader>
 
                 <div className="p-6">
                     <div className={cn(
@@ -73,7 +69,7 @@ export function AlertModal({
                     </div>
                 </div>
 
-                <div className="flex items-center justify-end px-6 py-4 border-t bg-muted/20 rounded-b-xl">
+                <DialogFooter className="px-6 py-4 border-t bg-muted/20 rounded-b-xl">
                     <Button
                         variant={getButtonVariant()}
                         onClick={onClose}
@@ -81,8 +77,8 @@ export function AlertModal({
                     >
                         {buttonText}
                     </Button>
-                </div>
-            </div>
-        </div>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
