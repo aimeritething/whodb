@@ -11,7 +11,7 @@ import { DeleteDatabaseModal } from "../database/DeleteDatabaseModal";
 import { ExportDatabaseModal } from "../database/ExportDatabaseModal";
 
 import { CreateTableModal } from "../database/sql/CreateTableModal";
-import { EditTableModal } from "../database/sql/EditTableModal";
+import { EditTableModal } from "../database/modals/EditTable/EditTableModal";
 import { DeleteTableModal } from "../database/sql/DeleteTableModal";
 import { ExportDataModal } from "../database/sql/ExportDataModal";
 
@@ -502,8 +502,8 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
         const p = activeModal.params;
         return (
           <EditTableModal
-            isOpen
-            onClose={closeModal}
+            open
+            onOpenChange={(open) => { if (!open) closeModal(); }}
             connectionId={p.connectionId}
             databaseName={p.databaseName}
             tableName={p.tableName}
