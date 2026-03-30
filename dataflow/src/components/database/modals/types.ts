@@ -16,9 +16,10 @@ export interface ModalAlert {
 /** Unified alert type. `null` = no alert active. Replaces both ModalAlert and AlertState. */
 export type Alert = ModalAlert
 
-/** Base actions shared by all modal providers. Per-modal Providers must supply `submit`. */
+/** Base actions shared by all modal providers. */
 export interface ModalActions {
-  submit: () => Promise<void>
+  /** Only present when onSubmit was provided to ModalForm.Provider. */
+  submit?: () => Promise<void>
   reset: () => void
   setSubmitting: (v: boolean) => void
   setAlert: (alert: ModalAlert | null) => void
@@ -34,11 +35,8 @@ export interface ModalMeta {
 }
 
 /** Combined context value consumed by ModalForm compound components. */
-export interface ModalContextValue<
-  S extends ModalState = ModalState,
-  A extends ModalActions = ModalActions,
-> {
-  state: S
-  actions: A
+export interface ModalContextValue {
+  state: ModalState
+  actions: ModalActions
   meta: ModalMeta
 }

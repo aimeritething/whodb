@@ -1,4 +1,4 @@
-import { createContext, use, type ReactNode } from 'react'
+import { createContext, use, useCallback, useState, type ReactNode } from 'react'
 import { AlertCircle, CheckCircle, Info, Loader2, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
-import type { ModalActions, ModalAlert, ModalContextValue, ModalState } from './types'
+import type { ModalAlert, ModalContextValue, ModalMeta } from './types'
 
 /** Context shared between ModalForm compound components. */
 const ModalFormContext = createContext<ModalContextValue | null>(null)
@@ -32,15 +32,56 @@ export function useModalForm(): ModalContextValue {
 // Compound subcomponents
 // ---------------------------------------------------------------------------
 
-/** Provides ModalForm context to compound subcomponents. */
-function ModalFormProvider<S extends ModalState, A extends ModalActions>({
-  children,
-  state,
-  actions,
-  meta,
-}: { children: ReactNode } & ModalContextValue<S, A>) {
+interface ModalFormProviderProps {
+  children: ReactNode
+  meta: ModalMeta
+  /**
+   * When provided, Provider auto-manages the submit lifecycle:
+   * 1. Sets isSubmitting = true, clears alert
+   * 2. Awaits onSubmit()
+   * 3. On throw: sets alert with error message
+   * 4. Finally: sets isSubmitting = false
+   *
+   * When omitted, consumer manages lifecycle via useModalForm().actions
+   */
+  onSubmit?: () => Promise<void>
+}
+
+/** Provides ModalForm context to compound subcomponents. Owns isSubmitting and alert state. */
+function ModalFormProvider({ children, meta, onSubmit }: ModalFormProviderProps) {
+  const [isSubmitting, setSubmitting] = useState(false)
+  const [alert, setAlert] = useState<ModalAlert | null>(null)
+
+  const closeAlert = useCallback(() => setAlert(null), [])
+  const reset = useCallback(() => {
+    setSubmitting(false)
+    setAlert(null)
+  }, [])
+
+  const submit = onSubmit
+    ? async () => {
+        setSubmitting(true)
+        setAlert(null)
+        try {
+          await onSubmit()
+        } catch (e) {
+          setAlert({
+            type: 'error',
+            title: 'Error',
+            message: e instanceof Error ? e.message : String(e),
+          })
+        } finally {
+          setSubmitting(false)
+        }
+      }
+    : undefined
+
   return (
-    <ModalFormContext value={{ state, actions, meta }}>
+    <ModalFormContext value={{
+      state: { isSubmitting, alert },
+      actions: { submit, setSubmitting, setAlert, closeAlert, reset },
+      meta,
+    }}>
       {children}
     </ModalFormContext>
   )
@@ -120,14 +161,23 @@ function ModalFormFooter({ children }: { children?: ReactNode }) {
   )
 }
 
-/** Submit button that shows a loading spinner when `isSubmitting` is true. Accepts optional `disabled` for form validation. */
-function ModalFormSubmitButton({ label, disabled }: { label?: string; disabled?: boolean }) {
+/** Submit button that shows a loading spinner when `isSubmitting` is true. When `actions.submit` is undefined (complex mode), accepts an `onClick` prop as fallback. */
+function ModalFormSubmitButton({
+  label,
+  disabled,
+  onClick,
+}: {
+  label?: string
+  disabled?: boolean
+  onClick?: () => void
+}) {
   const { state, actions, meta } = useModalForm()
+  const handleClick = onClick ?? actions.submit
 
   return (
     <Button
       type="button"
-      onClick={actions.submit}
+      onClick={handleClick}
       disabled={disabled || state.isSubmitting}
       variant={meta.isDestructive ? 'destructive' : 'default'}
     >
