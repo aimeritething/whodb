@@ -13,6 +13,9 @@ export interface ModalAlert {
   message: string
 }
 
+/** Unified alert type. `null` = no alert active. Replaces both ModalAlert and AlertState. */
+export type Alert = ModalAlert
+
 /** Base actions shared by all modal providers. Per-modal Providers must supply `submit`. */
 export interface ModalActions {
   submit: () => Promise<void>

@@ -1,4 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
+import type { Alert } from '@/components/database/modals/types'
+
+export type { Alert }
 
 /** Props for the shared pagination controls. */
 export interface PaginationProps {
@@ -36,10 +39,3 @@ export interface FilterChip {
   onRemove: () => void
 }
 
-/** Shared alert state used by all detail views. */
-export interface AlertState {
-  isOpen: boolean
-  title: string
-  message: string
-  type: 'success' | 'error' | 'info'
-}
