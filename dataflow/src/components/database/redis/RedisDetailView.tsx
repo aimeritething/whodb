@@ -24,12 +24,15 @@ import { RedisKeyModal } from './RedisKeyModal';
 import { AlertModal } from '@/components/ui/AlertModal';
 import { RedisFilterModal } from './RedisFilterModal';
 import { ExportRedisModal } from './ExportRedisModal';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { RecordInput } from '@graphql'
+import type { RedisKeyDraft, RedisKeyType } from './redis-key.types'
 import {
     useGetStorageUnitsLazyQuery,
     useGetStorageUnitRowsLazyQuery,
     useAddStorageUnitMutation,
-    useAddRowMutation,
     useDeleteRowMutation,
+    useUpdateStorageUnitMutation,
 } from '@graphql';
 import { resolveSchemaParam } from '@/utils/database-features';
 
@@ -45,97 +48,60 @@ interface RedisDetailViewProps {
 }
 
 /** Build fields for AddStorageUnit (create). Redis plugin reads type from fields[0].Extra["type"]. */
-function buildRedisFields(keyData: any): Array<{ Key: string; Value: string; Extra?: Array<{ Key: string; Value: string }> }> {
-    const fields: Array<{ Key: string; Value: string; Extra?: Array<{ Key: string; Value: string }> }> = [];
-    switch (keyData.type) {
+function buildRedisFields(draft: RedisKeyDraft): RecordInput[] {
+    const fields: RecordInput[] = [];
+    switch (draft.type) {
         case 'string':
-            fields.push({ Key: 'value', Value: String(keyData.value ?? '') });
+            fields.push({ Key: 'value', Value: draft.stringValue });
             break;
         case 'hash':
-            if (Array.isArray(keyData.value)) {
-                for (const item of keyData.value) {
-                    fields.push({ Key: String(item.field ?? ''), Value: String(item.value ?? '') });
-                }
+            for (const item of draft.hashPairs) {
+                if (!item.field) continue;
+                fields.push({ Key: item.field, Value: item.value });
             }
             break;
-        case 'list': case 'set':
-            if (Array.isArray(keyData.value)) {
-                for (const item of keyData.value) {
-                    fields.push({ Key: 'value', Value: String(item.value ?? item) });
-                }
+        case 'list':
+            for (const item of draft.listItems) {
+                if (!item.value) continue;
+                fields.push({ Key: 'value', Value: item.value });
+            }
+            break;
+        case 'set':
+            for (const item of draft.setItems) {
+                if (!item.value) continue;
+                fields.push({ Key: 'value', Value: item.value });
             }
             break;
         case 'zset':
-            if (Array.isArray(keyData.value)) {
-                for (const item of keyData.value) {
-                    fields.push({ Key: String(item.score ?? '0'), Value: String(item.member ?? item.value ?? '') });
-                }
+            for (const item of draft.zsetItems) {
+                if (!item.member) continue;
+                fields.push({ Key: item.score, Value: item.member });
             }
             break;
     }
     // Signal key type to Redis plugin via Extra on first field
     if (fields.length > 0) {
-        fields[0] = { ...fields[0], Extra: [{ Key: 'type', Value: keyData.type }] };
+        fields[0] = { ...fields[0], Extra: [{ Key: 'type', Value: draft.type }] };
     }
     return fields;
 }
 
-/** Build values for AddRow (update). No Extra needed — key already has its type. */
-function buildRedisValues(keyData: any): Array<{ Key: string; Value: string }> {
-    const fields: Array<{ Key: string; Value: string }> = [];
-    switch (keyData.type) {
-        case 'string':
-            fields.push({ Key: 'value', Value: String(keyData.value ?? '') });
-            break;
-        case 'hash':
-            if (Array.isArray(keyData.value)) {
-                for (const item of keyData.value) {
-                    fields.push({ Key: String(item.field ?? ''), Value: String(item.value ?? '') });
-                }
-            }
-            break;
-        case 'list': case 'set':
-            if (Array.isArray(keyData.value)) {
-                for (const item of keyData.value) {
-                    fields.push({ Key: 'value', Value: String(item.value ?? item) });
-                }
-            }
-            break;
-        case 'zset':
-            if (Array.isArray(keyData.value)) {
-                for (const item of keyData.value) {
-                    fields.push({ Key: String(item.score ?? '0'), Value: String(item.member ?? item.value ?? '') });
-                }
-            }
-            break;
-    }
-    return fields;
-}
-
-/** Transform GraphQL RowsResult into RedisKeyModal-compatible data. */
-function transformRedisRowsToKeyData(keyName: string, keyType: string, rowResult: any): any {
+/** Transform GraphQL rows for a Redis string key into the normalized edit draft state. */
+function transformRedisRowsToStringKeyData(keyName: string, rowResult: any): RedisKeyDraft {
     const columns = rowResult.Columns.map((c: any) => c.Name);
+    const valueIndex = columns.indexOf('value');
     const rows = rowResult.Rows;
-    switch (keyType) {
-        case 'string':
-            return { key: keyName, type: 'string', value: rows[0]?.[0] ?? '', ttl: -1 };
-        case 'hash':
-            return { key: keyName, type: 'hash', value: rows.map((row: string[]) => ({
-                field: row[columns.indexOf('field')] ?? row[0],
-                value: row[columns.indexOf('value')] ?? row[1],
-            })), ttl: -1 };
-        case 'list': case 'set':
-            return { key: keyName, type: keyType, value: rows.map((row: string[]) => ({
-                value: row[columns.indexOf('value')] ?? row[1] ?? row[0],
-            })), ttl: -1 };
-        case 'zset':
-            return { key: keyName, type: 'zset', value: rows.map((row: string[]) => ({
-                member: row[columns.indexOf('member')] ?? row[1],
-                score: row[columns.indexOf('score')] ?? row[2],
-            })), ttl: -1 };
-        default:
-            return { key: keyName, type: keyType, value: rows[0]?.[0] ?? '', ttl: -1 };
-    }
+
+    return {
+        mode: 'edit',
+        key: keyName,
+        type: 'string',
+        stringValue: rows[0]?.[valueIndex >= 0 ? valueIndex : 0] ?? '',
+        hashPairs: [{ field: '', value: '' }],
+        listItems: [{ value: '' }],
+        setItems: [{ value: '' }],
+        zsetItems: [{ member: '', score: '0' }],
+    };
 }
 
 export function RedisDetailView({ connectionId, databaseName }: RedisDetailViewProps) {
@@ -143,8 +109,8 @@ export function RedisDetailView({ connectionId, databaseName }: RedisDetailViewP
     const [getStorageUnits] = useGetStorageUnitsLazyQuery({ fetchPolicy: 'no-cache' });
     const [getRows] = useGetStorageUnitRowsLazyQuery({ fetchPolicy: 'no-cache' });
     const [addStorageUnitMutation] = useAddStorageUnitMutation();
-    const [addRowMutation] = useAddRowMutation();
     const [deleteRowMutation] = useDeleteRowMutation();
+    const [updateStorageUnitMutation] = useUpdateStorageUnitMutation();
 
     const [keys, setKeys] = useState<RedisKey[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -160,7 +126,7 @@ export function RedisDetailView({ connectionId, databaseName }: RedisDetailViewP
     // Modals State
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [editingKey, setEditingKey] = useState<{ key: string; type: string; value: any; ttl?: number } | undefined>(undefined);
+    const [editingKey, setEditingKey] = useState<RedisKeyDraft | undefined>(undefined);
     const [deletingKey, setDeletingKey] = useState<RedisKey | undefined>(undefined);
     const [showExportModal, setShowExportModal] = useState(false);
 
@@ -248,50 +214,55 @@ export function RedisDetailView({ connectionId, databaseName }: RedisDetailViewP
     };
 
     // Action Handlers
-    const handleSaveKey = async (keyData: any) => {
+    const handleSaveKey = async (draft: RedisKeyDraft) => {
         const conn = connections.find(c => c.id === connectionId);
-        if (!conn) return;
+        if (!conn) throw new Error('Connection not found');
 
         const graphqlSchema = resolveSchemaParam(conn.type, databaseName);
 
         try {
-            if (editingKey) {
-                // Update existing key
-                const values = buildRedisValues(keyData);
-                const { errors } = await addRowMutation({
-                    variables: { schema: graphqlSchema, storageUnit: keyData.key, values },
+            if (draft.mode === 'edit') {
+                if (draft.type !== 'string') {
+                    throw new Error('Editing is currently supported only for string keys');
+                }
+
+                const values: RecordInput[] = [{ Key: 'value', Value: draft.stringValue }];
+                const { errors, data } = await updateStorageUnitMutation({
+                    variables: {
+                        schema: graphqlSchema,
+                        storageUnit: draft.key,
+                        values,
+                        updatedColumns: ['value'],
+                    },
                     context: { database: databaseName },
                 });
                 if (errors?.length) throw new Error(errors[0].message);
+                if (!data?.UpdateStorageUnit.Status) throw new Error('Failed to save key');
             } else {
-                // Create new key
-                const fields = buildRedisFields(keyData);
-                const { errors } = await addStorageUnitMutation({
-                    variables: { schema: graphqlSchema, storageUnit: keyData.key, fields },
+                const fields = buildRedisFields(draft);
+                const { errors, data } = await addStorageUnitMutation({
+                    variables: { schema: graphqlSchema, storageUnit: draft.key, fields },
                     context: { database: databaseName },
                 });
                 if (errors?.length) throw new Error(errors[0].message);
+                if (!data?.AddStorageUnit.Status) throw new Error('Failed to create key');
             }
 
             setAlertState({
                 isOpen: true,
                 title: 'Success',
-                message: `Key "${keyData.key}" ${editingKey ? 'updated' : 'created'} successfully!`,
+                message: `Key "${draft.key}" ${draft.mode === 'edit' ? 'updated' : 'created'} successfully!`,
                 type: 'success'
             });
 
             setEditingKey(undefined);
             setIsAddModalOpen(false);
-            fetchKeys();
         } catch (error: any) {
             console.error('Failed to save key:', error);
-            setAlertState({
-                isOpen: true,
-                title: 'Error',
-                message: error.message || 'Failed to save key',
-                type: 'error'
-            });
+            throw error;
         }
+
+        await fetchKeys();
     };
 
     const handleConfirmDelete = async () => {
@@ -316,8 +287,8 @@ export function RedisDetailView({ connectionId, databaseName }: RedisDetailViewP
 
     // Pagination calculations
     const totalPages = Math.ceil(total / pageSize);
-    const startRow = (page - 1) * pageSize + 1;
-    const endRow = Math.min(page * pageSize, total);
+    const startRow = total === 0 ? 0 : (page - 1) * pageSize + 1;
+    const endRow = total === 0 ? 0 : Math.min(page * pageSize, total);
 
     return (
         <div className="flex flex-col h-full bg-background">
@@ -468,46 +439,68 @@ export function RedisDetailView({ connectionId, databaseName }: RedisDetailViewP
                                             </td>
                                             <td className="px-6 py-2 text-right whitespace-nowrap sticky right-0 bg-background group-hover:bg-muted/30 transition-colors z-20 shadow-[-1px_0_0_0_rgba(0,0,0,0.05)] border-b border-border/50">
                                                 <div className="flex items-center justify-end gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-7 w-7 text-muted-foreground hover:text-primary"
-                                                        onClick={async () => {
-                                                            const conn = connections.find(c => c.id === connectionId);
-                                                            if (!conn) return;
-                                                            const graphqlSchema = resolveSchemaParam(conn.type, databaseName);
-                                                            try {
-                                                                setIsLoading(true);
-                                                                const { data, error } = await getRows({
-                                                                    variables: {
-                                                                        schema: graphqlSchema,
-                                                                        storageUnit: key.key,
-                                                                        pageSize: 1000,
-                                                                        pageOffset: 0,
-                                                                    },
-                                                                    context: { database: databaseName },
-                                                                });
-                                                                if (error) throw new Error(error.message);
-                                                                if (data?.Row) {
-                                                                    const keyData = transformRedisRowsToKeyData(key.key, key.type, data.Row);
-                                                                    setEditingKey(keyData);
-                                                                    setIsAddModalOpen(true);
+                                                    {key.type === 'string' ? (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-7 w-7 text-muted-foreground hover:text-primary"
+                                                            onClick={async () => {
+                                                                const conn = connections.find(c => c.id === connectionId);
+                                                                if (!conn) return;
+                                                                const graphqlSchema = resolveSchemaParam(conn.type, databaseName);
+                                                                try {
+                                                                    setIsLoading(true);
+                                                                    const { data, error } = await getRows({
+                                                                        variables: {
+                                                                            schema: graphqlSchema,
+                                                                            storageUnit: key.key,
+                                                                            pageSize: 1000,
+                                                                            pageOffset: 0,
+                                                                        },
+                                                                        context: { database: databaseName },
+                                                                    });
+                                                                    if (error) throw new Error(error.message);
+                                                                    if (data?.Row) {
+                                                                        const keyData = transformRedisRowsToStringKeyData(key.key, data.Row);
+                                                                        setEditingKey(keyData);
+                                                                        setIsAddModalOpen(true);
+                                                                    }
+                                                                } catch (error: any) {
+                                                                    console.error('Fetch key details error:', error);
+                                                                    setAlertState({
+                                                                        isOpen: true,
+                                                                        title: 'Error',
+                                                                        message: error.message || 'Failed to fetch key details',
+                                                                        type: 'error',
+                                                                    });
+                                                                } finally {
+                                                                    setIsLoading(false);
                                                                 }
-                                                            } catch (error: any) {
-                                                                console.error('Fetch key details error:', error);
-                                                                setAlertState({
-                                                                    isOpen: true,
-                                                                    title: 'Error',
-                                                                    message: error.message || 'Failed to fetch key details',
-                                                                    type: 'error',
-                                                                });
-                                                            } finally {
-                                                                setIsLoading(false);
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Edit2 className="h-3.5 w-3.5" />
-                                                    </Button>
+                                                            }}
+                                                        >
+                                                            <Edit2 className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    ) : (
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <span>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-7 w-7 text-muted-foreground"
+                                                                            disabled
+                                                                        >
+                                                                            <Edit2 className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    </span>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="top">
+                                                                    Editing is currently supported only for string keys
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    )}
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -622,10 +615,12 @@ export function RedisDetailView({ connectionId, databaseName }: RedisDetailViewP
 
             {/* Modals */}
             <RedisKeyModal
-                isOpen={isAddModalOpen}
-                onClose={() => {
-                    setIsAddModalOpen(false);
-                    setEditingKey(undefined);
+                open={isAddModalOpen}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setIsAddModalOpen(false);
+                        setEditingKey(undefined);
+                    }
                 }}
                 onSave={handleSaveKey}
                 initialData={editingKey}
@@ -636,14 +631,14 @@ export function RedisDetailView({ connectionId, databaseName }: RedisDetailViewP
                 onClose={() => setDeletingKey(undefined)}
                 onConfirm={handleConfirmDelete}
                 title="Delete Key"
-                message={`Are you sure you want to delete key "${deletingKey}" ? This action cannot be undone.`}
+                message={`Are you sure you want to delete key "${deletingKey?.key ?? ''}"? This action cannot be undone.`}
                 confirmText="Delete"
                 isDestructive
             />
 
             <ExportRedisModal
-                isOpen={showExportModal}
-                onClose={() => setShowExportModal(false)}
+                open={showExportModal}
+                onOpenChange={setShowExportModal}
                 connectionId={connectionId}
                 databaseName={databaseName}
                 initialPattern={pattern}
@@ -659,8 +654,8 @@ export function RedisDetailView({ connectionId, databaseName }: RedisDetailViewP
             />
 
             <RedisFilterModal
-                isOpen={isFilterModalOpen}
-                onClose={() => setIsFilterModalOpen(false)}
+                open={isFilterModalOpen}
+                onOpenChange={setIsFilterModalOpen}
                 onApply={handleApplyFilter}
                 initialPattern={pattern}
                 initialTypes={filterTypes}
