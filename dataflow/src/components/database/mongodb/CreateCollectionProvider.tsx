@@ -1,4 +1,4 @@
-import { createContext, use, useCallback, useState, type ReactNode } from 'react'
+import { createContext, use, useCallback, useState, type ReactNode, type JSX } from 'react'
 import { Database } from 'lucide-react'
 import { useConnectionStore } from '@/stores/useConnectionStore'
 import { ModalForm } from '@/components/database/modals/ModalForm'
@@ -48,19 +48,28 @@ export function CreateCollectionProvider({
     if (!collectionName) return
     baseActions.setSubmitting(true)
 
-    const conn = connections.find(c => c.id === connectionId)
-    const schemaParam = resolveSchemaParam(conn?.type, databaseName)
-    const result = await createTable(databaseName, schemaParam, collectionName, [])
+    try {
+      const conn = connections.find(c => c.id === connectionId)
+      const schemaParam = resolveSchemaParam(conn?.type, databaseName)
+      const result = await createTable(databaseName, schemaParam, collectionName, [])
 
-    baseActions.setSubmitting(false)
-    if (result.success) {
-      onSuccess?.()
-    } else {
+      if (result.success) {
+        onSuccess?.()
+      } else {
+        baseActions.setAlert({
+          type: 'error',
+          title: 'Failed to create collection',
+          message: result.message ?? 'Unknown error',
+        })
+      }
+    } catch (error) {
       baseActions.setAlert({
         type: 'error',
         title: 'Failed to create collection',
-        message: result.message ?? 'Unknown error',
+        message: error instanceof Error ? error.message : 'Unknown error',
       })
+    } finally {
+      baseActions.setSubmitting(false)
     }
   }, [collectionName, connections, connectionId, databaseName, createTable, onSuccess, baseActions])
 
