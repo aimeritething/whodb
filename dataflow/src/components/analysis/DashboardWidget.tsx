@@ -44,22 +44,22 @@ export function DashboardWidget({
 
     const menuItems = [
         {
-            label: "放大",
+            label: "Maximize",
             icon: <Maximize2 className="w-4 h-4" />,
             onClick: () => onMaximize?.(component.id)
         },
         ...(component.type === 'chart' ? [{
-            label: "导出 PNG",
+            label: "Export PNG",
             icon: <ImageDown className="w-4 h-4" />,
             onClick: handleExportPNG
         }] : []),
         {
-            label: "编辑",
+            label: "Edit",
             icon: <Settings className="w-4 h-4" />,
             onClick: () => onEdit?.(component.id)
         },
         {
-            label: "删除",
+            label: "Delete",
             icon: <Trash2 className="w-4 h-4" />,
             danger: true,
             onClick: () => onDelete?.(component.id)

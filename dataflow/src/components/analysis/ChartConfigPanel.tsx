@@ -15,10 +15,10 @@ export function ChartConfigPanel({ config, columns, onConfigChange, onOpenDataCo
     const [openDropdown, setOpenDropdown] = React.useState<string | null>(null);
 
     const chartTypeLabels: Record<ChartType, string> = {
-        bar: '柱状图',
-        line: '折线图',
-        pie: '饼图',
-        area: '面积图',
+        bar: 'Bar Chart',
+        line: 'Line Chart',
+        pie: 'Pie Chart',
+        area: 'Area Chart',
     };
 
     const toggleDropdown = (name: string) => {
@@ -49,17 +49,17 @@ export function ChartConfigPanel({ config, columns, onConfigChange, onOpenDataCo
     return (
         <div ref={panelRef} className="flex flex-col gap-4 p-6 overflow-y-auto h-full">
 
-            {/* 1. 数据配置 button */}
+            {/* 1. Data Configuration button */}
             <button
                 onClick={onOpenDataConfig}
                 className="w-full px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
             >
-                数据配置
+                Data Configuration
             </button>
 
             {/* 2. Chart Type selector */}
             <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">图表类型</label>
+                <label className="text-sm font-medium">Chart Type</label>
                 <div className="relative">
                     <button
                         onClick={() => toggleDropdown('chartType')}
@@ -92,14 +92,14 @@ export function ChartConfigPanel({ config, columns, onConfigChange, onOpenDataCo
 
             {/* 3. X-Axis selector */}
             <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">横轴</label>
+                <label className="text-sm font-medium">X-Axis</label>
                 <div className="relative">
                     <button
                         onClick={() => toggleDropdown('xAxis')}
                         className="w-full flex items-center justify-between px-3 py-2 rounded-md border bg-popover text-sm"
                     >
                         <span className={cn(!config.xAxisColumn && 'text-muted-foreground')}>
-                            {config.xAxisColumn || '请选择横轴'}
+                            {config.xAxisColumn || 'Select X-Axis'}
                         </span>
                         <ChevronDown className="w-4 h-4 text-muted-foreground" />
                     </button>
@@ -127,14 +127,14 @@ export function ChartConfigPanel({ config, columns, onConfigChange, onOpenDataCo
 
             {/* 4. Y-Axis multi-select */}
             <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">纵轴</label>
+                <label className="text-sm font-medium">Y-Axis</label>
                 <div className="relative">
                     <button
                         onClick={() => toggleDropdown('yAxis')}
                         className="w-full flex items-center justify-between px-3 py-2 rounded-md border bg-popover text-sm"
                     >
                         <span className={cn(!config.yAxisColumns.length && 'text-muted-foreground')}>
-                            {config.yAxisColumns.length ? config.yAxisColumns.join(', ') : '请选择纵轴'}
+                            {config.yAxisColumns.length ? config.yAxisColumns.join(', ') : 'Select Y-Axis'}
                         </span>
                         <ChevronDown className="w-4 h-4 text-muted-foreground" />
                     </button>
@@ -159,12 +159,12 @@ export function ChartConfigPanel({ config, columns, onConfigChange, onOpenDataCo
 
             {/* 5. Chart Options */}
             <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium">图表选项</label>
+                <label className="text-sm font-medium">Chart Options</label>
                 {(
                     [
-                        { key: 'showLegend', label: '图例' },
-                        { key: 'showGridLines', label: '网格线' },
-                        { key: 'showDataLabels', label: '数据标签' },
+                        { key: 'showLegend', label: 'Legend' },
+                        { key: 'showGridLines', label: 'Grid Lines' },
+                        { key: 'showDataLabels', label: 'Data Labels' },
                     ] as const
                 ).map(({ key, label }) => (
                     <button
@@ -189,12 +189,12 @@ export function ChartConfigPanel({ config, columns, onConfigChange, onOpenDataCo
 
             {/* 6. Sort By */}
             <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium">排序依据</label>
+                <label className="text-sm font-medium">Sort By</label>
                 {(
                     [
-                        { value: 'data', label: '数据顺序' },
-                        { value: 'xAxis', label: '横轴值' },
-                        { value: 'yAxis', label: '纵轴值' },
+                        { value: 'data', label: 'Data Order' },
+                        { value: 'xAxis', label: 'X-Axis Value' },
+                        { value: 'yAxis', label: 'Y-Axis Value' },
                     ] as { value: SortTarget; label: string }[]
                 ).map(({ value, label }) => (
                     <div key={value}>
@@ -220,8 +220,8 @@ export function ChartConfigPanel({ config, columns, onConfigChange, onOpenDataCo
                             <div className="ml-6 mt-1.5 flex gap-3">
                                 {(
                                     [
-                                        { value: 'asc', label: '正序' },
-                                        { value: 'desc', label: '倒序' },
+                                        { value: 'asc', label: 'Ascending' },
+                                        { value: 'desc', label: 'Descending' },
                                     ] as { value: SortOrder; label: string }[]
                                 ).map(order => (
                                     <button
