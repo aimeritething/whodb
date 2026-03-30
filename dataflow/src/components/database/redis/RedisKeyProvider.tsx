@@ -1,7 +1,6 @@
 import { createContext, use, useCallback, useEffect, useState, type JSX, type ReactNode } from 'react'
 import { List } from 'lucide-react'
-import { ModalForm } from '@/components/database/modals/ModalForm'
-import { useModalState } from '@/components/database/modals/useModalState'
+import { ModalForm, useModalForm } from '@/components/database/modals/ModalForm'
 import type {
   RedisHashPairDraft,
   RedisKeyDraft,
@@ -103,6 +102,17 @@ function normalizeDraft(initialData?: RedisKeyDraft | null): RedisKeyDraft {
   }
 }
 
+/** Resets ModalForm state when the dialog opens. Must be rendered inside ModalForm.Provider. */
+function ResetOnOpen({ open, children }: { open: boolean; children: ReactNode }) {
+  const { actions } = useModalForm()
+
+  useEffect(() => {
+    if (open) actions.reset()
+  }, [open, actions])
+
+  return children
+}
+
 /** Owns Redis key draft state and delegates save behavior to the caller. */
 export function RedisKeyProvider({
   open,
@@ -111,16 +121,11 @@ export function RedisKeyProvider({
   children,
 }: RedisKeyProviderProps): JSX.Element {
   const [draft, setDraft] = useState<RedisKeyDraft>(() => normalizeDraft(initialData))
-  const {
-    state,
-    actions: { closeAlert, reset, setAlert, setSubmitting },
-  } = useModalState()
 
   useEffect(() => {
     if (!open) return
-    reset()
     setDraft(normalizeDraft(initialData))
-  }, [open, initialData, reset])
+  }, [open, initialData])
 
   const setKey = useCallback((value: string) => {
     setDraft((prev) => ({ ...prev, key: value }))
@@ -162,40 +167,13 @@ export function RedisKeyProvider({
     setDraft((prev) => ({ ...prev, zsetItems: normalizeZsetItems(value) }))
   }, [])
 
-  const submit = useCallback(async () => {
+  const handleSubmit = useCallback(async () => {
     if (!draft.key.trim()) return
     if (draft.mode === 'edit' && draft.type !== 'string') {
-      setAlert({
-        type: 'error',
-        title: 'Unsupported edit mode',
-        message: 'Editing is currently supported only for string keys.',
-      })
-      return
+      throw new Error('Editing is currently supported only for string keys.')
     }
-
-    setSubmitting(true)
-    closeAlert()
-
-    try {
-      await onSave(draft)
-    } catch (error) {
-      setAlert({
-        type: 'error',
-        title: draft.mode === 'edit' ? 'Failed to save value' : 'Failed to create key',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      })
-    } finally {
-      setSubmitting(false)
-    }
-  }, [closeAlert, draft, onSave, setAlert, setSubmitting])
-
-  const actions = {
-    closeAlert,
-    reset,
-    setAlert,
-    setSubmitting,
-    submit,
-  }
+    await onSave(draft)
+  }, [draft, onSave])
 
   const isEditMode = draft.mode === 'edit'
   const isStringEdit = isEditMode && draft.type === 'string'
@@ -220,15 +198,16 @@ export function RedisKeyProvider({
       }}
     >
       <ModalForm.Provider
-        state={state}
-        actions={actions}
+        onSubmit={handleSubmit}
         meta={{
           title: isEditMode ? 'Edit Key' : 'Add New Key',
           description: isEditMode ? 'Editing is currently supported only for string keys.' : undefined,
           icon: List,
         }}
       >
-        {children}
+        <ResetOnOpen open={open}>
+          {children}
+        </ResetOnOpen>
       </ModalForm.Provider>
     </RedisKeyCtx>
   )

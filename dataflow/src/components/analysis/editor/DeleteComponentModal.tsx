@@ -3,7 +3,6 @@ import { Trash2 } from 'lucide-react'
 import { useAnalysisStore } from '@/stores/useAnalysisStore'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { ModalForm } from '@/components/database/modals/ModalForm'
-import { useModalState } from '@/components/database/modals/useModalState'
 
 // ---------------------------------------------------------------------------
 // Provider
@@ -20,20 +19,15 @@ function DeleteComponentProvider({
   children: ReactNode
 }) {
   const { removeComponent } = useAnalysisStore()
-  const { state, actions: baseActions } = useModalState()
 
-  const actions = {
-    ...baseActions,
-    submit: async () => {
-      removeComponent(componentId)
-      onSuccess?.()
-    },
-  }
+  const handleSubmit = useCallback(async () => {
+    removeComponent(componentId)
+    onSuccess?.()
+  }, [removeComponent, componentId, onSuccess])
 
   return (
     <ModalForm.Provider
-      state={state}
-      actions={actions}
+      onSubmit={handleSubmit}
       meta={{
         title: 'Delete Component',
         description: 'Are you sure you want to delete this component? This action cannot be undone.',

@@ -64,7 +64,7 @@ function CreateCollectionFields() {
         autoFocus
         onKeyDown={(e) => {
           if (e.key === 'Enter' && collectionName && !state.isSubmitting) {
-            actions.submit()
+            actions.submit?.()
           }
         }}
       />

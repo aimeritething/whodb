@@ -3,7 +3,6 @@ import { Trash2 } from 'lucide-react'
 import { useAnalysisStore } from '@/stores/useAnalysisStore'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { ModalForm } from '@/components/database/modals/ModalForm'
-import { useModalState } from '@/components/database/modals/useModalState'
 
 // ---------------------------------------------------------------------------
 // Provider
@@ -22,20 +21,15 @@ function DeleteDashboardProvider({
   children: ReactNode
 }) {
   const { deleteDashboard } = useAnalysisStore()
-  const { state, actions: baseActions } = useModalState()
 
-  const actions = {
-    ...baseActions,
-    submit: async () => {
-      deleteDashboard(dashboardId)
-      onSuccess?.()
-    },
-  }
+  const handleSubmit = useCallback(async () => {
+    deleteDashboard(dashboardId)
+    onSuccess?.()
+  }, [deleteDashboard, dashboardId, onSuccess])
 
   return (
     <ModalForm.Provider
-      state={state}
-      actions={actions}
+      onSubmit={handleSubmit}
       meta={{
         title: 'Delete Dashboard',
         description: `Are you sure you want to delete "${dashboardName}"? This action cannot be undone.`,

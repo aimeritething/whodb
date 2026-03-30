@@ -2,7 +2,6 @@ import { createContext, use, useCallback, useState, type ReactNode, type JSX } f
 import { AlertTriangle } from 'lucide-react'
 import { useConnectionStore } from '@/stores/useConnectionStore'
 import { ModalForm } from '@/components/database/modals/ModalForm'
-import { useModalState } from '@/components/database/modals/useModalState'
 
 // ---------------------------------------------------------------------------
 // Context
@@ -44,41 +43,21 @@ export function DropCollectionProvider({
   const { dropCollection } = useConnectionStore()
   const [confirmName, setConfirmName] = useState('')
   const canDrop = confirmName === collectionName
-  const { state, actions: baseActions } = useModalState()
 
-  const submit = useCallback(async () => {
+  const handleSubmit = useCallback(async () => {
     if (!canDrop) return
-    baseActions.setSubmitting(true)
-
-    try {
-      const result = await dropCollection(databaseName, collectionName)
-      if (result.success) {
-        onSuccess?.()
-      } else {
-        baseActions.setAlert({
-          type: 'error',
-          title: 'Failed to drop collection',
-          message: result.message ?? 'Unknown error',
-        })
-      }
-    } catch (error) {
-      baseActions.setAlert({
-        type: 'error',
-        title: 'Failed to drop collection',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      })
-    } finally {
-      baseActions.setSubmitting(false)
+    const result = await dropCollection(databaseName, collectionName)
+    if (result.success) {
+      onSuccess?.()
+    } else {
+      throw new Error(result.message ?? 'Unknown error')
     }
-  }, [canDrop, dropCollection, databaseName, collectionName, onSuccess, baseActions])
-
-  const actions = { ...baseActions, submit }
+  }, [canDrop, dropCollection, databaseName, collectionName, onSuccess])
 
   return (
     <DropCollectionCtx value={{ confirmName, setConfirmName, collectionName, canDrop }}>
       <ModalForm.Provider
-        state={state}
-        actions={actions}
+        onSubmit={handleSubmit}
         meta={{ title: 'Drop Collection', icon: AlertTriangle, isDestructive: true }}
       >
         {children}

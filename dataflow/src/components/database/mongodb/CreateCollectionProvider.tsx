@@ -2,7 +2,6 @@ import { createContext, use, useCallback, useState, type ReactNode, type JSX } f
 import { Database } from 'lucide-react'
 import { useConnectionStore } from '@/stores/useConnectionStore'
 import { ModalForm } from '@/components/database/modals/ModalForm'
-import { useModalState } from '@/components/database/modals/useModalState'
 import { resolveSchemaParam } from '@/utils/database-features'
 
 // ---------------------------------------------------------------------------
@@ -42,52 +41,24 @@ export function CreateCollectionProvider({
 }): JSX.Element {
   const { createTable, connections } = useConnectionStore()
   const [collectionName, setCollectionName] = useState('')
-  const { state, actions: baseActions } = useModalState()
 
-  const submit = useCallback(async () => {
+  const handleSubmit = useCallback(async () => {
     if (!collectionName) return
-    baseActions.setSubmitting(true)
-    let didSucceed = false
+    const conn = connections.find(c => c.id === connectionId)
+    const schemaParam = resolveSchemaParam(conn?.type, databaseName)
+    const result = await createTable(databaseName, schemaParam, collectionName, [])
 
-    try {
-      const conn = connections.find(c => c.id === connectionId)
-      const schemaParam = resolveSchemaParam(conn?.type, databaseName)
-      const result = await createTable(databaseName, schemaParam, collectionName, [])
-
-      if (result.success) {
-        didSucceed = true
-      } else {
-        baseActions.setAlert({
-          type: 'error',
-          title: 'Failed to create collection',
-          message: result.message ?? 'Unknown error',
-        })
-      }
-    } catch (error) {
-      baseActions.setAlert({
-        type: 'error',
-        title: 'Failed to create collection',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      })
-    } finally {
-      baseActions.setSubmitting(false)
-    }
-
-    if (didSucceed) {
+    if (result.success) {
       onSuccess?.()
+    } else {
+      throw new Error(result.message ?? 'Unknown error')
     }
-  }, [collectionName, connections, connectionId, databaseName, createTable, onSuccess, baseActions])
-
-  const actions = {
-    ...baseActions,
-    submit,
-  }
+  }, [collectionName, connections, connectionId, databaseName, createTable, onSuccess])
 
   return (
     <CreateCollectionCtx value={{ collectionName, setCollectionName }}>
       <ModalForm.Provider
-        state={state}
-        actions={actions}
+        onSubmit={handleSubmit}
         meta={{ title: 'Create Collection', icon: Database }}
       >
         {children}

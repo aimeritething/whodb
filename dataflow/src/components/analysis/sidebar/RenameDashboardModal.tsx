@@ -4,7 +4,6 @@ import { useAnalysisStore } from '@/stores/useAnalysisStore'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/Input'
 import { ModalForm, useModalForm } from '@/components/database/modals/ModalForm'
-import { useModalState } from '@/components/database/modals/useModalState'
 
 // ---------------------------------------------------------------------------
 // Context
@@ -42,30 +41,20 @@ function RenameDashboardProvider({
 }) {
   const { updateDashboard, isDashboardNameExists } = useAnalysisStore()
   const [name, setName] = useState(currentName)
-  const { state, actions: baseActions } = useModalState()
 
-  const actions = {
-    ...baseActions,
-    submit: async () => {
-      if (!name.trim() || name === currentName) return
-      if (isDashboardNameExists(name, dashboardId)) {
-        baseActions.setAlert({
-          type: 'error',
-          title: 'Name already exists',
-          message: 'Dashboard name already exists, please use a different name',
-        })
-        return
-      }
-      updateDashboard(dashboardId, { name })
-      onSuccess?.()
-    },
-  }
+  const handleSubmit = useCallback(async () => {
+    if (!name.trim() || name === currentName) return
+    if (isDashboardNameExists(name, dashboardId)) {
+      throw new Error('Dashboard name already exists, please use a different name')
+    }
+    updateDashboard(dashboardId, { name })
+    onSuccess?.()
+  }, [name, currentName, isDashboardNameExists, dashboardId, updateDashboard, onSuccess])
 
   return (
     <RenameDashboardCtx value={{ name, setName, originalName: currentName }}>
       <ModalForm.Provider
-        state={state}
-        actions={actions}
+        onSubmit={handleSubmit}
         meta={{ title: 'Rename Dashboard', icon: LayoutDashboard }}
       >
         {children}

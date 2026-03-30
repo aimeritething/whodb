@@ -1,7 +1,7 @@
 import { createContext, use, useCallback, useEffect, useRef, useState, type JSX, type ReactNode } from 'react'
 import { Filter } from 'lucide-react'
-import { ModalForm } from '@/components/database/modals/ModalForm'
-import { useModalState } from '@/components/database/modals/useModalState'
+import { ModalForm, useModalForm } from '@/components/database/modals/ModalForm'
+import type { ModalAlert } from '@/components/database/modals/types'
 import type {
   FilterConditionDraft,
   FlatMongoFilter,
@@ -273,6 +273,36 @@ interface FilterCollectionProviderProps {
 }
 
 /**
+ * Bridges pending alerts from the outer provider into the ModalForm context.
+ *
+ * The outer provider cannot call `setAlert` directly because it sits above
+ * `ModalForm.Provider` in the tree. Instead it writes to `pendingAlertRef`
+ * and this inner component syncs the value into ModalForm on each render
+ * triggered by the `alertVersion` counter.
+ */
+function AlertBridge({
+  pendingAlertRef,
+  alertVersion,
+  children,
+}: {
+  pendingAlertRef: React.RefObject<ModalAlert | null>
+  alertVersion: number
+  children: ReactNode
+}) {
+  const { actions } = useModalForm()
+
+  useEffect(() => {
+    const pending = pendingAlertRef.current
+    if (pending) {
+      pendingAlertRef.current = null
+      actions.setAlert(pending)
+    }
+  }, [alertVersion, pendingAlertRef, actions])
+
+  return children
+}
+
+/**
  * Provider for MongoDB filter modal draft state and submit behavior.
  *
  * Responsibilities:
@@ -291,14 +321,18 @@ export function FilterCollectionProvider({
 }: FilterCollectionProviderProps): JSX.Element {
   const [conditions, setConditions] = useState<FilterConditionDraft[]>(() => [createEmptyCondition(fields)])
   const wasOpenRef = useRef(false)
-  const { state, actions: baseActions } = useModalState()
+  const pendingAlertRef = useRef<ModalAlert | null>(null)
+  const [alertVersion, setAlertVersion] = useState(0)
+
+  const pushAlert = useCallback((alert: ModalAlert) => {
+    pendingAlertRef.current = alert
+    setAlertVersion((v) => v + 1)
+  }, [])
 
   useEffect(() => {
     const wasOpen = wasOpenRef.current
 
     if (open && !wasOpen) {
-      baseActions.reset()
-
       const parsed = parseInitialFilter(initialFilter)
       if (parsed.conditions.length > 0) {
         setConditions(parsed.conditions)
@@ -307,7 +341,7 @@ export function FilterCollectionProvider({
       }
 
       if (parsed.hasUnsupported) {
-        baseActions.setAlert({
+        pushAlert({
           type: 'info',
           title: 'Some filters were not loaded',
           message:
@@ -317,12 +351,12 @@ export function FilterCollectionProvider({
     }
 
     wasOpenRef.current = open
-  }, [open, initialFilter, fields, baseActions])
+  }, [open, initialFilter, fields, pushAlert])
 
   const addCondition = useCallback(() => {
     const nextField = findFirstUnusedField(fields, conditions)
     if (!nextField) {
-      baseActions.setAlert({
+      pushAlert({
         type: 'info',
         title: 'No additional fields available',
         message: 'Each field can only be used once in this filter.',
@@ -331,7 +365,7 @@ export function FilterCollectionProvider({
     }
 
     setConditions((prev) => [...prev, createConditionForField(nextField)])
-  }, [fields, conditions, baseActions])
+  }, [fields, conditions, pushAlert])
 
   const removeCondition = useCallback((id: string) => {
     setConditions((prev) => prev.filter((condition) => condition.id !== id))
@@ -350,7 +384,7 @@ export function FilterCollectionProvider({
             condition.id !== id && getNormalizedField(condition.field) === requestedField,
         )
         if (isTakenByAnother) {
-          baseActions.setAlert({
+          pushAlert({
             type: 'error',
             title: 'Duplicate field not allowed',
             message: `Field "${requestedField}" is already used in another condition.`,
@@ -361,7 +395,7 @@ export function FilterCollectionProvider({
 
       return prev.map((condition) => (condition.id === id ? { ...condition, ...updates } : condition))
     })
-  }, [baseActions])
+  }, [pushAlert])
 
   const clearConditions = useCallback(() => {
     setConditions([])
@@ -372,25 +406,15 @@ export function FilterCollectionProvider({
     onOpenChange(false)
   }, [onApply, onOpenChange])
 
-  const submit = useCallback(async () => {
+  const handleSubmit = useCallback(async () => {
     const duplicates = getDuplicateFields(conditions)
     if (duplicates.length > 0) {
-      baseActions.setAlert({
-        type: 'error',
-        title: 'Duplicate fields detected',
-        message: 'Each field can only appear once in the filter conditions.',
-      })
-      return
+      throw new Error('Each field can only appear once in the filter conditions.')
     }
 
     onApply(buildFlatFilter(conditions))
     onOpenChange(false)
-  }, [conditions, onApply, onOpenChange, baseActions])
-
-  const actions = {
-    ...baseActions,
-    submit,
-  }
+  }, [conditions, onApply, onOpenChange])
 
   return (
     <FilterCollectionCtx
@@ -404,8 +428,10 @@ export function FilterCollectionProvider({
         clearAndClose,
       }}
     >
-      <ModalForm.Provider state={state} actions={actions} meta={{ title: 'Filter Collection', icon: Filter }}>
-        {children}
+      <ModalForm.Provider onSubmit={handleSubmit} meta={{ title: 'Filter Collection', icon: Filter }}>
+        <AlertBridge pendingAlertRef={pendingAlertRef} alertVersion={alertVersion}>
+          {children}
+        </AlertBridge>
       </ModalForm.Provider>
     </FilterCollectionCtx>
   )

@@ -68,7 +68,7 @@ export function RedisFilterProvider({
     setSelectedTypes([])
   }, [])
 
-  const submit = useCallback(async () => {
+  const handleSubmit = useCallback(async () => {
     onApply(pattern || '*', selectedTypes)
   }, [onApply, pattern, selectedTypes])
 
@@ -84,14 +84,7 @@ export function RedisFilterProvider({
       }}
     >
       <ModalForm.Provider
-        state={{ isSubmitting: false, alert: null }}
-        actions={{
-          submit,
-          setSubmitting: (_value: boolean) => undefined,
-          setAlert: (_value) => undefined,
-          closeAlert: () => undefined,
-          reset: () => undefined,
-        }}
+        onSubmit={handleSubmit}
         meta={{
           title: 'Filter Keys',
           icon: Filter,

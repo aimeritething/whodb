@@ -4,7 +4,6 @@ import { useAnalysisStore } from '@/stores/useAnalysisStore'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/Input'
 import { ModalForm, useModalForm } from '@/components/database/modals/ModalForm'
-import { useModalState } from '@/components/database/modals/useModalState'
 
 // ---------------------------------------------------------------------------
 // Context
@@ -37,30 +36,20 @@ function CreateDashboardProvider({
 }) {
   const { createDashboard, isDashboardNameExists } = useAnalysisStore()
   const [name, setName] = useState('')
-  const { state, actions: baseActions } = useModalState()
 
-  const actions = {
-    ...baseActions,
-    submit: async () => {
-      if (!name.trim()) return
-      if (isDashboardNameExists(name)) {
-        baseActions.setAlert({
-          type: 'error',
-          title: 'Name already exists',
-          message: 'Dashboard name already exists, please use a different name',
-        })
-        return
-      }
-      createDashboard(name)
-      onSuccess?.()
-    },
-  }
+  const handleSubmit = useCallback(async () => {
+    if (!name.trim()) return
+    if (isDashboardNameExists(name)) {
+      throw new Error('Dashboard name already exists, please use a different name')
+    }
+    createDashboard(name)
+    onSuccess?.()
+  }, [name, isDashboardNameExists, createDashboard, onSuccess])
 
   return (
     <CreateDashboardCtx value={{ name, setName }}>
       <ModalForm.Provider
-        state={state}
-        actions={actions}
+        onSubmit={handleSubmit}
         meta={{ title: 'New Dashboard', icon: LayoutDashboard }}
       >
         {children}

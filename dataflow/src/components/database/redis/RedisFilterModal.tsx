@@ -103,7 +103,7 @@ function RedisFilterFooter({ onOpenChange }: { onOpenChange: (open: boolean) => 
         <Button
           type="button"
           onClick={async () => {
-            await actions.submit()
+            await actions.submit?.()
             onOpenChange(false)
           }}
           className="gap-2"
