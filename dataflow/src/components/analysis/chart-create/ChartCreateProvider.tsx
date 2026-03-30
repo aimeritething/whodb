@@ -7,7 +7,7 @@ import {
     toWidgetConfig,
     type ChartConfig,
     type QueryData,
-} from './chart-utils'
+} from '../chart-utils'
 
 type ModalView = 'chart-config' | 'data-config'
 

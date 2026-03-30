@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { DashboardSidebar } from "./DashboardSidebar";
-import { DashboardEditor } from "./DashboardEditor";
+import { DashboardSidebar } from "./sidebar";
+import { DashboardEditor } from "./editor";
 import { useAnalysisStore } from "@/stores/useAnalysisStore";
 
 export function AnalysisView() {

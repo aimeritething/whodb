@@ -3,9 +3,9 @@ import { DashboardComponent, useAnalysisStore } from "@/stores/useAnalysisStore"
 import { cn } from "@/lib/utils";
 import { MoreHorizontal, Trash2, Maximize2, Settings, ImageDown } from "lucide-react";
 import { SafeECharts, NativeEChartsHandle } from "@/components/ui/SafeECharts";
-import { buildWidgetChartOption } from "./chart-utils";
+import { buildWidgetChartOption } from "../chart-utils";
 import { downloadBlob } from "@/utils/export-utils";
-import { ContextMenu } from "../ui/ContextMenu";
+import { ContextMenu } from "../../ui/ContextMenu";
 
 interface DashboardWidgetProps {
     component: DashboardComponent;

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAnalysisStore } from "@/stores/useAnalysisStore";
 import { Plus, Search, LayoutDashboard, SlidersHorizontal, Edit2, Trash2, PlusCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ContextMenu } from "../ui/ContextMenu";
+import { ContextMenu } from "../../ui/ContextMenu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CreateDashboardModal } from './CreateDashboardModal'
 import { RenameDashboardModal } from './RenameDashboardModal'

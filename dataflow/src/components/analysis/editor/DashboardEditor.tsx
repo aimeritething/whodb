@@ -4,7 +4,7 @@ import { Plus, Layout } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { EditorCanvas } from "./EditorCanvas";
-import { ChartCreateModal } from "./ChartCreateModal";
+import { ChartCreateModal } from "../chart-create/ChartCreateModal";
 import { MaximizeChartModal } from "./MaximizeChartModal";
 import { ComponentSettingsModal } from "./ComponentSettingsModal";
 import { DeleteComponentModal } from "./DeleteComponentModal";

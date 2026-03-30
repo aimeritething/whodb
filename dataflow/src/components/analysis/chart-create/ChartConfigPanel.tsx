@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { ChartType, SortTarget, SortOrder } from './chart-utils';
+import type { ChartType, SortTarget, SortOrder } from '../chart-utils';
 import { useChartCreateCtx } from './ChartCreateProvider';
 
 /** Right-column configuration panel for chart creation: type, axes, options, and sort settings. */

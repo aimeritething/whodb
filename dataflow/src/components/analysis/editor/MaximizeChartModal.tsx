@@ -1,7 +1,7 @@
 import { useAnalysisStore } from '@/stores/useAnalysisStore'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { SafeECharts } from '@/components/ui/SafeECharts'
-import { buildWidgetChartOption } from './chart-utils'
+import { buildWidgetChartOption } from '../chart-utils'
 import { cn } from '@/lib/utils'
 
 interface MaximizeChartModalProps {
