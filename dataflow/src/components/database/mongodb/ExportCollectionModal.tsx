@@ -1,235 +1,231 @@
-import React, { useState, useEffect } from "react";
-import { Download, X, Loader2, FileJson, FileType, CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { cn } from "@/lib/utils";
-import { useConnectionStore } from "@/stores/useConnectionStore";
-import { addAuthHeader } from '@/config/auth-headers';
-import { resolveSchemaParam } from '@/utils/database-features';
+import { createContext, use, useState, type ReactNode } from 'react'
+import { Download, FileJson, FileText } from 'lucide-react'
+import { useConnectionStore } from '@/stores/useConnectionStore'
+import { addAuthHeader } from '@/config/auth-headers'
+import { resolveSchemaParam } from '@/utils/database-features'
+import { downloadBlob } from '@/utils/export-utils'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/Input'
+import { ModalForm, useModalForm } from '@/components/database/modals/ModalForm'
+import { useModalState } from '@/components/database/modals/useModalState'
+import { FormatSelector, type FormatOption } from '@/components/database/modals/FormatSelector'
+import { ExportProgress, ExportFooter } from '@/components/database/modals/ExportProgress'
 
-interface ExportCollectionModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    connectionId: string;
-    databaseName: string;
-    collectionName: string;
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+type CollectionExportFormat = 'json' | 'csv'
+
+const FORMAT_OPTIONS: FormatOption<CollectionExportFormat>[] = [
+  { id: 'json', label: 'JSON', icon: FileJson },
+  { id: 'csv', label: 'CSV', icon: FileText },
+]
+
+// ---------------------------------------------------------------------------
+// Context
+// ---------------------------------------------------------------------------
+
+interface ExportCollectionCtxValue {
+  format: CollectionExportFormat
+  setFormat: (v: CollectionExportFormat) => void
+  filter: string
+  setFilter: (v: string) => void
+  limit: number | ''
+  setLimit: (v: number | '') => void
+  isSuccess: boolean
 }
 
-export function ExportCollectionModal({ isOpen, onClose, connectionId, databaseName, collectionName }: ExportCollectionModalProps) {
-    const { connections } = useConnectionStore();
-    const [format, setFormat] = useState<'json' | 'csv'>('json');
-    const [filter, setFilter] = useState('');
-    const [limit, setLimit] = useState<number | ''>('');
-    const [isExporting, setIsExporting] = useState(false);
-    const [isSuccess, setIsSuccess] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+const ExportCollectionCtx = createContext<ExportCollectionCtxValue | null>(null)
 
-    // Reset state when modal opens
-    useEffect(() => {
-        if (isOpen) {
-            setFormat('json');
-            setFilter('');
-            setLimit('');
-            setIsExporting(false);
-            setIsSuccess(false);
-            setError(null);
+/** Hook to access ExportCollectionModal domain state. Throws if used outside the provider. */
+function useExportCollectionCtx(): ExportCollectionCtxValue {
+  const ctx = use(ExportCollectionCtx)
+  if (!ctx) throw new Error('useExportCollectionCtx must be used within ExportCollectionProvider')
+  return ctx
+}
+
+// ---------------------------------------------------------------------------
+// Provider
+// ---------------------------------------------------------------------------
+
+/**
+ * Owns collection export logic: POSTs to REST `/api/export` endpoint (the only non-GraphQL export modal),
+ * maps JSON→NDJSON for backend, triggers download via downloadBlob utility.
+ */
+function ExportCollectionProvider({
+  connectionId,
+  databaseName,
+  collectionName,
+  children,
+}: {
+  connectionId: string
+  databaseName: string
+  collectionName: string
+  children: ReactNode
+}) {
+  const { connections } = useConnectionStore()
+  const [format, setFormat] = useState<CollectionExportFormat>('json')
+  const [filter, setFilter] = useState('')
+  const [limit, setLimit] = useState<number | ''>('')
+  const [isSuccess, setIsSuccess] = useState(false)
+  const { state, actions: baseActions } = useModalState()
+
+  const actions = {
+    ...baseActions,
+    submit: async () => {
+      baseActions.setSubmitting(true)
+      baseActions.closeAlert()
+      setIsSuccess(false)
+
+      try {
+        const connection = connections.find((c) => c.id === connectionId)
+        if (!connection) throw new Error('Connection not found')
+
+        const graphqlSchema = resolveSchemaParam(connection.type, databaseName)
+        const backendFormat = format === 'json' ? 'ndjson' : 'csv'
+
+        const response = await fetch('/api/export', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...addAuthHeader({}, databaseName),
+          },
+          body: JSON.stringify({
+            schema: graphqlSchema,
+            storageUnit: collectionName,
+            format: backendFormat,
+          }),
+        })
+
+        if (!response.ok) {
+          const text = await response.text()
+          throw new Error(text || `Export failed with status ${response.status}`)
         }
-    }, [isOpen]);
 
-    if (!isOpen) return null;
+        const disposition = response.headers.get('Content-Disposition')
+        const filenameMatch = disposition?.match(/filename="(.+)"/)
+        const filename =
+          filenameMatch?.[1] ?? `${collectionName}_export.${format === 'json' ? 'ndjson' : 'csv'}`
 
-    const handleExport = async () => {
-        setIsExporting(true);
-        setError(null);
+        const blob = await response.blob()
+        downloadBlob(blob, filename)
 
-        try {
-            const connection = connections.find(c => c.id === connectionId);
-            if (!connection) throw new Error('Connection not found');
+        setIsSuccess(true)
+      } catch (e: any) {
+        baseActions.setAlert({
+          type: 'error',
+          title: 'Export failed',
+          message: e.message || 'An error occurred',
+        })
+      } finally {
+        baseActions.setSubmitting(false)
+      }
+    },
+  }
 
-            const graphqlSchema = resolveSchemaParam(connection.type, databaseName);
-            // json → ndjson, csv stays csv
-            const backendFormat = format === 'json' ? 'ndjson' : 'csv';
+  return (
+    <ExportCollectionCtx
+      value={{ format, setFormat, filter, setFilter, limit, setLimit, isSuccess }}
+    >
+      <ModalForm.Provider
+        state={state}
+        actions={actions}
+        meta={{ title: 'Export Collection', description: collectionName, icon: Download }}
+      >
+        {children}
+      </ModalForm.Provider>
+    </ExportCollectionCtx>
+  )
+}
 
-            const response = await fetch('/api/export', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...addAuthHeader({}, databaseName),
-                },
-                body: JSON.stringify({
-                    schema: graphqlSchema,
-                    storageUnit: collectionName,
-                    format: backendFormat,
-                }),
-            });
+// ---------------------------------------------------------------------------
+// Subcomponents
+// ---------------------------------------------------------------------------
 
-            if (!response.ok) {
-                const text = await response.text();
-                throw new Error(text || `Export failed with status ${response.status}`);
-            }
+/** Format selector, filter query, row limit, and progress display. */
+function ExportCollectionFields() {
+  const { format, setFormat, filter, setFilter, limit, setLimit, isSuccess } =
+    useExportCollectionCtx()
+  const { state } = useModalForm()
+  const disabled = state.isSubmitting || isSuccess
 
-            const disposition = response.headers.get('Content-Disposition');
-            const filenameMatch = disposition?.match(/filename="(.+)"/);
-            const filename = filenameMatch?.[1] ?? `${collectionName}_export.${format === 'json' ? 'ndjson' : 'csv'}`;
+  return (
+    <div className="space-y-6">
+      <FormatSelector options={FORMAT_OPTIONS} value={format} onChange={setFormat} disabled={disabled} />
 
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Filter Query (Optional)</label>
+        <Input
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder='{ "status": "active" }'
+          className="font-mono text-sm"
+          disabled={disabled}
+        />
+        <p className="text-xs text-muted-foreground">
+          Enter a MongoDB query document to filter results.
+        </p>
+      </div>
 
-            setIsSuccess(true);
-        } catch (e: any) {
-            setError(e.message || 'An error occurred');
-        } finally {
-            setIsExporting(false);
-        }
-    };
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Limit Rows (Optional)</label>
+        <Input
+          type="number"
+          value={limit}
+          onChange={(e) => setLimit(e.target.value ? parseInt(e.target.value) : '')}
+          placeholder="No limit"
+          className="font-mono text-sm"
+          min={1}
+          disabled={disabled}
+        />
+      </div>
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-            <div className="bg-card w-full max-w-lg rounded-xl shadow-2xl border animate-in fade-in zoom-in-95 duration-200 flex flex-col">
-                <div className="flex items-center justify-between p-6 border-b">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                        <Download className="h-5 w-5 text-primary" />
-                        Export Collection
-                    </h3>
-                    {!isExporting && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={onClose}
-                            className="h-8 w-8 rounded-full"
-                        >
-                            <X className="h-4 w-4" />
-                        </Button>
-                    )}
-                </div>
+      <ExportProgress isExporting={state.isSubmitting} isSuccess={isSuccess} />
+    </div>
+  )
+}
 
-                <div className="p-6 space-y-6">
-                    {isSuccess ? (
-                        <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                            <div className="h-16 w-16 bg-green-500/10 rounded-full flex items-center justify-center">
-                                <CheckCircle2 className="h-8 w-8 text-green-500" />
-                            </div>
-                            <h4 className="text-lg font-medium text-foreground">Export Successful!</h4>
-                            <p className="text-sm text-muted-foreground text-center">
-                                Your data has been exported to {format.toUpperCase()} format.
-                            </p>
-                            <Button onClick={onClose} className="mt-4">
-                                Close
-                            </Button>
-                        </div>
-                    ) : (
-                        <>
-                            {/* Format Selection */}
-                            <div className="space-y-3">
-                                <label className="text-sm font-medium text-muted-foreground">Export Format</label>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div
-                                        className={cn(
-                                            "border rounded-lg p-4 cursor-pointer transition-all hover:bg-muted/50 flex items-center gap-3",
-                                            format === 'json' ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border"
-                                        )}
-                                        onClick={() => setFormat('json')}
-                                    >
-                                        <div className="p-2 bg-yellow-500/10 rounded-md">
-                                            <FileJson className="h-5 w-5 text-yellow-500" />
-                                        </div>
-                                        <div>
-                                            <p className="font-medium text-sm">JSON</p>
-                                            <p className="text-xs text-muted-foreground">JavaScript Object Notation</p>
-                                        </div>
-                                    </div>
-                                    <div
-                                        className={cn(
-                                            "border rounded-lg p-4 cursor-pointer transition-all hover:bg-muted/50 flex items-center gap-3",
-                                            format === 'csv' ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border"
-                                        )}
-                                        onClick={() => setFormat('csv')}
-                                    >
-                                        <div className="p-2 bg-green-500/10 rounded-md">
-                                            <FileType className="h-5 w-5 text-green-500" />
-                                        </div>
-                                        <div>
-                                            <p className="font-medium text-sm">CSV</p>
-                                            <p className="text-xs text-muted-foreground">Comma Separated Values</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+/** Footer bridge: reads isSuccess from domain context, delegates to shared ExportFooter. */
+function ExportCollectionFooterBridge() {
+  const { isSuccess } = useExportCollectionCtx()
+  return <ExportFooter isSuccess={isSuccess} />
+}
 
-                            {/* Options */}
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-muted-foreground">Filter Query (Optional)</label>
-                                    <Input
-                                        value={filter}
-                                        onChange={(e) => setFilter(e.target.value)}
-                                        placeholder='{ "status": "active" }'
-                                        className="font-mono text-sm"
-                                        disabled={isExporting}
-                                    />
-                                    <p className="text-xs text-muted-foreground">Enter a MongoDB query document to filter results.</p>
-                                </div>
+// ---------------------------------------------------------------------------
+// Modal
+// ---------------------------------------------------------------------------
 
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-muted-foreground">Limit Rows (Optional)</label>
-                                    <Input
-                                        type="number"
-                                        value={limit}
-                                        onChange={(e) => setLimit(e.target.value ? parseInt(e.target.value) : '')}
-                                        placeholder="No limit"
-                                        className="font-mono text-sm"
-                                        min={1}
-                                        disabled={isExporting}
-                                    />
-                                </div>
-                            </div>
+interface ExportCollectionModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  connectionId: string
+  databaseName: string
+  collectionName: string
+}
 
-                            {error && (
-                                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-start gap-2">
-                                    <X className="h-4 w-4 mt-0.5" />
-                                    <span>{error}</span>
-                                </div>
-                            )}
-                        </>
-                    )}
-                </div>
-
-                {!isSuccess && (
-                    <div className="flex items-center justify-end gap-3 p-6 border-t bg-muted/30 rounded-b-xl">
-                        <Button
-                            variant="ghost"
-                            onClick={onClose}
-                            disabled={isExporting}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleExport}
-                            disabled={isExporting}
-                            className="gap-2"
-                        >
-                            {isExporting ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    Exporting...
-                                </>
-                            ) : (
-                                <>
-                                    <Download className="h-4 w-4" />
-                                    Export Data
-                                </>
-                            )}
-                        </Button>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
+/** Modal for exporting a MongoDB collection via REST `/api/export` endpoint. */
+export function ExportCollectionModal({
+  open,
+  onOpenChange,
+  connectionId,
+  databaseName,
+  collectionName,
+}: ExportCollectionModalProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <ExportCollectionProvider
+          connectionId={connectionId}
+          databaseName={databaseName}
+          collectionName={collectionName}
+        >
+          <ModalForm.Header />
+          <ExportCollectionFields />
+          <ModalForm.Alert />
+          <ExportCollectionFooterBridge />
+        </ExportCollectionProvider>
+      </DialogContent>
+    </Dialog>
+  )
 }
