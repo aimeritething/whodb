@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { ExportCollectionModal } from "./ExportCollectionModal";
 import { FilterCollectionModal } from "./FilterCollectionModal";
+import type { FlatMongoFilter } from './filter-collection.types'
 import {
     useGetStorageUnitRowsLazyQuery,
     useAddRowMutation,
@@ -53,7 +54,7 @@ export function CollectionDetailView({ connectionId, databaseName, collectionNam
 
     // Filter state
     const [showFilterModal, setShowFilterModal] = useState(false);
-    const [activeFilter, setActiveFilter] = useState<any>({});
+    const [activeFilter, setActiveFilter] = useState<FlatMongoFilter>({});
     const [availableFields, setAvailableFields] = useState<string[]>([]);
 
     // Extract available fields from documents
@@ -663,8 +664,8 @@ export function CollectionDetailView({ connectionId, databaseName, collectionNam
             />
 
             <FilterCollectionModal
-                isOpen={showFilterModal}
-                onClose={() => setShowFilterModal(false)}
+                open={showFilterModal}
+                onOpenChange={setShowFilterModal}
                 onApply={(filter) => {
                     setActiveFilter(filter);
                     setCurrentPage(1);
