@@ -55,6 +55,8 @@ export interface SelectedItem {
 interface ConnectionState {
   connections: Connection[];
   selectedItem: SelectedItem | null;
+  tableRefreshKey: number;
+  triggerTableRefresh: () => void;
   createDatabase: (databaseName: string) => Promise<DDLResult>;
   renameDatabase: (oldName: string, newName: string) => Promise<DDLResult>;
   deleteDatabase: (databaseName: string) => Promise<DDLResult>;
@@ -140,6 +142,9 @@ const createdAt = new Date().toISOString();
 export const useConnectionStore = create<ConnectionState>((set) => ({
   connections: [],
   selectedItem: null,
+  tableRefreshKey: 0,
+  /** Increment table refresh key to trigger re-fetch in TableDetailView. */
+  triggerTableRefresh: () => set((s) => ({ tableRefreshKey: s.tableRefreshKey + 1 })),
   systemSchemas: [],
   showSystemObjectsFor: new Set<string>(),
   toggleSystemObjects: (nodeId) => set((state) => {

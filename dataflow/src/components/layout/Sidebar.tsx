@@ -574,7 +574,7 @@ export function Sidebar({ onRefreshCollection }: SidebarProps) {
             schema={p.schema}
             tableName={p.tableName}
             onSuccess={() => {
-              (window as any).__refreshTableDetailView?.();
+              useConnectionStore.getState().triggerTableRefresh();
             }}
           />
         );
