@@ -110,8 +110,8 @@ export function DashboardEditor() {
             />
 
             <ComponentSettingsModal
-                isOpen={isSettingsModalOpen}
-                onClose={() => setIsSettingsModalOpen(false)}
+                open={isSettingsModalOpen}
+                onOpenChange={setIsSettingsModalOpen}
             />
 
             <MaximizeChartModal
