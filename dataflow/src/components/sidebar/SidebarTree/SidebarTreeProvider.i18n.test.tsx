@@ -6,6 +6,7 @@ import { useConnectionStore } from '@/stores/useConnectionStore'
 import { renderWithI18n } from '@/test/renderWithI18n'
 
 const originalStore = useConnectionStore.getState()
+const SIDEBAR_STORAGE_KEY = 'sidebar_expanded_items'
 
 function RedisChildLabelProbe() {
   const { fetchNodeChildren } = useSidebarTree()
@@ -53,7 +54,7 @@ beforeEach(() => {
     showSystemObjectsFor: new Set<string>(),
     fetchSystemSchemas: async () => {},
   })
-  localStorage.clear()
+  globalThis.localStorage?.removeItem(SIDEBAR_STORAGE_KEY)
 })
 
 afterEach(() => {

@@ -52,7 +52,7 @@ function modalReducer(_state: ModalState | null, action: Action): ModalState | n
 function SidebarInner() {
   const { connections, selectedItem, selectItem, systemSchemas, showSystemObjectsFor, toggleSystemObjects, triggerCollectionRefresh } = useConnectionStore();
   const { openTab } = useTabStore();
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
 
   const {
     expandedItems, treeData, isLoading,
@@ -331,7 +331,6 @@ function SidebarInner() {
     const callbacks = {
       onAction: handleContextMenuAction,
       t,
-      locale,
     };
 
     const nodeId = node.type === "connection" ? node.id : node.id;
