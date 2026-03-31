@@ -4,13 +4,14 @@ import {
   createTranslator,
   messagesByLocale,
   type MessageKey,
+  type Messages,
   type TranslationParams,
 } from './messages'
 
 interface I18nContextValue {
   locale: Locale
   t: (key: MessageKey, params?: TranslationParams) => string
-  messages: typeof messagesByLocale.zh
+  messages: Messages
 }
 
 const I18nContext = createContext<I18nContextValue | null>(null)

@@ -2,8 +2,11 @@ import type { Locale } from './locale'
 import { zhMessages } from './locales/zh'
 import { enMessages } from './locales/en'
 
-export type Messages = typeof zhMessages
-export type MessageKey = keyof Messages
+export type MessageKey = keyof typeof zhMessages
+export type Messages = {
+  readonly [K in MessageKey]: string
+}
+export type MessageLookup = Partial<Messages>
 export type TranslationParams = Record<string, string | number>
 
 export const messagesByLocale: Record<Locale, Messages> = {
@@ -12,12 +15,13 @@ export const messagesByLocale: Record<Locale, Messages> = {
 }
 
 export function translateWithMessages(
-  currentMessages: Partial<Record<string, string>>,
-  fallbackMessages: Partial<Record<string, string>>,
+  currentMessages: MessageLookup,
+  fallbackMessages: MessageLookup,
   key: string,
   params?: TranslationParams,
 ): string {
-  const template = currentMessages[key] ?? fallbackMessages[key] ?? key
+  const typedKey = key as MessageKey
+  const template = currentMessages[typedKey] ?? fallbackMessages[typedKey] ?? key
   if (!params) return template
 
   return template.replace(/\{(\w+)\}/g, (_, token) => {

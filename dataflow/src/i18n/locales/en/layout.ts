@@ -1,5 +1,9 @@
 import { zhLayoutMessages } from '../zh/layout'
 
+type MessageShape<T extends Record<string, unknown>> = {
+  [K in keyof T]: string
+}
+
 export const enLayoutMessages = {
   'layout.activity.connections': 'Database Connections',
   'layout.activity.analysis': 'Data Analysis',
@@ -8,4 +12,4 @@ export const enLayoutMessages = {
   'layout.tab.close': 'Close tab',
   'layout.tab.closeOthers': 'Close Others',
   'layout.tab.closeAll': 'Close All',
-} satisfies typeof zhLayoutMessages
+} satisfies MessageShape<typeof zhLayoutMessages>

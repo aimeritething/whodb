@@ -1,5 +1,9 @@
 import { zhCommonMessages } from '../zh/common'
 
+type MessageShape<T extends Record<string, unknown>> = {
+  [K in keyof T]: string
+}
+
 export const enCommonMessages = {
   'common.actions.confirm': 'Confirm',
   'common.actions.cancel': 'Cancel',
@@ -11,4 +15,4 @@ export const enCommonMessages = {
   'common.alert.success': 'Success',
   'common.alert.info': 'Info',
   'common.confirmation.typeToConfirm': 'Type "{value}" to confirm',
-} satisfies typeof zhCommonMessages
+} satisfies MessageShape<typeof zhCommonMessages>

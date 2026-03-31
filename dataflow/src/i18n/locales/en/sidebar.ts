@@ -1,5 +1,9 @@
 import { zhSidebarMessages } from '../zh/sidebar'
 
+type MessageShape<T extends Record<string, unknown>> = {
+  [K in keyof T]: string
+}
+
 export const enSidebarMessages = {
   'sidebar.menu.newQuery': 'New Query',
   'sidebar.menu.newDatabase': 'New Database',
@@ -23,4 +27,4 @@ export const enSidebarMessages = {
   'sidebar.tab.queryWithDatabase': 'Query - {database}',
   'sidebar.tab.queryWithConnection': 'Query - {connection}',
   'sidebar.tab.redisKeys': '{database} Keys',
-} satisfies typeof zhSidebarMessages
+} satisfies MessageShape<typeof zhSidebarMessages>
