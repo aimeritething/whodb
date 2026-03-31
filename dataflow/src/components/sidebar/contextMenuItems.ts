@@ -5,14 +5,12 @@ import {
 } from "lucide-react";
 import type { ContextMenuItem } from "@/components/ui/ContextMenu";
 import type { MessageKey } from "@/i18n/messages";
-import type { Locale } from "@/i18n/locale";
 
 type ConnectionType = "MYSQL" | "POSTGRES" | "MONGODB" | "REDIS" | "CLICKHOUSE";
 
 interface MenuCallbacks {
   onAction: (action: string) => void;
   t: (key: MessageKey) => string;
-  locale: Locale;
 }
 
 interface SystemObjectsState {
@@ -129,14 +127,12 @@ export function getSchemaMenuItems(callbacks: MenuCallbacks): ContextMenuItem[] 
 }
 
 export function getTableMenuItems(callbacks: MenuCallbacks): ContextMenuItem[] {
-  const { onAction, t, locale } = callbacks;
-  const clearDataLabel = locale === "zh" ? "清空数据" : "Clear Data";
-  const duplicateTableLabel = locale === "zh" ? "复制数据表" : "Duplicate Table";
+  const { onAction, t } = callbacks;
   return [
     { label: t("sidebar.menu.exportData"), onClick: () => onAction("export_data"), icon: React.createElement(Download, { className: "h-4 w-4" }) },
     { separator: true },
-    { label: clearDataLabel, onClick: () => onAction("clear_table_data"), icon: React.createElement(Eraser, { className: "h-4 w-4 text-orange-500" }) },
-    { label: duplicateTableLabel, onClick: () => onAction("copy_table"), icon: React.createElement(Copy, { className: "h-4 w-4 text-blue-500" }) },
+    { label: t("sidebar.menu.clearData"), onClick: () => onAction("clear_table_data"), icon: React.createElement(Eraser, { className: "h-4 w-4 text-orange-500" }) },
+    { label: t("sidebar.menu.duplicateTable"), onClick: () => onAction("copy_table"), icon: React.createElement(Copy, { className: "h-4 w-4 text-blue-500" }) },
     { separator: true },
     { label: t("sidebar.menu.designTable"), onClick: () => onAction("edit_table"), icon: React.createElement(Edit2, { className: "h-4 w-4" }) },
     { label: t("sidebar.menu.renameTable"), onClick: () => onAction("rename_table"), icon: React.createElement(Edit2, { className: "h-4 w-4 text-blue-500" }) },

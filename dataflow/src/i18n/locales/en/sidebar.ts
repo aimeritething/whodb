@@ -10,6 +10,8 @@ export const enSidebarMessages = {
   'sidebar.menu.newTable': 'New Table',
   'sidebar.menu.newCollection': 'New Collection',
   'sidebar.menu.exportData': 'Export Data',
+  'sidebar.menu.clearData': 'Clear Data',
+  'sidebar.menu.duplicateTable': 'Duplicate Table',
   'sidebar.menu.exportDatabase': 'Export Database',
   'sidebar.menu.renameDatabase': 'Rename Database',
   'sidebar.menu.deleteDatabase': 'Delete Database',
@@ -27,4 +29,5 @@ export const enSidebarMessages = {
   'sidebar.tab.queryWithDatabase': 'Query - {database}',
   'sidebar.tab.queryWithConnection': 'Query - {connection}',
   'sidebar.tab.redisKeys': '{database} Keys',
+  'sidebar.redis.allData': 'All Data',
 } satisfies MessageShape<typeof zhSidebarMessages>

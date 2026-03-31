@@ -9,16 +9,11 @@ import { useI18n } from '@/i18n/useI18n';
 
 export function TabContent() {
     const { tabs, activeTabId, updateTab } = useTabStore();
-    const { t, locale } = useI18n();
+    const { t } = useI18n();
 
     const activeTab = useMemo(() => {
         return tabs.find(t => t.id === activeTabId);
     }, [tabs, activeTabId]);
-
-    const invalidTableConfig = locale === 'zh' ? '无效的数据表配置' : 'Invalid table configuration';
-    const invalidCollectionConfig = locale === 'zh' ? '无效的集合配置' : 'Invalid collection configuration';
-    const invalidDatabaseConfig = locale === 'zh' ? '无效的数据库配置' : 'Invalid database configuration';
-    const unknownTabType = locale === 'zh' ? '未知的标签页类型' : 'Unknown tab type';
 
     // When no tabs are open, show empty state
     if (!activeTab) {
@@ -52,7 +47,7 @@ export function TabContent() {
                 );
             case 'table':
                 if (!tab.databaseName || !tab.tableName) {
-                    return <div className="flex-1 flex items-center justify-center text-muted-foreground">{invalidTableConfig}</div>;
+                    return <div className="flex-1 flex items-center justify-center text-muted-foreground">{t('layout.invalid.tableConfig')}</div>;
                 }
                 return (
                     <TableDetailView
@@ -65,7 +60,7 @@ export function TabContent() {
                 );
             case 'collection':
                 if (!tab.databaseName || !tab.collectionName) {
-                    return <div className="flex-1 flex items-center justify-center text-muted-foreground">{invalidCollectionConfig}</div>;
+                    return <div className="flex-1 flex items-center justify-center text-muted-foreground">{t('layout.invalid.collectionConfig')}</div>;
                 }
                 return (
                     <CollectionDetailView
@@ -77,7 +72,7 @@ export function TabContent() {
                 );
             case 'redis_keys_list':
                 if (!tab.databaseName) {
-                    return <div className="flex-1 flex items-center justify-center text-muted-foreground">{invalidDatabaseConfig}</div>;
+                    return <div className="flex-1 flex items-center justify-center text-muted-foreground">{t('layout.invalid.databaseConfig')}</div>;
                 }
                 return (
                     <RedisDetailView
@@ -87,7 +82,7 @@ export function TabContent() {
                     />
                 );
             default:
-                return <div className="flex-1 flex items-center justify-center text-muted-foreground">{unknownTabType}</div>;
+                return <div className="flex-1 flex items-center justify-center text-muted-foreground">{t('layout.invalid.unknownTabType')}</div>;
         }
     };
 

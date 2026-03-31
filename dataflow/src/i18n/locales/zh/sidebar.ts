@@ -4,6 +4,8 @@ export const zhSidebarMessages = {
   'sidebar.menu.newTable': '新建数据表',
   'sidebar.menu.newCollection': '新建集合',
   'sidebar.menu.exportData': '导出数据',
+  'sidebar.menu.clearData': '清空数据',
+  'sidebar.menu.duplicateTable': '复制数据表',
   'sidebar.menu.exportDatabase': '导出数据库',
   'sidebar.menu.renameDatabase': '重命名数据库',
   'sidebar.menu.deleteDatabase': '删除数据库',
@@ -20,4 +22,5 @@ export const zhSidebarMessages = {
   'sidebar.tab.queryWithDatabase': '查询 - {database}',
   'sidebar.tab.queryWithConnection': '查询 - {connection}',
   'sidebar.tab.redisKeys': '{database} 键列表',
+  'sidebar.redis.allData': '全部数据',
 } as const
