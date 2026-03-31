@@ -43,8 +43,8 @@ function CollectionDetailViewContent({ databaseName, collectionName, connectionI
     <div className="flex flex-col h-full bg-background">
       <DataView.Header
         icon={FileJson}
-        iconClassName="bg-purple-500/10"
-        iconColor="text-purple-500"
+        iconClassName="bg-primary/10"
+        iconColor="text-primary"
         title={`${databaseName}.${collectionName}`}
         subtitle="COLLECTION VIEW"
       />

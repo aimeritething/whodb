@@ -60,7 +60,7 @@ export function TreeNode({ node, depth }: TreeNodeProps) {
   // Redis database nodes get a different icon color
   const iconColor =
     node.type === "database" && connectionDbType === "REDIS"
-      ? "text-red-500/80"
+      ? "text-destructive"
       : NODE_ICON_COLORS[node.type];
 
   const Icon = NODE_ICONS[node.type];
@@ -75,10 +75,10 @@ export function TreeNode({ node, depth }: TreeNodeProps) {
           isSelected
             ? isRoot
               ? "bg-primary/10 text-primary font-medium"
-              : "bg-white text-foreground font-medium shadow-sm ring-1 ring-border/50"
+              : "bg-background text-foreground font-medium shadow-sm ring-1 ring-border/50"
             : isRoot
               ? "text-muted-foreground hover:bg-muted hover:text-foreground"
-              : "text-muted-foreground hover:bg-white/60 hover:text-foreground"
+              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
         )}
         onClick={() => onItemClick(node)}
         onContextMenu={(e) => onContextMenu(e, node)}

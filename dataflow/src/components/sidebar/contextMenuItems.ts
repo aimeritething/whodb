@@ -95,7 +95,7 @@ export function getDatabaseMenuItems(
         ] as ContextMenuItem[]
       : []),
     { label: "Rename Database", onClick: () => onAction("edit_database"), icon: React.createElement(Edit2, { className: "h-4 w-4" }) },
-    { label: "Delete Database", onClick: () => onAction("delete_database"), icon: React.createElement(Trash2, { className: "h-4 w-4 text-red-500" }), danger: true },
+    { label: "Delete Database", onClick: () => onAction("delete_database"), icon: React.createElement(Trash2, { className: "h-4 w-4" }), danger: true },
     { separator: true },
     refreshItem(onAction),
     ...systemItems,
@@ -118,12 +118,12 @@ export function getTableMenuItems(callbacks: MenuCallbacks): ContextMenuItem[] {
   return [
     { label: "Export Data", onClick: () => onAction("export_data"), icon: React.createElement(Download, { className: "h-4 w-4" }) },
     { separator: true },
-    { label: "Clear Data", onClick: () => onAction("clear_table_data"), icon: React.createElement(Eraser, { className: "h-4 w-4 text-orange-500" }) },
-    { label: "Duplicate Table", onClick: () => onAction("copy_table"), icon: React.createElement(Copy, { className: "h-4 w-4 text-blue-500" }) },
+    { label: "Clear Data", onClick: () => onAction("clear_table_data"), icon: React.createElement(Eraser, { className: "h-4 w-4" }) },
+    { label: "Duplicate Table", onClick: () => onAction("copy_table"), icon: React.createElement(Copy, { className: "h-4 w-4" }) },
     { separator: true },
     { label: "Design Table", onClick: () => onAction("edit_table"), icon: React.createElement(Edit2, { className: "h-4 w-4" }) },
-    { label: "Rename Table", onClick: () => onAction("rename_table"), icon: React.createElement(Edit2, { className: "h-4 w-4 text-blue-500" }) },
-    { label: "Delete Table", onClick: () => onAction("delete_table"), icon: React.createElement(Trash2, { className: "h-4 w-4 text-red-500" }), danger: true },
+    { label: "Rename Table", onClick: () => onAction("rename_table"), icon: React.createElement(Edit2, { className: "h-4 w-4" }) },
+    { label: "Delete Table", onClick: () => onAction("delete_table"), icon: React.createElement(Trash2, { className: "h-4 w-4" }), danger: true },
     { separator: true },
     refreshItem(onAction),
   ];
@@ -143,7 +143,7 @@ export function getCollectionMenuItems(callbacks: MenuCallbacks): ContextMenuIte
   return [
     { label: "Export Collection", onClick: () => onAction("export_collection"), icon: React.createElement(Download, { className: "h-4 w-4" }) },
     { separator: true },
-    { label: "Drop Collection", onClick: () => onAction("drop_collection"), icon: React.createElement(Trash2, { className: "h-4 w-4 text-red-500" }), danger: true },
+    { label: "Drop Collection", onClick: () => onAction("drop_collection"), icon: React.createElement(Trash2, { className: "h-4 w-4" }), danger: true },
     { separator: true },
     refreshItem(onAction),
   ];

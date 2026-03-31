@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Play, AlignLeft, CheckCircle, AlertCircle, FileText, Loader2, XCircle, CheckCircle2, GalleryVerticalEnd, PenTool, Database, ChevronDown, Network } from "lucide-react";
+import { Play, AlignLeft, CheckCircle, AlertCircle, FileText, Loader2, XCircle, CheckCircle2, GalleryVerticalEnd, PenTool, Database, Network } from "lucide-react";
 import { format } from 'sql-formatter';
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MonacoEditor from "./MonacoEditorWrapper";
 import type { editor } from 'monaco-editor';
 import { useConnectionStore } from "@/stores/useConnectionStore";
@@ -44,9 +46,6 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
     const [schemas, setSchemas] = useState<string[]>([]);
     const [selectedDatabase, setSelectedDatabase] = useState(context?.databaseName ?? '');
     const [selectedSchema, setSelectedSchema] = useState(context?.schemaName ?? '');
-    const [dbDropdownOpen, setDbDropdownOpen] = useState(false);
-    const [schemaDropdownOpen, setSchemaDropdownOpen] = useState(false);
-    const toolbarRef = useRef<HTMLDivElement>(null);
 
     // Fetch databases on mount
     useEffect(() => {
@@ -66,21 +65,8 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
         }).catch(console.error);
     }, [context?.connectionId, selectedDatabase, connectionType, fetchSchemas]);
 
-    // Click-outside handler to close dropdowns
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
-                setDbDropdownOpen(false);
-                setSchemaDropdownOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
     const handleDatabaseChange = (db: string) => {
         setSelectedDatabase(db);
-        setDbDropdownOpen(false);
         if (supportsSchema(connectionType)) {
             setSelectedSchema('');
             updateTab(tabId, { databaseName: db, schemaName: undefined });
@@ -91,7 +77,6 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
 
     const handleSchemaChange = (schema: string) => {
         setSelectedSchema(schema);
-        setSchemaDropdownOpen(false);
         updateTab(tabId, { schemaName: schema });
     };
 
@@ -222,93 +207,69 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
     return (
         <div className="flex h-full flex-col bg-background" ref={containerRef}>
             {/* Toolbar */}
-            <div ref={toolbarRef} className="flex h-12 items-center justify-between border-b px-4 bg-muted/10 shrink-0">
+            <div className="flex h-12 items-center justify-between border-b px-4 bg-muted/10 shrink-0">
                 {/* Left: Action Buttons */}
                 <div className="flex items-center gap-2">
-                    <button
+                    <Button
                         onClick={handleRun}
                         disabled={isExecuting}
-                        className="flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed min-w-[70px]"
+                        className="min-w-[70px]"
                     >
                         {isExecuting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-current" />}
                         Run
-                    </button>
+                    </Button>
                     {getEditorLanguage(connectionType) === 'sql' && (
-                        <button
+                        <Button
+                            variant="ghost"
                             onClick={handleFormat}
                             disabled={!query.trim()}
-                            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <AlignLeft className="h-4 w-4" />
                             Format
-                        </button>
+                        </Button>
                     )}
                 </div>
 
                 {/* Right: Database/Schema Selectors */}
                 <div className="flex items-center gap-2">
                     {/* Database Selector */}
-                    <div className="relative">
-                        <button
-                            onClick={() => { setDbDropdownOpen(!dbDropdownOpen); setSchemaDropdownOpen(false); }}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded-md hover:bg-muted transition-colors"
-                        >
+                    <Select
+                        value={selectedDatabase || undefined}
+                        onValueChange={handleDatabaseChange}
+                        disabled={databases.length === 0}
+                    >
+                        <SelectTrigger className="w-[180px] gap-1.5 bg-transparent">
                             <Database className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium max-w-[140px] truncate">{selectedDatabase || 'Select database'}</span>
-                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                        </button>
-                        {dbDropdownOpen && (
-                            <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] max-h-[280px] overflow-y-auto rounded-md border bg-popover shadow-md">
-                                {databases.map((db) => (
-                                    <button
-                                        key={db}
-                                        onClick={() => handleDatabaseChange(db)}
-                                        className={cn(
-                                            "w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors",
-                                            db === selectedDatabase && "bg-muted font-medium"
-                                        )}
-                                    >
-                                        {db}
-                                    </button>
-                                ))}
-                                {databases.length === 0 && (
-                                    <div className="px-3 py-2 text-sm text-muted-foreground">No databases</div>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                            <SelectValue placeholder="Select database" />
+                        </SelectTrigger>
+                        <SelectContent align="end">
+                            {databases.map((db) => (
+                                <SelectItem key={db} value={db}>
+                                    {db}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
 
                     {/* Schema Selector (Postgres only) */}
                     {supportsSchema(connectionType) && (
-                        <div className="relative">
-                            <button
-                                onClick={() => { setSchemaDropdownOpen(!schemaDropdownOpen); setDbDropdownOpen(false); }}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded-md hover:bg-muted transition-colors"
-                            >
+                        <Select
+                            value={selectedSchema || undefined}
+                            onValueChange={handleSchemaChange}
+                            disabled={!selectedDatabase || schemas.length === 0}
+                        >
+                            <SelectTrigger className="w-[180px] gap-1.5 bg-transparent">
                                 <Network className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium max-w-[140px] truncate">{selectedSchema || 'Select schema'}</span>
-                                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                            </button>
-                            {schemaDropdownOpen && (
-                                <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] max-h-[280px] overflow-y-auto rounded-md border bg-popover shadow-md">
-                                    {schemas.map((s) => (
-                                        <button
-                                            key={s}
-                                            onClick={() => handleSchemaChange(s)}
-                                            className={cn(
-                                                "w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors",
-                                                s === selectedSchema && "bg-muted font-medium"
-                                            )}
-                                        >
-                                            {s}
-                                        </button>
-                                    ))}
-                                    {schemas.length === 0 && (
-                                        <div className="px-3 py-2 text-sm text-muted-foreground">No schemas</div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                                <SelectValue placeholder="Select schema" />
+                            </SelectTrigger>
+                            <SelectContent align="end">
+                                {schemas.map((schema) => (
+                                    <SelectItem key={schema} value={schema}>
+                                        {schema}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     )}
                 </div>
             </div>
@@ -360,30 +321,34 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                 >
                     {/* Result Tabs */}
                     <div className="flex items-center border-b px-2 bg-muted/10">
-                        <button
+                        <Button
                             onClick={() => setActiveResultTab('result')}
+                            variant="ghost"
+                            size="sm"
                             className={cn(
-                                "flex items-center gap-2 px-4 py-2 text-xs font-medium border-b-2 transition-colors",
+                                "h-auto rounded-none border-b-2 px-4 py-2 text-xs font-medium",
                                 activeResultTab === 'result' ? "border-primary text-primary bg-background" : "border-transparent text-muted-foreground hover:text-foreground"
                             )}
                         >
                             <FileText className="h-3.5 w-3.5" />
                             Results
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={() => setActiveResultTab('message')}
+                            variant="ghost"
+                            size="sm"
                             className={cn(
-                                "flex items-center gap-2 px-4 py-2 text-xs font-medium border-b-2 transition-colors",
+                                "h-auto rounded-none border-b-2 px-4 py-2 text-xs font-medium",
                                 activeResultTab === 'message' ? "border-primary text-primary bg-background" : "border-transparent text-muted-foreground hover:text-foreground"
                             )}
                         >
                             <CheckCircle className="h-3.5 w-3.5" />
                             Message
-                        </button>
+                        </Button>
                     </div>
 
                     {/* Result Content */}
-                    <div className="flex-1 overflow-auto bg-white/50 p-0">
+                    <div className="flex-1 overflow-auto bg-background/50 p-0">
                         {activeResultTab === 'result' && (
                             <div className="w-full text-sm">
                                 {queryResults && queryResults.length > 0 ? (
@@ -392,9 +357,15 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                                             <div key={resultIndex} className="flex flex-col">
                                                 {/* Result Header */}
                                                 <div className="flex flex-col border-b border-border/50">
-                                                    <div className={`px-4 py-2.5 flex items-center justify-between ${result.isError ? 'bg-red-50/50' : 'bg-muted/30'}`}>
+                                                    <div className={cn(
+                                                        "px-4 py-2.5 flex items-center justify-between",
+                                                        result.isError ? 'bg-destructive/5' : 'bg-muted/30'
+                                                    )}>
                                                         <div className="flex items-center gap-3">
-                                                            <div className={`flex items-center justify-center w-5 h-5 rounded-full ${result.isError ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                            <div className={cn(
+                                                                "flex items-center justify-center w-5 h-5 rounded-full",
+                                                                result.isError ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'
+                                                            )}>
                                                                 {result.isError ? (
                                                                     <XCircle className="h-3.5 w-3.5" />
                                                                 ) : (
@@ -404,10 +375,12 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                                                             <span className="font-medium text-sm text-foreground">
                                                                 Result #{resultIndex + 1}
                                                             </span>
-                                                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${result.isError
-                                                                ? 'bg-red-100 text-red-700'
-                                                                : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                                                                }`}>
+                                                            <span className={cn(
+                                                                "text-xs px-2 py-0.5 rounded-full font-medium",
+                                                                result.isError
+                                                                    ? 'bg-destructive/10 text-destructive'
+                                                                    : 'bg-success/10 text-success border border-success/20'
+                                                            )}>
                                                                 {result.isError ? 'Error' : (result.info || 'Success')}
                                                             </span>
                                                         </div>
@@ -429,8 +402,13 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
 
                                                     {/* SQL Statement Display */}
                                                     {result.sql && (
-                                                        <div className="px-4 py-2 bg-slate-50/50 border-t border-b border-border/50">
-                                                            <code className={`text-sm font-mono block whitespace-pre-wrap break-all pl-2 border-l-2 ${result.isError ? 'border-red-400 text-red-800 bg-red-50/30' : 'border-primary/30 text-muted-foreground'}`}>
+                                                        <div className="px-4 py-2 bg-muted/30 border-t border-b border-border/50">
+                                                            <code className={cn(
+                                                                "text-sm font-mono block whitespace-pre-wrap break-all pl-2 border-l-2",
+                                                                result.isError
+                                                                    ? 'border-destructive text-destructive bg-destructive/5'
+                                                                    : 'border-primary/30 text-muted-foreground'
+                                                            )}>
                                                                 {result.sql}
                                                             </code>
                                                         </div>
@@ -488,7 +466,7 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                         {activeResultTab === 'message' && (
                             <div className="p-4 text-sm font-mono space-y-2">
                                 {errorMessage ? (
-                                    <div className="flex items-center gap-2 text-red-600">
+                                    <div className="flex items-center gap-2 text-destructive">
                                         <AlertCircle className="h-3.5 w-3.5" />
                                         <span>{errorMessage}</span>
                                     </div>
@@ -498,7 +476,7 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                                             <span className="text-xs">[{new Date().toLocaleString()}]</span>
                                             <span>Query executed successfully</span>
                                         </div>
-                                        <div className="flex items-center gap-2 text-green-600">
+                                        <div className="flex items-center gap-2 text-success">
                                             <CheckCircle className="h-3.5 w-3.5" />
                                             <span>Affected rows: {Array.isArray(queryResults) ? queryResults.reduce((acc: number, res: any) => acc + (res.rows?.length || 0), 0) : 0}. Time: {executionTime?.toFixed(3)}s</span>
                                         </div>

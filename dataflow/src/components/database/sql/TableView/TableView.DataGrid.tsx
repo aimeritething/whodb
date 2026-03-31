@@ -1,4 +1,3 @@
-import { useEffect, useRef } from 'react'
 import {
   Loader2,
   Edit2,
@@ -15,18 +14,6 @@ import { TableViewColumnHeader } from './TableView.ColumnHeader'
 /** Renders the data grid including `<table>`, column headers, add-row form, data rows with inline editing, and action buttons. */
 export function TableViewDataGrid() {
   const { state, actions } = useTableView()
-  const columnMenuRef = useRef<HTMLDivElement | null>(null)
-
-  // Close column menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (columnMenuRef.current && !columnMenuRef.current.contains(event.target as Node)) {
-        actions.setActiveColumnMenu(null)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [actions])
 
   const hiddenColumnCount = state.data?.columns
     ? state.data.columns.length - state.visibleColumns.length
@@ -50,7 +37,6 @@ export function TableViewDataGrid() {
                 key={idx}
                 column={col}
                 index={idx}
-                columnMenuRef={columnMenuRef}
               />
             ))}
             {state.canEdit && (

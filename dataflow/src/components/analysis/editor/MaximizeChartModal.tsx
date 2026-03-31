@@ -83,7 +83,7 @@ function MaximizedContent({ component }: { component: { type: string; title: str
           <div className="text-6xl font-bold">{component.data?.value || '0'}</div>
           <div className={cn(
             "text-xl font-medium mt-4",
-            component.data?.trend?.startsWith('+') ? "text-green-600" : "text-red-600"
+            component.data?.trend?.startsWith('+') ? "text-success" : "text-destructive"
           )}>
             {component.data?.trend || '0%'} vs last month
           </div>

@@ -33,8 +33,8 @@ function RedisDetailViewContent({ connectionId, databaseName }: RedisDetailViewP
     <div className="flex flex-col h-full bg-background">
       <DataView.Header
         icon={List}
-        iconClassName="bg-blue-500/10"
-        iconColor="text-blue-600"
+        iconClassName="bg-primary/10"
+        iconColor="text-primary"
         title={databaseName}
         subtitle="REDIS KEY VIEW"
         count={state.total}

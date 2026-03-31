@@ -1,6 +1,7 @@
 import React from "react";
 import { useAnalysisStore } from "@/stores/useAnalysisStore";
 import { Plus, Layout } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { EditorCanvas } from "./EditorCanvas";
@@ -44,13 +45,12 @@ export function DashboardEditor() {
                 {/* Toolbar buttons removed as requested */}
 
                 <div className="flex items-center gap-3 ml-auto">
-                    <button
+                    <Button
                         onClick={() => toggleChartModal(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
                     >
                         <Plus className="w-4 h-4" />
                         Add Chart
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -81,13 +81,12 @@ export function DashboardEditor() {
                                 <p className="text-sm text-muted-foreground max-w-sm mb-6">
                                     This dashboard has no components. Add a chart to start building your data visualization.
                                 </p>
-                                <button
+                                <Button
                                     onClick={() => toggleChartModal(true)}
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
                                 >
                                     <Plus className="w-4 h-4" />
                                     Add Chart
-                                </button>
+                                </Button>
                             </div>
                         )}
                     </div>

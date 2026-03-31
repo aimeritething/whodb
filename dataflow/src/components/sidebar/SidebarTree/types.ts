@@ -31,13 +31,13 @@ export const EXPANDABLE_TYPES: ReadonlySet<NodeType> = new Set([
 
 /** Icon color class per node type */
 export const NODE_ICON_COLORS: Record<NodeType, string> = {
-  connection: "text-blue-500/80",
-  database: "text-purple-500/80",
-  schema: "text-orange-500/80",
-  table: "text-emerald-500/80",
-  view: "text-sky-500/80",
-  collection: "text-green-500/80",
-  redis_keys_list: "text-blue-500/80",
+  connection: "text-primary",
+  database: "text-chart-3",
+  schema: "text-chart-4",
+  table: "text-chart-2",
+  view: "text-muted-foreground",
+  collection: "text-chart-5",
+  redis_keys_list: "text-accent-foreground",
 };
 
 /** Database brand icons (connection-level, keyed by Connection.type) */

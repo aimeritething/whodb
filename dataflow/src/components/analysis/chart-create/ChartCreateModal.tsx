@@ -1,5 +1,6 @@
 import { BarChart3, ChevronLeft, X } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle, DialogClose } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/Button'
 import { SafeECharts } from '@/components/ui/SafeECharts'
 import { SQLEditorView } from '@/components/editor/SQLEditorView'
 import { ChartConfigPanel } from './ChartConfigPanel'
@@ -83,16 +84,12 @@ function ChartConfigView() {
 
             {/* Footer */}
             <div className="h-16 border-t px-6 flex items-center justify-end gap-3 shrink-0">
-                <DialogClose className="px-4 py-2 rounded-md border text-sm font-medium hover:bg-muted transition-colors">
-                    Cancel
+                <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
                 </DialogClose>
-                <button
-                    onClick={handleSave}
-                    disabled={!canSave}
-                    className="px-6 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                <Button onClick={handleSave} disabled={!canSave}>
                     Save
-                </button>
+                </Button>
             </div>
         </>
     )
@@ -105,13 +102,13 @@ function DataConfigView() {
         <>
             {/* Header with back button */}
             <div className="h-14 border-b flex items-center justify-between px-6 shrink-0">
-                <button
+                <Button
+                    variant="outline"
                     onClick={() => setActiveView('chart-config')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md border hover:bg-muted transition-colors"
                 >
                     <ChevronLeft className="w-4 h-4" />
                     Back to Chart
-                </button>
+                </Button>
                 <DialogClose className="p-2 hover:bg-muted rounded-full transition-colors">
                     <X className="w-5 h-5 text-muted-foreground" />
                 </DialogClose>

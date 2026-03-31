@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, FileCode, Table, Database, Trash2, SearchX, SplitSquareHorizontal } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import { useTabStore, type Tab, type TabType } from '@/stores/useTabStore';
 import { cn } from '@/lib/utils';
 import { ContextMenu } from '@/components/ui/ContextMenu';
@@ -48,17 +49,19 @@ function TabItem({ tab, isActive, onActivate, onClose, onContextMenu }: TabItemP
                 {tab.title}
                 {tab.isDirty && <span className="text-primary ml-1">•</span>}
             </span>
-            <button
+            <Button
+                variant="ghost"
+                size="icon-xs"
                 onClick={onClose}
                 className={cn(
-                    "flex-shrink-0 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-colors",
+                    "flex-shrink-0 hover:bg-destructive/10 hover:text-destructive transition-colors",
                     "opacity-0 group-hover:opacity-100",
                     isActive && "opacity-100"
                 )}
                 title="Close tab"
             >
                 <X className="h-3.5 w-3.5" />
-            </button>
+            </Button>
         </div>
     );
 }

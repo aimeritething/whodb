@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useAnalysisStore } from "@/stores/useAnalysisStore";
 import { Plus, Search, LayoutDashboard, SlidersHorizontal, Edit2, Trash2, PlusCircle } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { ContextMenu } from "../../ui/ContextMenu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CreateDashboardModal } from './CreateDashboardModal'
 import { RenameDashboardModal } from './RenameDashboardModal'
@@ -12,7 +14,6 @@ export function DashboardSidebar() {
     const { dashboards, activeDashboardId, openDashboard } = useAnalysisStore();
     const [searchQuery, setSearchQuery] = useState("");
     const [sortOrder, setSortOrder] = useState<'name' | 'date'>('date');
-    const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
 
     // Context Menu State
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; id: string } | null>(null);
@@ -61,41 +62,27 @@ export function DashboardSidebar() {
                         className="w-full pl-8 pr-3 py-1.5 rounded-md border bg-muted/20 text-xs focus:outline-none focus:ring-1 focus:ring-primary/20"
                     />
                 </div>
-                <div className="relative">
-                    <button
-                        onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
-                        className={cn(
-                            "p-1.5 border rounded-md hover:bg-muted text-muted-foreground transition-colors",
-                            isSortMenuOpen && "bg-muted text-foreground"
-                        )}
-                        title="Sort"
-                    >
-                        <SlidersHorizontal className="w-3.5 h-3.5" />
-                    </button>
-
-                    {isSortMenuOpen && (
-                        <div className="absolute right-0 top-full mt-1 w-32 bg-popover border rounded-md shadow-md z-20 py-1">
-                            <button
-                                onClick={() => { setSortOrder('date'); setIsSortMenuOpen(false); }}
-                                className={cn(
-                                    "w-full text-left px-3 py-1.5 text-xs hover:bg-muted",
-                                    sortOrder === 'date' && "text-primary font-medium"
-                                )}
-                            >
-                                Sort by Date
-                            </button>
-                            <button
-                                onClick={() => { setSortOrder('name'); setIsSortMenuOpen(false); }}
-                                className={cn(
-                                    "w-full text-left px-3 py-1.5 text-xs hover:bg-muted",
-                                    sortOrder === 'name' && "text-primary font-medium"
-                                )}
-                            >
-                                Sort by Name
-                            </button>
-                        </div>
-                    )}
-                </div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon-sm" className="text-muted-foreground" title="Sort">
+                            <SlidersHorizontal className="w-3.5 h-3.5" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-32">
+                        <DropdownMenuItem
+                            onSelect={() => setSortOrder('date')}
+                            className={cn(sortOrder === 'date' && "bg-accent text-accent-foreground")}
+                        >
+                            Sort by Date
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onSelect={() => setSortOrder('name')}
+                            className={cn(sortOrder === 'name' && "bg-accent text-accent-foreground")}
+                        >
+                            Sort by Name
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
 
             {/* List */}
