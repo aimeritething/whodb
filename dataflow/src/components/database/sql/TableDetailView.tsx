@@ -1,15 +1,14 @@
-import { Table as TableIcon, Database } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Table as TableIcon, Plus, Download, RefreshCw } from 'lucide-react'
 import { TableViewProvider, useTableView } from './TableView/TableViewProvider'
-import { TableViewToolbar } from './TableView/TableView.Toolbar'
 import { TableViewDataGrid } from './TableView/TableView.DataGrid'
-import { DataViewHeader } from '@/components/database/shared/DataView.Header'
-import { DataViewPagination } from '@/components/database/shared/DataView.Pagination'
-import { DataViewFilterBar } from '@/components/database/shared/DataView.FilterBar'
+import { DataView } from '@/components/database/shared/DataView'
+import { ActionButton } from '@/components/ui/ActionButton'
+import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterTableModal } from './FilterTableModal'
 import { ExportDataModal } from './ExportDataModal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { AlertModal } from '@/components/ui/AlertModal'
+import { cn } from '@/lib/utils'
 import type { FilterChip } from '@/components/database/shared/types'
 
 interface TableDetailViewProps {
@@ -27,21 +26,11 @@ export function TableDetailView(props: TableDetailViewProps) {
   )
 }
 
-function TableDetailViewContent({ connectionId, databaseName, tableName, schema }: TableDetailViewProps) {
+function TableDetailViewContent({ databaseName, tableName, schema }: TableDetailViewProps) {
   const { state, actions } = useTableView()
 
   if (state.error) {
-    return (
-      <div className="flex h-full items-center justify-center bg-muted/5">
-        <div className="text-center p-8 bg-background rounded-xl shadow-sm border">
-          <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-sm text-muted-foreground">{state.error}</p>
-          <Button variant="outline" className="mt-4" onClick={() => actions.handleSubmitRequest()}>
-            Retry
-          </Button>
-        </div>
-      </div>
-    )
+    return <DataView.Error message={state.error} onRetry={() => actions.handleSubmitRequest()} />
   }
 
   const filterChips: FilterChip[] = state.filterConditions.map((condition, idx) => ({
@@ -56,24 +45,57 @@ function TableDetailViewContent({ connectionId, databaseName, tableName, schema 
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <DataViewHeader
+      <DataView.Header
         icon={TableIcon}
         title={`${databaseName}${schema ? `.${schema}` : ''}.${tableName}`}
         subtitle="TABLE VIEW"
       />
 
-      <DataViewFilterBar
+      <DataView.FilterBar
         filters={filterChips}
         onClearAll={() => actions.handleFilterApply(state.visibleColumns, [])}
       />
 
       <div className="flex-1 overflow-hidden bg-muted/5 p-6 flex flex-col">
         <div className="bg-background rounded-xl shadow-sm border border-border/50 overflow-hidden flex-1 flex flex-col">
-          <TableViewToolbar />
+          {/* Action bar */}
+          <div className="border-b border-border/50 px-6 py-4 flex items-center justify-between bg-card">
+            <SearchInput
+              value={state.searchTerm}
+              onChange={(v) => actions.setSearchTerm(v)}
+              onSubmit={actions.handleSearchSubmit}
+            />
+            <div className="flex items-center gap-2">
+              {state.canEdit && (
+                <>
+                  <ActionButton onClick={actions.handleAddClick}>
+                    <Plus className="h-3.5 w-3.5" />
+                    Add Data
+                  </ActionButton>
+                  <div className="h-4 w-px bg-border mx-1" />
+                </>
+              )}
+              <DataView.FilterButton
+                onClick={() => actions.setIsFilterModalOpen(true)}
+                count={state.filterConditions.length}
+              />
+              <ActionButton variant="outline" onClick={() => actions.setShowExportModal(true)}>
+                <Download className="h-3.5 w-3.5" />
+                Export
+              </ActionButton>
+              <ActionButton variant="outline" onClick={actions.refresh} disabled={state.loading}>
+                <div className={cn("flex items-center justify-center", state.loading && "animate-spin")}>
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </div>
+                Refresh
+              </ActionButton>
+            </div>
+          </div>
+
           <TableViewDataGrid />
 
           {state.totalRows > 0 && (
-            <DataViewPagination
+            <DataView.Pagination
               currentPage={state.currentPage}
               totalPages={state.totalPages}
               pageSize={state.pageSize}

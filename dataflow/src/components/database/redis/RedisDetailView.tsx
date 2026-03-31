@@ -1,15 +1,15 @@
-import { List } from 'lucide-react'
+import { List, Plus, Download, RefreshCw } from 'lucide-react'
 import { RedisViewProvider, useRedisView } from './RedisView/RedisViewProvider'
-import { RedisViewToolbar } from './RedisView/RedisView.Toolbar'
 import { RedisViewFilterBar } from './RedisView/RedisView.FilterBar'
 import { RedisViewKeyList } from './RedisView/RedisView.KeyList'
-import { DataViewHeader } from '@/components/database/shared/DataView.Header'
-import { DataViewPagination } from '@/components/database/shared/DataView.Pagination'
+import { DataView } from '@/components/database/shared/DataView'
+import { ActionButton } from '@/components/ui/ActionButton'
 import { RedisKeyModal } from './RedisKeyModal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { ExportRedisModal } from './ExportRedisModal'
 import { AlertModal } from '@/components/ui/AlertModal'
 import { RedisFilterModal } from './RedisFilterModal'
+import { cn } from '@/lib/utils'
 
 interface RedisDetailViewProps {
   connectionId: string
@@ -31,7 +31,7 @@ function RedisDetailViewContent({ connectionId, databaseName }: RedisDetailViewP
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <DataViewHeader
+      <DataView.Header
         icon={List}
         iconClassName="bg-blue-500/10"
         iconColor="text-blue-600"
@@ -39,14 +39,27 @@ function RedisDetailViewContent({ connectionId, databaseName }: RedisDetailViewP
         subtitle="REDIS KEY VIEW"
         count={state.total}
       >
-        <RedisViewToolbar />
-      </DataViewHeader>
+        <ActionButton onClick={actions.openAddModal}>
+          <Plus className="h-3.5 w-3.5" />
+          Add Key
+        </ActionButton>
+        <div className="h-4 w-px bg-border mx-1" />
+        <DataView.FilterButton onClick={() => actions.setIsFilterModalOpen(true)} />
+        <ActionButton variant="outline" onClick={() => actions.setShowExportModal(true)}>
+          <Download className="h-3.5 w-3.5" />
+          Export
+        </ActionButton>
+        <ActionButton variant="outline" onClick={() => actions.fetchKeys()} disabled={state.isLoading}>
+          <RefreshCw className={cn("h-3.5 w-3.5", state.isLoading && "animate-spin")} />
+          Refresh
+        </ActionButton>
+      </DataView.Header>
 
       <RedisViewFilterBar />
       <RedisViewKeyList />
 
       {state.total > 0 && (
-        <DataViewPagination
+        <DataView.Pagination
           currentPage={state.page}
           totalPages={state.totalPages}
           pageSize={state.pageSize}

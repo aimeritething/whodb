@@ -1,15 +1,16 @@
-import { FileJson, Database, Loader2 } from 'lucide-react'
+import { FileJson, Plus, Download, RefreshCw } from 'lucide-react'
 import { CollectionViewProvider, useCollectionView } from './CollectionView/CollectionViewProvider'
-import { CollectionViewToolbar } from './CollectionView/CollectionView.Toolbar'
 import { CollectionViewDocumentList } from './CollectionView/CollectionView.DocumentList'
 import { AddDocumentModal } from './CollectionView/CollectionView.AddDocumentModal'
 import { EditDocumentModal } from './CollectionView/CollectionView.EditDocumentModal'
-import { DataViewHeader } from '@/components/database/shared/DataView.Header'
-import { DataViewPagination } from '@/components/database/shared/DataView.Pagination'
+import { DataView } from '@/components/database/shared/DataView'
+import { ActionButton } from '@/components/ui/ActionButton'
+import { SearchInput } from '@/components/ui/SearchInput'
 import { ExportCollectionModal } from './ExportCollectionModal'
 import { FilterCollectionModal } from './FilterCollectionModal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { AlertModal } from '@/components/ui/AlertModal'
+import { cn } from '@/lib/utils'
 
 interface CollectionDetailViewProps {
   connectionId: string
@@ -32,27 +33,16 @@ function CollectionDetailViewContent({ databaseName, collectionName, connectionI
   const { state, actions } = useCollectionView()
 
   if (state.loading && !state.documents.length && !state.showAddModal) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
+    return <DataView.Loading />
   }
 
   if (state.error) {
-    return (
-      <div className="flex h-full items-center justify-center bg-muted/5">
-        <div className="text-center p-8 bg-background rounded-xl shadow-sm border">
-          <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-sm text-muted-foreground">{state.error}</p>
-        </div>
-      </div>
-    )
+    return <DataView.Error message={state.error} />
   }
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <DataViewHeader
+      <DataView.Header
         icon={FileJson}
         iconClassName="bg-purple-500/10"
         iconColor="text-purple-500"
@@ -60,14 +50,41 @@ function CollectionDetailViewContent({ databaseName, collectionName, connectionI
         subtitle="COLLECTION VIEW"
       />
 
-      <CollectionViewToolbar />
+      {/* Action bar */}
+      <div className="border-b border-border/50 px-6 py-4 flex items-center justify-between bg-card">
+        <SearchInput
+          value={state.searchTerm}
+          onChange={(v) => actions.setSearchTerm(v)}
+        />
+        <div className="flex items-center gap-2">
+          <ActionButton onClick={actions.handleAddClick}>
+            <Plus className="h-3.5 w-3.5" />
+            Add Data
+          </ActionButton>
+          <div className="h-4 w-px bg-border mx-1" />
+          <DataView.FilterButton
+            onClick={() => actions.setShowFilterModal(true)}
+            count={Object.keys(state.activeFilter).length}
+          />
+          <ActionButton variant="outline" onClick={() => actions.setShowExportModal(true)}>
+            <Download className="h-3.5 w-3.5" />
+            Export
+          </ActionButton>
+          <ActionButton variant="outline" onClick={actions.refresh} disabled={state.loading}>
+            <div className={cn('flex items-center justify-center', state.loading && 'animate-spin')}>
+              <RefreshCw className="h-3.5 w-3.5" />
+            </div>
+            Refresh
+          </ActionButton>
+        </div>
+      </div>
 
       <div className="flex-1 overflow-auto p-6 space-y-4 bg-muted/5">
         <CollectionViewDocumentList />
       </div>
 
       {state.totalDocuments > 0 && (
-        <DataViewPagination
+        <DataView.Pagination
           currentPage={state.currentPage}
           totalPages={state.totalPages}
           pageSize={state.pageSize}
