@@ -4,6 +4,7 @@ import { SafeECharts } from '@/components/ui/SafeECharts'
 import { SQLEditorView } from '@/components/editor/SQLEditorView'
 import { ChartConfigPanel } from './ChartConfigPanel'
 import { ChartCreateProvider, useChartCreateCtx } from './ChartCreateProvider'
+import { useI18n } from '@/i18n/useI18n'
 
 interface ChartCreateModalProps {
     open: boolean
@@ -12,13 +13,14 @@ interface ChartCreateModalProps {
 
 /** Modal for creating chart widgets with two views: chart configuration and SQL data. */
 export function ChartCreateModal({ open, onOpenChange }: ChartCreateModalProps) {
+    const { t } = useI18n()
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
                 className="max-w-[1200px] w-[90vw] h-[85vh] p-0 flex flex-col overflow-hidden gap-0"
                 showCloseButton={false}
             >
-                <DialogTitle className="sr-only">Create Chart</DialogTitle>
+                <DialogTitle className="sr-only">{t('analysis.chart.create')}</DialogTitle>
                 <ChartCreateProvider onClose={() => onOpenChange(false)}>
                     <ChartCreateContent />
                 </ChartCreateProvider>
@@ -34,6 +36,7 @@ function ChartCreateContent() {
 }
 
 function ChartConfigView() {
+    const { t } = useI18n()
     const { title, setTitle, previewOption, canSave, handleSave } = useChartCreateCtx()
 
     return (
@@ -42,7 +45,7 @@ function ChartConfigView() {
             <div className="h-14 border-b flex items-center justify-between px-6 shrink-0">
                 <div className="flex items-center gap-2">
                     <BarChart3 className="w-5 h-5 text-muted-foreground" />
-                    <h2 className="font-medium text-xl">Create Chart</h2>
+                    <h2 className="font-medium text-xl">{t('analysis.chart.create')}</h2>
                 </div>
                 <DialogClose className="p-2 hover:bg-muted rounded-full transition-colors">
                     <X className="w-5 h-5 text-muted-foreground" />
@@ -57,7 +60,7 @@ function ChartConfigView() {
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Enter title"
+                        placeholder={t('analysis.chart.titlePlaceholder')}
                         className="w-full px-3 py-2 border rounded-md bg-background text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                     />
                     <div className="flex-1 border rounded-md bg-background overflow-hidden flex items-center justify-center">
@@ -69,7 +72,7 @@ function ChartConfigView() {
                         ) : (
                             <div className="flex flex-col items-center gap-3 text-muted-foreground">
                                 <BarChart3 className="w-12 h-12 opacity-20" />
-                                <p className="text-sm">Configure data source and chart parameters to preview</p>
+                                <p className="text-sm">{t('analysis.chart.previewHint')}</p>
                             </div>
                         )}
                     </div>
@@ -84,14 +87,14 @@ function ChartConfigView() {
             {/* Footer */}
             <div className="h-16 border-t px-6 flex items-center justify-end gap-3 shrink-0">
                 <DialogClose className="px-4 py-2 rounded-md border text-sm font-medium hover:bg-muted transition-colors">
-                    Cancel
+                    {t('common.actions.cancel')}
                 </DialogClose>
                 <button
                     onClick={handleSave}
                     disabled={!canSave}
                     className="px-6 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    Save
+                    {t('analysis.chart.save')}
                 </button>
             </div>
         </>
@@ -99,6 +102,7 @@ function ChartConfigView() {
 }
 
 function DataConfigView() {
+    const { t } = useI18n()
     const { setActiveView, sqlQuery, setSqlQuery, handleQueryResults, editorContext } = useChartCreateCtx()
 
     return (
@@ -110,7 +114,7 @@ function DataConfigView() {
                     className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md border hover:bg-muted transition-colors"
                 >
                     <ChevronLeft className="w-4 h-4" />
-                    Back to Chart
+                    {t('analysis.chart.backToChart')}
                 </button>
                 <DialogClose className="p-2 hover:bg-muted rounded-full transition-colors">
                     <X className="w-5 h-5 text-muted-foreground" />
