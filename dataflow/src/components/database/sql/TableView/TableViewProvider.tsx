@@ -2,18 +2,16 @@ import { createContext, use, useCallback, useEffect, useRef, useState, type Reac
 import { useConnectionStore } from '@/stores/useConnectionStore'
 import {
   useGetStorageUnitRowsLazyQuery,
-  useAddRowMutation,
-  useDeleteRowMutation,
-  useUpdateStorageUnitMutation,
   WhereConditionType,
   SortDirection,
   type WhereCondition,
   type SortCondition,
 } from '@graphql'
 import { transformRowsResult, type TableData } from '@/utils/graphql-transforms'
-import { resolveSchemaParam, isNoSQL } from '@/utils/database-features'
+import { resolveSchemaParam } from '@/utils/database-features'
 import { parseSearchToWhereCondition, mergeSearchWithWhere } from '@/utils/search-parser'
-import type { TableViewContextValue, FilterCondition } from './types'
+import { useInlineEditing } from './useInlineEditing'
+import type { TableViewContextValue, TableViewState, TableViewActions, FilterCondition } from './types'
 import type { Alert } from '@/components/database/shared/types'
 
 const TableViewCtx = createContext<TableViewContextValue | null>(null)
@@ -51,9 +49,6 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
 
   // ---- GraphQL hooks ----
   const [getRows] = useGetStorageUnitRowsLazyQuery({ fetchPolicy: 'no-cache' })
-  const [addRow] = useAddRowMutation()
-  const [deleteRow] = useDeleteRowMutation()
-  const [updateStorageUnit] = useUpdateStorageUnitMutation()
 
   // ---- Core state ----
   const [loading, setLoading] = useState(true)
@@ -64,22 +59,13 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
   const [refreshKey, setRefreshKey] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
-  // ---- Row editing state ----
-  const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null)
-  const [editValues, setEditValues] = useState<Record<string, any>>({})
-  const [deletingRowIndex, setDeletingRowIndex] = useState<number | null>(null)
-  const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  // ---- Row metadata state ----
   const [primaryKey, setPrimaryKey] = useState<string | null>(null)
   const [foreignKeyColumns, setForeignKeyColumns] = useState<string[]>([])
 
   // ---- Column resizing state ----
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
   const resizingRef = useRef<{ column: string; startX: number; startWidth: number } | null>(null)
-
-  // ---- New row state ----
-  const [isAddingRow, setIsAddingRow] = useState(false)
-  const [newRowData, setNewRowData] = useState<Record<string, any>>({})
 
   // ---- Sorting state ----
   const [sortColumn, setSortColumn] = useState<string | null>(null)
@@ -158,6 +144,23 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
   }, [])
 
   const closeAlert = useCallback(() => setAlert(null), [])
+
+  // ---- Refresh ----
+  const refresh = useCallback(() => {
+    setRefreshKey(prev => prev + 1)
+  }, [])
+
+  // ---- Inline editing (edit/add/delete rows) ----
+  const { state: editingState, actions: editingActions } = useInlineEditing({
+    connectionId,
+    databaseName,
+    schema,
+    tableName,
+    primaryKey,
+    data,
+    refresh,
+    showAlert,
+  })
 
   // ---- Main data fetch ----
   const handleSubmitRequest = useCallback(async (overridePageOffset?: number) => {
@@ -262,11 +265,9 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
       setSortDirection(null)
       setSearchTerm('')
       setCurrentPage(1)
-      setEditingRowIndex(null)
-      setSelectedRowIndex(null)
-      setIsAddingRow(false)
+      editingActions.resetEditing()
     }
-  }, [connectionId, databaseName, schema, tableName])
+  }, [connectionId, databaseName, schema, tableName, editingActions])
 
   // ---- Initial fetch + refetch on data-changing params ----
   useEffect(() => {
@@ -292,209 +293,6 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
     setActiveColumnMenu(null)
   }, [])
 
-  // ---- Row editing ----
-  const handleEditClick = useCallback((row: any, index: number) => {
-    setEditingRowIndex(index)
-    setSelectedRowIndex(index)
-    setEditValues({ ...row })
-    setIsAddingRow(false)
-  }, [])
-
-  const handleCancelEdit = useCallback(() => {
-    setEditingRowIndex(null)
-    setEditValues({})
-  }, [])
-
-  const handleInputChange = useCallback((col: string, value: string) => {
-    setEditValues(prev => ({ ...prev, [col]: value }))
-  }, [])
-
-  const handleSave = useCallback(async () => {
-    if (!primaryKey) {
-      showAlert('Error', 'Cannot update row: Primary Key not found for this table.', 'error')
-      return
-    }
-
-    const conn = connections.find((c) => c.id === connectionId)
-    if (!conn || editingRowIndex === null || !data) return
-
-    const originalRow = data.rows[editingRowIndex]
-
-    const updatedColumns = Object.keys(editValues).filter(
-      (key) => editValues[key] !== originalRow[key],
-    )
-
-    if (updatedColumns.length === 0) {
-      handleCancelEdit()
-      return
-    }
-
-    const graphqlSchema = resolveSchemaParam(conn.type, databaseName, schema)
-
-    const values = Object.entries(editValues).map(([key, value]) => ({
-      Key: key,
-      Value: String(value ?? ''),
-    }))
-
-    try {
-      const { data: result, errors } = await updateStorageUnit({
-        variables: {
-          schema: graphqlSchema,
-          storageUnit: tableName,
-          values,
-          updatedColumns,
-        },
-        context: { database: databaseName },
-      })
-
-      if (errors?.length) {
-        showAlert('Error', `Failed to update row: ${errors[0].message}`, 'error')
-        return
-      }
-
-      if (result?.UpdateStorageUnit.Status) {
-        showAlert('Success', 'Row updated successfully!', 'success')
-        handleCancelEdit()
-        setRefreshKey(prev => prev + 1)
-      } else {
-        showAlert('Error', 'Failed to update row', 'error')
-      }
-    } catch (error: any) {
-      showAlert('Error', `Error updating row: ${error.message}`, 'error')
-    }
-  }, [primaryKey, connections, connectionId, editingRowIndex, data, editValues, databaseName, schema, tableName, updateStorageUnit, showAlert, handleCancelEdit])
-
-  // ---- Delete ----
-  const handleDeleteClick = useCallback((index: number) => {
-    setDeletingRowIndex(index)
-    setShowDeleteModal(true)
-  }, [])
-
-  const handleConfirmDelete = useCallback(async () => {
-    if (deletingRowIndex === null || !primaryKey || !data) return
-
-    const conn = connections.find((c) => c.id === connectionId)
-    if (!conn) return
-
-    const row = data.rows[deletingRowIndex]
-    const graphqlSchema = resolveSchemaParam(conn.type, databaseName, schema)
-
-    const values = Object.entries(row).map(([key, value]) => ({
-      Key: key,
-      Value: String(value ?? ''),
-    }))
-
-    try {
-      const { data: result, errors } = await deleteRow({
-        variables: {
-          schema: graphqlSchema,
-          storageUnit: tableName,
-          values,
-        },
-        context: { database: databaseName },
-      })
-
-      if (errors?.length) {
-        showAlert('Error', `Failed to delete row: ${errors[0].message}`, 'error')
-        return
-      }
-
-      if (result?.DeleteRow.Status) {
-        showAlert('Success', 'Row deleted successfully!', 'success')
-        setRefreshKey(prev => prev + 1)
-      } else {
-        showAlert('Error', 'Failed to delete row', 'error')
-      }
-    } catch (error: any) {
-      showAlert('Error', `Error deleting row: ${error.message}`, 'error')
-    } finally {
-      setDeletingRowIndex(null)
-    }
-  }, [deletingRowIndex, primaryKey, data, connections, connectionId, databaseName, schema, tableName, deleteRow, showAlert])
-
-  // ---- Add row ----
-  const handleAddClick = useCallback(() => {
-    setIsAddingRow(true)
-    setNewRowData({})
-    setEditingRowIndex(null)
-    setSelectedRowIndex(null)
-  }, [])
-
-  const handleCancelAdd = useCallback(() => {
-    setIsAddingRow(false)
-    setNewRowData({})
-  }, [])
-
-  const handleNewRowInputChange = useCallback((col: string, value: string) => {
-    setNewRowData(prev => ({ ...prev, [col]: value }))
-  }, [])
-
-  const handleSaveNewRow = useCallback(async () => {
-    const conn = connections.find((c) => c.id === connectionId)
-    if (!conn) return
-
-    const graphqlSchema = resolveSchemaParam(conn.type, databaseName, schema)
-    let values: Array<{ Key: string; Value: string }>
-
-    // MongoDB document mode: single Document column -> parse JSON
-    if (isNoSQL(conn.type) && data?.columns.length === 1 && data.columnTypes[data.columns[0]] === 'Document') {
-      const docValue = newRowData[data.columns[0]] || newRowData['document'] || ''
-      try {
-        const json = JSON.parse(docValue)
-        values = Object.keys(json).map(key => {
-          const val = json[key]
-          return {
-            Key: key,
-            Value: typeof val === 'object' && val !== null ? JSON.stringify(val) : String(val),
-          }
-        })
-      } catch {
-        showAlert('Error', 'Invalid JSON document', 'error')
-        return
-      }
-    } else {
-      // Standard relational mode
-      if (Object.keys(newRowData).length === 0 || Object.values(newRowData).every((v) => !v)) {
-        showAlert('Error', 'Please enter at least one value', 'error')
-        return
-      }
-      values = Object.entries(newRowData)
-        .filter(([_, v]) => v !== undefined && v !== '')
-        .map(([key, value]) => ({ Key: key, Value: String(value) }))
-    }
-
-    if (values.length === 0) {
-      showAlert('Error', 'Please enter at least one value', 'error')
-      return
-    }
-
-    try {
-      const { data: result, errors } = await addRow({
-        variables: {
-          schema: graphqlSchema,
-          storageUnit: tableName,
-          values,
-        },
-        context: { database: databaseName },
-      })
-
-      if (errors?.length) {
-        showAlert('Error', `Failed to add row: ${errors[0].message}`, 'error')
-        return
-      }
-
-      if (result?.AddRow.Status) {
-        showAlert('Success', 'New row added successfully!', 'success')
-        handleCancelAdd()
-        setRefreshKey(prev => prev + 1)
-      } else {
-        showAlert('Error', 'Failed to add row', 'error')
-      }
-    } catch (error: any) {
-      showAlert('Error', `Error adding row: ${error.message}`, 'error')
-    }
-  }, [connections, connectionId, databaseName, schema, data, newRowData, tableName, addRow, showAlert, handleCancelAdd])
-
   // ---- Column resize start ----
   const handleResizeStart = useCallback((e: React.MouseEvent, column: string) => {
     e.preventDefault()
@@ -518,11 +316,6 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
     setCurrentPage(1)
   }, [])
 
-  // ---- Refresh ----
-  const refresh = useCallback(() => {
-    setRefreshKey(prev => prev + 1)
-  }, [])
-
   // ---- Filter apply ----
   const handleFilterApply = useCallback((cols: string[], conditions: FilterCondition[]) => {
     setVisibleColumns(cols)
@@ -537,7 +330,7 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
   const total = data?.total || 0
   const totalPages = Math.ceil(total / pageSize)
 
-  const state = {
+  const state: TableViewState = {
     loading,
     data,
     error,
@@ -553,21 +346,15 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
     sortColumn,
     sortDirection,
     activeColumnMenu,
-    editingRowIndex,
-    editValues,
-    selectedRowIndex,
-    isAddingRow,
-    newRowData,
+    ...editingState,
     columnWidths,
     showExportModal,
-    showDeleteModal,
     isFilterModalOpen,
-    deletingRowIndex,
     alert,
     canEdit,
   }
 
-  const actions = {
+  const actions: TableViewActions = {
     refresh,
     handleSubmitRequest,
     handlePageChange,
@@ -577,22 +364,11 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
     handleSort,
     clearSort,
     setActiveColumnMenu,
-    handleEditClick,
-    handleCancelEdit,
-    handleInputChange,
-    handleSave,
-    handleAddClick,
-    handleCancelAdd,
-    handleNewRowInputChange,
-    handleSaveNewRow,
-    handleDeleteClick,
-    handleConfirmDelete,
+    ...editingActions,
     handleResizeStart,
-    setSelectedRowIndex,
     setIsFilterModalOpen,
     handleFilterApply,
     setShowExportModal,
-    setShowDeleteModal,
     showAlert,
     closeAlert,
   }

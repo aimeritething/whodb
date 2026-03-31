@@ -59,6 +59,8 @@ export interface TableViewActions {
   handleSaveNewRow: () => Promise<void>
   handleDeleteClick: (index: number) => void
   handleConfirmDelete: () => Promise<void>
+  /** Reset editing/adding state (e.g. on table switch). */
+  resetEditing: () => void
   handleResizeStart: (e: React.MouseEvent, column: string) => void
   setSelectedRowIndex: (index: number | null) => void
   setIsFilterModalOpen: (open: boolean) => void
