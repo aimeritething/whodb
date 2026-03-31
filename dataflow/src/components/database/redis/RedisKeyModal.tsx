@@ -63,7 +63,7 @@ function RedisKeyIdentityFields() {
           onChange={(event) => setKey(event.target.value)}
           placeholder="e.g., users:1001"
           disabled={state.isSubmitting || !canEditKeyName}
-          className={!canEditKeyName ? 'border-blue-200 bg-blue-50/20' : undefined}
+          className={!canEditKeyName ? 'border-primary/20 bg-primary/5' : undefined}
         />
         {isEditMode && !canEditKeyName && (
           <p className="text-xs text-muted-foreground">Existing key names are read-only in edit mode.</p>
@@ -75,7 +75,7 @@ function RedisKeyIdentityFields() {
           Type
         </label>
         <Select value={draft.type} onValueChange={(value) => setType(value as RedisKeyType)} disabled={state.isSubmitting || !canEditType}>
-          <SelectTrigger className={!canEditType ? 'border-blue-200 bg-blue-50/20' : undefined}>
+          <SelectTrigger className={!canEditType ? 'border-primary/20 bg-primary/5' : undefined}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

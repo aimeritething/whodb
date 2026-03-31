@@ -1,5 +1,6 @@
 import React from "react";
 import { Database, LayoutDashboard } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
 export type ActivityTab = 'connections' | 'analysis';
@@ -20,19 +21,21 @@ export function ActivityBar({ activeTab, onTabChange }: ActivityBarProps) {
         const isActive = activeTab === tab.id;
 
         return (
-            <button
+            <Button
                 key={tab.id}
+                variant="ghost"
+                size="icon"
                 onClick={() => onTabChange(tab.id)}
                 className={cn(
-                    "group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200",
+                    "group relative h-10 w-10 rounded-xl transition-all duration-200",
                     isActive
-                        ? "bg-blue-50 text-blue-600"
+                        ? "bg-accent text-accent-foreground"
                         : "text-muted-foreground hover:bg-muted"
                 )}
                 title={tab.label}
             >
-                <Icon className={cn("h-5 w-5 transition-transform group-hover:scale-105", isActive && "text-blue-600")} />
-            </button>
+                <Icon className="h-5 w-5 transition-transform group-hover:scale-105" />
+            </Button>
         );
     };
 

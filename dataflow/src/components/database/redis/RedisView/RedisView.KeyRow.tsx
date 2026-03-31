@@ -7,12 +7,12 @@ import type { RedisKey } from './types'
 
 /** Color classes for Redis type badges. */
 const TYPE_COLORS: Record<string, string> = {
-  string: 'bg-blue-100 text-blue-700',
-  hash: 'bg-purple-100 text-purple-700',
-  list: 'bg-emerald-100 text-emerald-700',
-  set: 'bg-orange-100 text-orange-700',
-  zset: 'bg-pink-100 text-pink-700',
-  stream: 'bg-cyan-100 text-cyan-700',
+  string: 'bg-primary/10 text-primary',
+  hash: 'bg-secondary text-secondary-foreground',
+  list: 'bg-accent text-accent-foreground',
+  set: 'bg-chart-2/20 text-foreground',
+  zset: 'bg-chart-3/20 text-foreground',
+  stream: 'bg-chart-4/20 text-foreground',
 }
 
 /** A single row in the Redis key list table. */

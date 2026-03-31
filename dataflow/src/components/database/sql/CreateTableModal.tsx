@@ -2,6 +2,7 @@ import { createContext, use, useState, useCallback, type ReactNode } from 'react
 import { Table, Plus, Trash2 } from 'lucide-react'
 import { useConnectionStore } from '@/stores/useConnectionStore'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -165,15 +166,17 @@ function CreateTableColumnEditor() {
         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Columns
         </label>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={addColumn}
           disabled={state.isSubmitting}
-          className="text-xs flex items-center gap-1 text-primary hover:underline disabled:opacity-50"
+          className="h-7 gap-1 px-2 text-xs text-primary hover:text-primary"
         >
           <Plus className="h-3 w-3" />
           Add Column
-        </button>
+        </Button>
       </div>
 
       <div className="rounded-md border">
@@ -231,14 +234,16 @@ function CreateTableColumnEditor() {
                   />
                 </td>
                 <td className="p-2 text-center">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon-sm"
                     onClick={() => removeColumn(col.id)}
                     disabled={state.isSubmitting}
                     className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                   >
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}

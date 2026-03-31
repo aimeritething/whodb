@@ -202,7 +202,7 @@ function ConditionList() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 text-muted-foreground hover:text-red-500"
+                className="h-9 w-9 text-muted-foreground hover:text-destructive"
                 onClick={() => removeCondition(condition.id)}
               >
                 <Trash2 className="h-4 w-4" />
