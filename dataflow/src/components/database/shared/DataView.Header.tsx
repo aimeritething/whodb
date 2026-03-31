@@ -1,9 +1,24 @@
-import type { ToolbarProps } from './types'
+import type { LucideIcon } from 'lucide-react'
 
-/** Shared toolbar layout for detail views. */
-export function DataViewToolbar({
+/** Props for the toolbar layout shell. */
+export interface DataViewHeaderProps {
+  icon: LucideIcon
+  /** CSS class applied to the icon wrapper (e.g., "bg-primary/10"). */
+  iconClassName?: string
+  /** CSS class applied to the icon itself (e.g., "text-primary"). */
+  iconColor?: string
+  title: string
+  subtitle: string
+  /** Optional count displayed next to title (e.g., total rows). */
+  count?: number
+  /** Action buttons rendered on the right side. */
+  children?: React.ReactNode
+}
+
+/** Shared header layout for detail views. */
+export function DataViewHeader({
   icon: Icon, iconClassName, iconColor, title, subtitle, count, children,
-}: ToolbarProps) {
+}: DataViewHeaderProps) {
   return (
     <div className="border-b border-border/50 px-6 py-4 flex items-center justify-between bg-card">
       <div className="flex items-center gap-3">

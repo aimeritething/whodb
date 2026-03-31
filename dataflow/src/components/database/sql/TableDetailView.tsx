@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/Button'
 import { TableViewProvider, useTableView } from './TableView/TableViewProvider'
 import { TableViewToolbar } from './TableView/TableView.Toolbar'
 import { TableViewDataGrid } from './TableView/TableView.DataGrid'
-import { DataViewToolbar } from '@/components/database/shared/DataViewToolbar'
-import { DataViewPagination } from '@/components/database/shared/DataViewPagination'
-import { DataViewFilterBar } from '@/components/database/shared/DataViewFilterBar'
+import { DataViewHeader } from '@/components/database/shared/DataView.Header'
+import { DataViewPagination } from '@/components/database/shared/DataView.Pagination'
+import { DataViewFilterBar } from '@/components/database/shared/DataView.FilterBar'
 import { FilterTableModal } from './FilterTableModal'
 import { ExportDataModal } from './ExportDataModal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
@@ -56,7 +56,7 @@ function TableDetailViewContent({ connectionId, databaseName, tableName, schema 
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <DataViewToolbar
+      <DataViewHeader
         icon={TableIcon}
         title={`${databaseName}${schema ? `.${schema}` : ''}.${tableName}`}
         subtitle="TABLE VIEW"

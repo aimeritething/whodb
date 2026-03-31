@@ -3,8 +3,8 @@ import { RedisViewProvider, useRedisView } from './RedisView/RedisViewProvider'
 import { RedisViewToolbar } from './RedisView/RedisView.Toolbar'
 import { RedisViewFilterBar } from './RedisView/RedisView.FilterBar'
 import { RedisViewKeyList } from './RedisView/RedisView.KeyList'
-import { DataViewToolbar } from '@/components/database/shared/DataViewToolbar'
-import { DataViewPagination } from '@/components/database/shared/DataViewPagination'
+import { DataViewHeader } from '@/components/database/shared/DataView.Header'
+import { DataViewPagination } from '@/components/database/shared/DataView.Pagination'
 import { RedisKeyModal } from './RedisKeyModal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { ExportRedisModal } from './ExportRedisModal'
@@ -31,7 +31,7 @@ function RedisDetailViewContent({ connectionId, databaseName }: RedisDetailViewP
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <DataViewToolbar
+      <DataViewHeader
         icon={List}
         iconClassName="bg-blue-500/10"
         iconColor="text-blue-600"
@@ -40,7 +40,7 @@ function RedisDetailViewContent({ connectionId, databaseName }: RedisDetailViewP
         count={state.total}
       >
         <RedisViewToolbar />
-      </DataViewToolbar>
+      </DataViewHeader>
 
       <RedisViewFilterBar />
       <RedisViewKeyList />

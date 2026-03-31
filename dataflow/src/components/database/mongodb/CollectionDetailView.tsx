@@ -4,8 +4,8 @@ import { CollectionViewToolbar } from './CollectionView/CollectionView.Toolbar'
 import { CollectionViewDocumentList } from './CollectionView/CollectionView.DocumentList'
 import { AddDocumentModal } from './CollectionView/CollectionView.AddDocumentModal'
 import { EditDocumentModal } from './CollectionView/CollectionView.EditDocumentModal'
-import { DataViewToolbar } from '@/components/database/shared/DataViewToolbar'
-import { DataViewPagination } from '@/components/database/shared/DataViewPagination'
+import { DataViewHeader } from '@/components/database/shared/DataView.Header'
+import { DataViewPagination } from '@/components/database/shared/DataView.Pagination'
 import { ExportCollectionModal } from './ExportCollectionModal'
 import { FilterCollectionModal } from './FilterCollectionModal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
@@ -52,7 +52,7 @@ function CollectionDetailViewContent({ databaseName, collectionName, connectionI
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <DataViewToolbar
+      <DataViewHeader
         icon={FileJson}
         iconClassName="bg-purple-500/10"
         iconColor="text-purple-500"
