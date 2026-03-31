@@ -6,7 +6,29 @@ import { useConnectionStore } from '@/stores/useConnectionStore'
 import { renderWithI18n } from '@/test/renderWithI18n'
 
 const originalStore = useConnectionStore.getState()
-const SIDEBAR_STORAGE_KEY = 'sidebar_expanded_items'
+const originalLocalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+const storageData = new Map<string, string>()
+
+const localStorageMock: Storage = {
+  get length() {
+    return storageData.size
+  },
+  clear() {
+    storageData.clear()
+  },
+  getItem(key: string) {
+    return storageData.has(key) ? storageData.get(key)! : null
+  },
+  key(index: number) {
+    return Array.from(storageData.keys())[index] ?? null
+  },
+  removeItem(key: string) {
+    storageData.delete(key)
+  },
+  setItem(key: string, value: string) {
+    storageData.set(key, value)
+  },
+}
 
 function RedisChildLabelProbe() {
   const { fetchNodeChildren } = useSidebarTree()
@@ -34,7 +56,23 @@ function RedisChildLabelProbe() {
   )
 }
 
+beforeAll(() => {
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: localStorageMock,
+  })
+})
+
+afterAll(() => {
+  if (originalLocalStorageDescriptor) {
+    Object.defineProperty(globalThis, 'localStorage', originalLocalStorageDescriptor)
+  } else {
+    Reflect.deleteProperty(globalThis, 'localStorage')
+  }
+})
+
 beforeEach(() => {
+  localStorageMock.clear()
   useConnectionStore.setState({
     ...originalStore,
     connections: [
@@ -54,7 +92,6 @@ beforeEach(() => {
     showSystemObjectsFor: new Set<string>(),
     fetchSystemSchemas: async () => {},
   })
-  globalThis.localStorage?.removeItem(SIDEBAR_STORAGE_KEY)
 })
 
 afterEach(() => {
