@@ -10,7 +10,7 @@ import {
 } from '@graphql'
 import { resolveSchemaParam } from '@/utils/database-features'
 import type { CollectionViewContextValue } from './types'
-import type { AlertState } from '@/components/database/shared/types'
+import type { Alert } from '@/components/database/shared/types'
 import type { FlatMongoFilter } from '@/components/database/mongodb/filter-collection.types'
 
 const CollectionViewCtx = createContext<CollectionViewContextValue | null>(null)
@@ -70,21 +70,14 @@ export function CollectionViewProvider({ connectionId, databaseName, collectionN
   const [availableFields, setAvailableFields] = useState<string[]>([])
 
   // ---- Alert state ----
-  const [alertState, setAlertState] = useState<AlertState>({
-    isOpen: false,
-    title: '',
-    message: '',
-    type: 'info',
-  })
+  const [alert, setAlert] = useState<Alert | null>(null)
 
   // ---- Alert helpers ----
-  const showAlert = useCallback((title: string, message: string, type: AlertState['type'] = 'info') => {
-    setAlertState({ isOpen: true, title, message, type })
+  const showAlert = useCallback((title: string, message: string, type: Alert['type'] = 'info') => {
+    setAlert({ title, message, type })
   }, [])
 
-  const closeAlert = useCallback(() => {
-    setAlertState(prev => ({ ...prev, isOpen: false }))
-  }, [])
+  const closeAlert = useCallback(() => setAlert(null), [])
 
   // ---- Extract available fields from documents ----
   useEffect(() => {
@@ -399,7 +392,7 @@ export function CollectionViewProvider({ connectionId, databaseName, collectionN
     editContent,
     addContent,
     deletingDocId,
-    alertState,
+    alert,
   }
 
   const actions = {

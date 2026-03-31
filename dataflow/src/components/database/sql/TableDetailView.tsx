@@ -117,13 +117,13 @@ function TableDetailViewContent({ connectionId, databaseName, tableName, schema 
         verificationLabel={state.deletingRowIndex !== null && state.data?.rows?.[state.deletingRowIndex] && state.primaryKey ? `Type "${String(state.data.rows[state.deletingRowIndex][state.primaryKey])}" to confirm` : 'Type confirmation'}
       />
 
-      <AlertModal
-        isOpen={state.alertState.isOpen}
-        onClose={actions.closeAlert}
-        title={state.alertState.title}
-        message={state.alertState.message}
-        type={state.alertState.type}
-      />
+      {state.alert && (
+        <AlertModal
+          isOpen
+          onClose={actions.closeAlert}
+          {...state.alert}
+        />
+      )}
     </div>
   )
 }

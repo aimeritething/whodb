@@ -89,13 +89,13 @@ function RedisDetailViewContent({ connectionId, databaseName }: RedisDetailViewP
         initialTypes={state.filterTypes}
       />
 
-      <AlertModal
-        isOpen={state.alertState.isOpen}
-        onClose={actions.closeAlert}
-        title={state.alertState.title}
-        message={state.alertState.message}
-        type={state.alertState.type}
-      />
+      {state.alert && (
+        <AlertModal
+          isOpen
+          onClose={actions.closeAlert}
+          {...state.alert}
+        />
+      )}
 
       <RedisFilterModal
         open={state.isFilterModalOpen}

@@ -1,4 +1,4 @@
-import type { AlertState } from '@/components/database/shared/types'
+import type { Alert } from '@/components/database/shared/types'
 import type { RedisKeyDraft } from '@/components/database/redis/redis-key.types'
 
 /** A single Redis key entry. */
@@ -29,7 +29,7 @@ export interface RedisViewState {
   editingKey: RedisKeyDraft | undefined
   deletingKey: RedisKey | undefined
   showExportModal: boolean
-  alertState: AlertState
+  alert: Alert | null
 }
 
 /** All actions exposed by the RedisView provider. */

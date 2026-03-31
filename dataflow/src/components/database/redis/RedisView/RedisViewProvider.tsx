@@ -10,7 +10,7 @@ import {
 } from '@graphql'
 import { resolveSchemaParam } from '@/utils/database-features'
 import type { RedisKey, RedisViewContextValue } from './types'
-import type { AlertState } from '@/components/database/shared/types'
+import type { Alert } from '@/components/database/shared/types'
 import type { RedisKeyDraft } from '@/components/database/redis/redis-key.types'
 
 const RedisViewCtx = createContext<RedisViewContextValue | null>(null)
@@ -117,21 +117,14 @@ export function RedisViewProvider({ connectionId, databaseName, children }: Redi
   const [showExportModal, setShowExportModal] = useState(false)
 
   // ---- Alert state ----
-  const [alertState, setAlertState] = useState<AlertState>({
-    isOpen: false,
-    title: '',
-    message: '',
-    type: 'info',
-  })
+  const [alert, setAlert] = useState<Alert | null>(null)
 
   // ---- Alert helpers ----
-  const showAlert = useCallback((title: string, message: string, type: AlertState['type'] = 'info') => {
-    setAlertState({ isOpen: true, title, message, type })
+  const showAlert = useCallback((title: string, message: string, type: Alert['type'] = 'info') => {
+    setAlert({ title, message, type })
   }, [])
 
-  const closeAlert = useCallback(() => {
-    setAlertState(prev => ({ ...prev, isOpen: false }))
-  }, [])
+  const closeAlert = useCallback(() => setAlert(null), [])
 
   // ---- Fetch keys ----
   const fetchKeys = useCallback(async () => {
@@ -326,7 +319,7 @@ export function RedisViewProvider({ connectionId, databaseName, children }: Redi
     editingKey,
     deletingKey,
     showExportModal,
-    alertState,
+    alert,
   }
 
   const actions = {

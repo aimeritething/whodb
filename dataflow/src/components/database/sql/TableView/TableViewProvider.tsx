@@ -14,7 +14,7 @@ import { transformRowsResult, type TableData } from '@/utils/graphql-transforms'
 import { resolveSchemaParam, isNoSQL } from '@/utils/database-features'
 import { parseSearchToWhereCondition, mergeSearchWithWhere } from '@/utils/search-parser'
 import type { TableViewContextValue, FilterCondition } from './types'
-import type { AlertState } from '@/components/database/shared/types'
+import type { Alert } from '@/components/database/shared/types'
 
 const TableViewCtx = createContext<TableViewContextValue | null>(null)
 
@@ -95,12 +95,7 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
   const [showExportModal, setShowExportModal] = useState(false)
 
   // ---- Alert state ----
-  const [alertState, setAlertState] = useState<AlertState>({
-    isOpen: false,
-    title: '',
-    message: '',
-    type: 'info',
-  })
+  const [alert, setAlert] = useState<Alert | null>(null)
 
   // ---- Refs ----
   const latestRequestIdRef = useRef(0)
@@ -158,13 +153,11 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
   }, [])
 
   // ---- Alert helpers ----
-  const showAlert = useCallback((title: string, message: string, type: AlertState['type'] = 'info') => {
-    setAlertState({ isOpen: true, title, message, type })
+  const showAlert = useCallback((title: string, message: string, type: Alert['type'] = 'info') => {
+    setAlert({ title, message, type })
   }, [])
 
-  const closeAlert = useCallback(() => {
-    setAlertState(prev => ({ ...prev, isOpen: false }))
-  }, [])
+  const closeAlert = useCallback(() => setAlert(null), [])
 
   // ---- Main data fetch ----
   const handleSubmitRequest = useCallback(async (overridePageOffset?: number) => {
@@ -570,7 +563,7 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
     showDeleteModal,
     isFilterModalOpen,
     deletingRowIndex,
-    alertState,
+    alert,
     canEdit,
   }
 

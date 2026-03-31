@@ -125,13 +125,13 @@ function CollectionDetailViewContent({ databaseName, collectionName, connectionI
         isDestructive
       />
 
-      <AlertModal
-        isOpen={state.alertState.isOpen}
-        onClose={actions.closeAlert}
-        title={state.alertState.title}
-        message={state.alertState.message}
-        type={state.alertState.type}
-      />
+      {state.alert && (
+        <AlertModal
+          isOpen
+          onClose={actions.closeAlert}
+          {...state.alert}
+        />
+      )}
     </div>
   )
 }

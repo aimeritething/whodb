@@ -1,5 +1,5 @@
 import type { TableData } from '@/utils/graphql-transforms'
-import type { AlertState } from '@/components/database/shared/types'
+import type { Alert } from '@/components/database/shared/types'
 
 /** Context value exposed by TableViewProvider. */
 export interface TableViewContextValue {
@@ -34,7 +34,7 @@ export interface TableViewState {
   showDeleteModal: boolean
   isFilterModalOpen: boolean
   deletingRowIndex: number | null
-  alertState: AlertState
+  alert: Alert | null
   canEdit: boolean
 }
 
@@ -65,7 +65,7 @@ export interface TableViewActions {
   handleFilterApply: (cols: string[], conditions: FilterCondition[]) => void
   setShowExportModal: (open: boolean) => void
   setShowDeleteModal: (open: boolean) => void
-  showAlert: (title: string, message: string, type: AlertState['type']) => void
+  showAlert: (title: string, message: string, type: Alert['type']) => void
   closeAlert: () => void
 }
 

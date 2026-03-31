@@ -1,4 +1,4 @@
-import type { AlertState } from '@/components/database/shared/types'
+import type { Alert } from '@/components/database/shared/types'
 import type { FlatMongoFilter } from '@/components/database/mongodb/filter-collection.types'
 
 /** Context value exposed by CollectionViewProvider. */
@@ -28,7 +28,7 @@ export interface CollectionViewState {
   editContent: string
   addContent: string
   deletingDocId: string | null
-  alertState: AlertState
+  alert: Alert | null
 }
 
 /** All actions exposed by the CollectionView provider. */
@@ -52,6 +52,6 @@ export interface CollectionViewActions {
   handleFilterApply: (filter: FlatMongoFilter) => void
   setShowExportModal: (open: boolean) => void
   setSelectedDocIndex: (index: number | null) => void
-  showAlert: (title: string, message: string, type: AlertState['type']) => void
+  showAlert: (title: string, message: string, type: Alert['type']) => void
   closeAlert: () => void
 }
