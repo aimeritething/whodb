@@ -60,6 +60,8 @@ interface ConnectionState {
   selectedItem: SelectedItem | null;
   tableRefreshKey: number;
   triggerTableRefresh: () => void;
+  collectionRefreshKey: number;
+  triggerCollectionRefresh: () => void;
   createDatabase: (databaseName: string) => Promise<DDLResult>;
   renameDatabase: (oldName: string, newName: string) => Promise<DDLResult>;
   deleteDatabase: (databaseName: string) => Promise<DDLResult>;
@@ -149,6 +151,9 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
   tableRefreshKey: 0,
   /** Increment table refresh key to trigger re-fetch in TableDetailView. */
   triggerTableRefresh: () => set((s) => ({ tableRefreshKey: s.tableRefreshKey + 1 })),
+  collectionRefreshKey: 0,
+  /** Increment collection refresh key to trigger re-fetch in CollectionViewProvider. */
+  triggerCollectionRefresh: () => set((s) => ({ collectionRefreshKey: s.collectionRefreshKey + 1 })),
   systemSchemas: [],
   showSystemObjectsFor: new Set<string>(),
   toggleSystemObjects: (nodeId) => set((state) => {

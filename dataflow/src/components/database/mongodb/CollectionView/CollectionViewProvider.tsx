@@ -26,13 +26,12 @@ interface CollectionViewProviderProps {
   connectionId: string
   databaseName: string
   collectionName: string
-  refreshTrigger?: number
   children: ReactNode
 }
 
 /** Provider that owns all CollectionDetailView state, GraphQL operations, and handlers. */
-export function CollectionViewProvider({ connectionId, databaseName, collectionName, refreshTrigger, children }: CollectionViewProviderProps) {
-  const { connections } = useConnectionStore()
+export function CollectionViewProvider({ connectionId, databaseName, collectionName, children }: CollectionViewProviderProps) {
+  const { connections, collectionRefreshKey } = useConnectionStore()
 
   // ---- GraphQL hooks ----
   const [getRows] = useGetStorageUnitRowsLazyQuery({ fetchPolicy: 'no-cache' })
@@ -198,7 +197,7 @@ export function CollectionViewProvider({ connectionId, databaseName, collectionN
     }
 
     fetchData()
-  }, [connectionId, databaseName, collectionName, connections, refreshTrigger, currentPage, pageSize, searchTerm, activeFilter, refreshKey, getRows])
+  }, [connectionId, databaseName, collectionName, connections, collectionRefreshKey, currentPage, pageSize, searchTerm, activeFilter, refreshKey, getRows])
 
   // ---- Handlers ----
   const handleAddClick = useCallback(() => {

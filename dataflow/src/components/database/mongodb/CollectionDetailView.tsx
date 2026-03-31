@@ -16,7 +16,6 @@ interface CollectionDetailViewProps {
   connectionId: string
   databaseName: string
   collectionName: string
-  refreshTrigger?: number
 }
 
 /** MongoDB collection detail view composed from Provider + subcomponents. */

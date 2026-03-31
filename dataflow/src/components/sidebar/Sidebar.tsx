@@ -48,12 +48,8 @@ function modalReducer(_state: ModalState | null, action: Action): ModalState | n
 
 // ── Sidebar inner (consumes SidebarTreeProvider context) ────────────
 
-interface SidebarProps {
-  onRefreshCollection?: () => void;
-}
-
-function SidebarInner({ onRefreshCollection }: SidebarProps) {
-  const { connections, selectedItem, selectItem, systemSchemas, showSystemObjectsFor, toggleSystemObjects } = useConnectionStore();
+function SidebarInner() {
+  const { connections, selectedItem, selectItem, systemSchemas, showSystemObjectsFor, toggleSystemObjects, triggerCollectionRefresh } = useConnectionStore();
   const { openTab } = useTabStore();
 
   const {
@@ -122,7 +118,7 @@ function SidebarInner({ onRefreshCollection }: SidebarProps) {
           databaseName: node.metadata.database,
           collectionName: node.name,
         });
-        onRefreshCollection?.();
+        triggerCollectionRefresh();
       } else if (node.type === "redis_keys_list") {
         openTab({
           type: "redis_keys_list",
@@ -132,7 +128,7 @@ function SidebarInner({ onRefreshCollection }: SidebarProps) {
         });
       }
     },
-    [selectItem, toggleItem, showAlert, openTab, onRefreshCollection],
+    [selectItem, toggleItem, showAlert, openTab, triggerCollectionRefresh],
   );
 
   const handleContextMenu = useCallback(
@@ -407,10 +403,10 @@ function SidebarInner({ onRefreshCollection }: SidebarProps) {
 
 // ── Public Sidebar (wraps with SidebarTreeProvider) ─────────────────
 
-export function Sidebar({ onRefreshCollection }: SidebarProps) {
+export function Sidebar() {
   return (
     <SidebarTreeProvider>
-      <SidebarInner onRefreshCollection={onRefreshCollection} />
+      <SidebarInner />
     </SidebarTreeProvider>
   );
 }

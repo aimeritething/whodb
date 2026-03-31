@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useTabStore, type Tab } from '@/stores/useTabStore';
 import { SQLEditorView } from '@/components/editor/SQLEditorView';
 import { TableDetailView } from '@/components/database/sql/TableDetailView';
@@ -6,11 +6,7 @@ import { CollectionDetailView } from '@/components/database/mongodb/CollectionDe
 import { RedisDetailView } from '@/components/database/redis/RedisDetailView';
 import { Database } from 'lucide-react';
 
-interface TabContentProps {
-    refreshTrigger?: number;
-}
-
-export function TabContent({ refreshTrigger }: TabContentProps) {
+export function TabContent() {
     const { tabs, activeTabId, updateTab } = useTabStore();
 
     const activeTab = useMemo(() => {
@@ -70,7 +66,6 @@ export function TabContent({ refreshTrigger }: TabContentProps) {
                         connectionId={tab.connectionId}
                         databaseName={tab.databaseName}
                         collectionName={tab.collectionName}
-                        refreshTrigger={refreshTrigger}
                     />
                 );
             case 'redis_keys_list':
