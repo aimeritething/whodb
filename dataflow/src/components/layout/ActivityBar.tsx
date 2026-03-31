@@ -1,6 +1,7 @@
 import React from "react";
 import { Database, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/useI18n";
 
 export type ActivityTab = 'connections' | 'analysis';
 
@@ -10,9 +11,10 @@ interface ActivityBarProps {
 }
 
 export function ActivityBar({ activeTab, onTabChange }: ActivityBarProps) {
+    const { t } = useI18n();
     const tabs: { id: ActivityTab; icon: React.ElementType; label: string }[] = [
-        { id: 'connections', icon: Database, label: 'Database Connections' },
-        { id: 'analysis', icon: LayoutDashboard, label: 'Data Analysis' },
+        { id: 'connections', icon: Database, label: t('layout.activity.connections') },
+        { id: 'analysis', icon: LayoutDashboard, label: t('layout.activity.analysis') },
     ];
 
     const renderTab = (tab: { id: ActivityTab; icon: React.ElementType; label: string }) => {

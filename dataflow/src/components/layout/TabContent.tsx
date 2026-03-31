@@ -5,21 +5,28 @@ import { TableDetailView } from '@/components/database/sql/TableDetailView';
 import { CollectionDetailView } from '@/components/database/mongodb/CollectionDetailView';
 import { RedisDetailView } from '@/components/database/redis/RedisDetailView';
 import { Database } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 
 export function TabContent() {
     const { tabs, activeTabId, updateTab } = useTabStore();
+    const { t, locale } = useI18n();
 
     const activeTab = useMemo(() => {
         return tabs.find(t => t.id === activeTabId);
     }, [tabs, activeTabId]);
+
+    const invalidTableConfig = locale === 'zh' ? '无效的数据表配置' : 'Invalid table configuration';
+    const invalidCollectionConfig = locale === 'zh' ? '无效的集合配置' : 'Invalid collection configuration';
+    const invalidDatabaseConfig = locale === 'zh' ? '无效的数据库配置' : 'Invalid database configuration';
+    const unknownTabType = locale === 'zh' ? '未知的标签页类型' : 'Unknown tab type';
 
     // When no tabs are open, show empty state
     if (!activeTab) {
         return (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-muted/10">
                 <Database className="h-16 w-16 mb-4 opacity-20" />
-                <p className="text-lg font-medium">No tabs open</p>
-                <p className="text-sm">Select a table or create a new query from the sidebar</p>
+                <p className="text-lg font-medium">{t('layout.empty.noTabsTitle')}</p>
+                <p className="text-sm">{t('layout.empty.noTabsDescription')}</p>
             </div>
         );
     }
@@ -45,7 +52,7 @@ export function TabContent() {
                 );
             case 'table':
                 if (!tab.databaseName || !tab.tableName) {
-                    return <div className="flex-1 flex items-center justify-center text-muted-foreground">Invalid table configuration</div>;
+                    return <div className="flex-1 flex items-center justify-center text-muted-foreground">{invalidTableConfig}</div>;
                 }
                 return (
                     <TableDetailView
@@ -58,7 +65,7 @@ export function TabContent() {
                 );
             case 'collection':
                 if (!tab.databaseName || !tab.collectionName) {
-                    return <div className="flex-1 flex items-center justify-center text-muted-foreground">Invalid collection configuration</div>;
+                    return <div className="flex-1 flex items-center justify-center text-muted-foreground">{invalidCollectionConfig}</div>;
                 }
                 return (
                     <CollectionDetailView
@@ -70,7 +77,7 @@ export function TabContent() {
                 );
             case 'redis_keys_list':
                 if (!tab.databaseName) {
-                    return <div className="flex-1 flex items-center justify-center text-muted-foreground">Invalid database configuration</div>;
+                    return <div className="flex-1 flex items-center justify-center text-muted-foreground">{invalidDatabaseConfig}</div>;
                 }
                 return (
                     <RedisDetailView
@@ -80,7 +87,7 @@ export function TabContent() {
                     />
                 );
             default:
-                return <div className="flex-1 flex items-center justify-center text-muted-foreground">Unknown tab type</div>;
+                return <div className="flex-1 flex items-center justify-center text-muted-foreground">{unknownTabType}</div>;
         }
     };
 
