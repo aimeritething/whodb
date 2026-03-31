@@ -1,0 +1,11 @@
+import { zhLayoutMessages } from '../zh/layout'
+
+export const enLayoutMessages = {
+  'layout.activity.connections': 'Database Connections',
+  'layout.activity.analysis': 'Data Analysis',
+  'layout.empty.noTabsTitle': 'No tabs open',
+  'layout.empty.noTabsDescription': 'Select a table from the sidebar or create a new query',
+  'layout.tab.close': 'Close tab',
+  'layout.tab.closeOthers': 'Close Others',
+  'layout.tab.closeAll': 'Close All',
+} satisfies typeof zhLayoutMessages
