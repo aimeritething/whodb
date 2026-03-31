@@ -25,3 +25,23 @@ it('renders zh pagination labels', () => {
   expect(screen.getByTitle('下一页')).toBeInTheDocument()
   expect(screen.getByTitle('最后一页')).toBeInTheDocument()
 })
+
+it('falls back to safe total pages when totalPages is falsy', () => {
+  renderWithI18n(
+    <DataViewPagination
+      currentPage={1}
+      totalPages={0}
+      pageSize={10}
+      total={5}
+      loading={false}
+      onPageChange={() => {}}
+      onPageSizeChange={() => {}}
+    />,
+    'zh',
+  )
+
+  expect(screen.getByText('共 1')).toBeInTheDocument()
+  expect(screen.getByTitle('下一页')).toBeDisabled()
+  expect(screen.getByTitle('最后一页')).toBeDisabled()
+  expect(screen.getByRole('spinbutton')).toHaveAttribute('max', '1')
+})
