@@ -1,6 +1,6 @@
 export const zhLayoutMessages = {
-  'layout.activity.connections': '数据库连接',
-  'layout.activity.analysis': '数据分析',
+  'layout.activity.connections': '工作台',
+  'layout.activity.analysis': '仪表盘',
   'layout.empty.noTabsTitle': '暂无打开的标签页',
   'layout.empty.noTabsDescription': '从侧边栏选择一张表，或新建一个查询',
   'layout.invalid.tableConfig': '无效的数据表配置',

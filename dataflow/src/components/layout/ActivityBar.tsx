@@ -26,24 +26,23 @@ export function ActivityBar({ activeTab, onTabChange }: ActivityBarProps) {
             <Button
                 key={tab.id}
                 variant="ghost"
-                size="icon"
                 onClick={() => onTabChange(tab.id)}
                 className={cn(
-                    "group relative h-10 w-10 rounded-xl transition-all duration-200",
+                    "flex size-16 flex-col items-center justify-center gap-1 rounded-lg px-2 py-3",
                     isActive
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground hover:bg-muted"
+                        ? "bg-input text-foreground"
+                        : "text-foreground hover:bg-input/50"
                 )}
-                title={tab.label}
             >
-                <Icon className="h-5 w-5 transition-transform group-hover:scale-105" />
+                <Icon className="size-6" />
+                <span className="text-xs leading-4">{tab.label}</span>
             </Button>
         );
     };
 
     return (
-        <div className="flex h-full w-16 flex-col items-center justify-between border-r bg-background py-4">
-            <div className="flex flex-col gap-4">
+        <div className="flex h-full w-20 flex-col items-center border-r bg-background px-2 py-1.5">
+            <div className="flex flex-col gap-2">
                 {tabs.map(renderTab)}
             </div>
         </div>

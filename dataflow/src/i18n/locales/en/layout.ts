@@ -5,8 +5,8 @@ type MessageShape<T extends Record<string, unknown>> = {
 }
 
 export const enLayoutMessages = {
-  'layout.activity.connections': 'Database Connections',
-  'layout.activity.analysis': 'Data Analysis',
+  'layout.activity.connections': 'Workbench',
+  'layout.activity.analysis': 'Dashboard',
   'layout.empty.noTabsTitle': 'No tabs open',
   'layout.empty.noTabsDescription': 'Select a table from the sidebar or create a new query',
   'layout.invalid.tableConfig': 'Invalid table configuration',
