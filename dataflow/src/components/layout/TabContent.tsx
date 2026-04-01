@@ -93,7 +93,7 @@ export function TabContent() {
             {tabs.map(tab => (
                 <div
                     key={tab.id}
-                    className={tab.id === activeTabId ? 'flex-1 flex flex-col overflow-hidden rounded-lg border border-border/50' : 'hidden'}
+                    className={tab.id === activeTabId ? 'flex-1 flex flex-col overflow-hidden rounded-lg border border-border bg-background' : 'hidden'}
                 >
                     {renderTabContent(tab)}
                 </div>

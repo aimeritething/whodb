@@ -35,13 +35,13 @@ function TabItem({ tab, isActive, onActivate, onClose, onContextMenu, closeTitle
             onClick={onActivate}
             onContextMenu={onContextMenu}
             className={cn(
-                "group flex items-center gap-2 p-2 pl-3 h-9 cursor-pointer border-r border-sidebar-border transition-colors duration-150 select-none",
+                "group flex items-center gap-1 p-2 pl-3 h-9 cursor-pointer border-r border-sidebar-border transition-colors duration-150 select-none",
                 isActive
                     ? "bg-input text-foreground"
                     : "text-foreground hover:bg-muted"
             )}
         >
-            <span className="flex-shrink-0">
+            <span className="flex-shrink-0 mr-1">
                 {getTabIcon(tab.type)}
             </span>
             <span className="truncate text-sm font-normal whitespace-nowrap">

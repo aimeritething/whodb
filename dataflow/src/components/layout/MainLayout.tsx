@@ -61,7 +61,7 @@ export function MainLayout() {
                 </div>
             )}
 
-            <main className="flex flex-1 flex-col overflow-hidden relative">
+            <main className="flex flex-1 flex-col overflow-hidden relative bg-sidebar">
                 {activeTab === 'connections' ? (
                     <>
                         <TabBar />

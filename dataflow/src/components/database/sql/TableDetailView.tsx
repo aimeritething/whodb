@@ -46,7 +46,7 @@ function TableDetailViewContent({ databaseName, tableName, schema }: TableDetail
   }))
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full">
       <DataView.FilterBar
         filters={filterChips}
         onClearAll={() => actions.handleFilterApply(state.visibleColumns, [])}

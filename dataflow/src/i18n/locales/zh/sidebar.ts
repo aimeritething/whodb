@@ -22,6 +22,7 @@ export const zhSidebarMessages = {
   'sidebar.alert.connectionFailedMessage': '连接数据库失败，请检查连接配置。',
   'sidebar.tab.queryWithDatabase': '查询 - {database}',
   'sidebar.tab.queryWithConnection': '查询 - {connection}',
+  'sidebar.tab.tableWithDatabase': '{table} [{database}]',
   'sidebar.tab.redisKeys': '{database} 键列表',
   'sidebar.redis.allData': '全部数据',
   'sidebar.tree.tables': 'Tables',

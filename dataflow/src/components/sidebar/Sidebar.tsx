@@ -106,18 +106,24 @@ function SidebarInner() {
       }
 
       if (node.type === "table" || node.type === "view") {
+        const tableTitle = node.metadata.database
+          ? t("sidebar.tab.tableWithDatabase", { table: node.name, database: node.metadata.database })
+          : node.name;
         openTab({
           type: "table",
-          title: node.name,
+          title: tableTitle,
           connectionId: node.connectionId,
           databaseName: node.metadata.database,
           schemaName: node.metadata.schema,
           tableName: node.name,
         });
       } else if (node.type === "collection") {
+        const collectionTitle = node.metadata.database
+          ? t("sidebar.tab.tableWithDatabase", { table: node.name, database: node.metadata.database })
+          : node.name;
         openTab({
           type: "collection",
-          title: node.name,
+          title: collectionTitle,
           connectionId: node.connectionId,
           databaseName: node.metadata.database,
           collectionName: node.name,
