@@ -1,4 +1,4 @@
-import { List, Plus, Download, RefreshCw } from 'lucide-react'
+import { Plus, Download, RefreshCw } from 'lucide-react'
 import { RedisViewProvider, useRedisView } from './RedisView/RedisViewProvider'
 import { RedisViewFilterBar } from './RedisView/RedisView.FilterBar'
 import { RedisViewKeyList } from './RedisView/RedisView.KeyList'
@@ -33,29 +33,25 @@ function RedisDetailViewContent({ connectionId, databaseName }: RedisDetailViewP
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <DataView.Header
-        icon={List}
-        iconClassName="bg-primary/10"
-        iconColor="text-primary"
-        title={databaseName}
-        subtitle={t('redis.subtitle')}
-        count={state.total}
-      >
-        <ActionButton onClick={actions.openAddModal}>
-          <Plus className="h-3.5 w-3.5" />
-          {t('redis.actions.addKey')}
-        </ActionButton>
-        <div className="h-4 w-px bg-border mx-1" />
-        <DataView.FilterButton onClick={() => actions.setIsFilterModalOpen(true)} />
-        <ActionButton variant="outline" onClick={() => actions.setShowExportModal(true)}>
-          <Download className="h-3.5 w-3.5" />
-          {t('redis.actions.export')}
-        </ActionButton>
-        <ActionButton variant="outline" onClick={() => actions.refresh()} disabled={state.loading}>
-          <RefreshCw className={cn("h-3.5 w-3.5", state.loading && "animate-spin")} />
-          {t('redis.actions.refresh')}
-        </ActionButton>
-      </DataView.Header>
+      {/* Action bar */}
+      <div className="border-b border-border/50 px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ActionButton onClick={actions.openAddModal}>
+            <Plus className="h-3.5 w-3.5" />
+            {t('redis.actions.addKey')}
+          </ActionButton>
+          <div className="h-4 w-px bg-border mx-1" />
+          <DataView.FilterButton onClick={() => actions.setIsFilterModalOpen(true)} />
+          <ActionButton variant="outline" onClick={() => actions.setShowExportModal(true)}>
+            <Download className="h-3.5 w-3.5" />
+            {t('redis.actions.export')}
+          </ActionButton>
+          <ActionButton variant="outline" onClick={() => actions.refresh()} disabled={state.loading}>
+            <RefreshCw className={cn("h-3.5 w-3.5", state.loading && "animate-spin")} />
+            {t('redis.actions.refresh')}
+          </ActionButton>
+        </div>
+      </div>
 
       <RedisViewFilterBar />
       <RedisViewKeyList />

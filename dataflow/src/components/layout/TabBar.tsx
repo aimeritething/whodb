@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, FileCode, Table, Database, Trash2, SearchX, SplitSquareHorizontal } from 'lucide-react';
+import { X, FileCode, Table, Database, Plus, SplitSquareHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useTabStore, type Tab, type TabType } from '@/stores/useTabStore';
 import { cn } from '@/lib/utils';
@@ -10,13 +10,13 @@ import { useI18n } from '@/i18n/useI18n';
 function getTabIcon(type: TabType) {
     switch (type) {
         case 'query':
-            return <FileCode className="h-3.5 w-3.5" />;
+            return <FileCode className="h-4 w-4" />;
         case 'table':
-            return <Table className="h-3.5 w-3.5" />;
+            return <Table className="h-4 w-4" />;
         case 'collection':
-            return <Database className="h-3.5 w-3.5" />;
+            return <Database className="h-4 w-4" />;
         default:
-            return <FileCode className="h-3.5 w-3.5" />;
+            return <FileCode className="h-4 w-4" />;
     }
 }
 
@@ -35,19 +35,16 @@ function TabItem({ tab, isActive, onActivate, onClose, onContextMenu, closeTitle
             onClick={onActivate}
             onContextMenu={onContextMenu}
             className={cn(
-                "group flex items-center gap-2 px-4 h-12 cursor-pointer border-r border-border/50 transition-all duration-150 min-w-[120px] max-w-[200px] select-none",
+                "group flex items-center gap-2 p-2 h-9 cursor-pointer border-r border-sidebar-border transition-colors duration-150 select-none",
                 isActive
-                    ? "bg-background text-foreground border-b-2 border-b-primary"
-                    : "bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground border-b border-border/50"
+                    ? "bg-input text-foreground"
+                    : "bg-sidebar text-foreground hover:bg-input"
             )}
         >
-            <span className={cn(
-                "flex-shrink-0",
-                isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-            )}>
+            <span className="flex-shrink-0">
                 {getTabIcon(tab.type)}
             </span>
-            <span className="flex-1 truncate text-xs font-medium">
+            <span className="truncate text-sm font-normal whitespace-nowrap">
                 {tab.title}
                 {tab.isDirty && <span className="text-primary ml-1">•</span>}
             </span>
@@ -62,14 +59,14 @@ function TabItem({ tab, isActive, onActivate, onClose, onContextMenu, closeTitle
                 )}
                 title={closeTitle}
             >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-4 w-4" />
             </Button>
         </div>
     );
 }
 
 export function TabBar() {
-    const { tabs, activeTabId, setActiveTab, closeTab, closeOtherTabs, closeAllTabs } = useTabStore();
+    const { tabs, activeTabId, setActiveTab, closeTab, closeOtherTabs, closeAllTabs, openTab } = useTabStore();
     const { t } = useI18n();
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; tabId: string } | null>(null);
 
@@ -104,9 +101,23 @@ export function TabBar() {
         setContextMenu(null);
     };
 
+    const handleAddTab = () => {
+        const activeTab = tabs.find(tab => tab.id === activeTabId);
+        if (!activeTab) return;
+        openTab({
+            type: 'query',
+            title: activeTab.databaseName
+                ? t('sidebar.tab.queryWithDatabase', { database: activeTab.databaseName })
+                : t('layout.tab.newQuery'),
+            connectionId: activeTab.connectionId,
+            databaseName: activeTab.databaseName,
+            schemaName: activeTab.schemaName,
+        });
+    };
+
     return (
-        <ScrollArea className="border-b border-border bg-muted/30">
-            <div className="flex items-center">
+        <ScrollArea className="bg-sidebar">
+            <div className="flex items-center pr-2">
                 {tabs.map(tab => (
                     <TabItem
                         key={tab.id}
@@ -118,6 +129,15 @@ export function TabBar() {
                         closeTitle={t('layout.tab.close')}
                     />
                 ))}
+                <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={handleAddTab}
+                    className="h-9 w-9 shrink-0 rounded-none border-l border-r border-sidebar-border hover:bg-muted"
+                    title={t('layout.tab.newQuery')}
+                >
+                    <Plus className="h-4 w-4" />
+                </Button>
             </div>
 
             {contextMenu && (

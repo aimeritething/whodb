@@ -16,4 +16,5 @@ export const enLayoutMessages = {
   'layout.tab.close': 'Close tab',
   'layout.tab.closeOthers': 'Close Others',
   'layout.tab.closeAll': 'Close All',
+  'layout.tab.newQuery': 'New Query',
 } satisfies MessageShape<typeof zhLayoutMessages>

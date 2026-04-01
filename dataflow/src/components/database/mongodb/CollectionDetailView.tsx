@@ -1,4 +1,4 @@
-import { FileJson, Plus, Download, RefreshCw } from 'lucide-react'
+import { Plus, Download, RefreshCw } from 'lucide-react'
 import { CollectionViewProvider, useCollectionView } from './CollectionView/CollectionViewProvider'
 import { CollectionViewDocumentList } from './CollectionView/CollectionView.DocumentList'
 import { AddDocumentModal } from './CollectionView/CollectionView.AddDocumentModal'
@@ -43,16 +43,8 @@ function CollectionDetailViewContent({ databaseName, collectionName, connectionI
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <DataView.Header
-        icon={FileJson}
-        iconClassName="bg-primary/10"
-        iconColor="text-primary"
-        title={`${databaseName}.${collectionName}`}
-        subtitle={t('mongodb.collection.subtitle')}
-      />
-
       {/* Action bar */}
-      <div className="border-b border-border/50 px-6 py-4 flex items-center justify-between bg-card">
+      <div className="border-b border-border/50 px-4 py-2 flex items-center justify-between">
         <SearchInput
           value={state.searchTerm}
           onChange={(v) => actions.setSearchTerm(v)}
@@ -80,7 +72,7 @@ function CollectionDetailViewContent({ databaseName, collectionName, connectionI
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-6 space-y-4 bg-muted/5">
+      <div className="flex-1 overflow-auto p-4 space-y-4">
         <CollectionViewDocumentList />
       </div>
 

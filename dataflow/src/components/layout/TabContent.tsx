@@ -4,7 +4,6 @@ import { SQLEditorView } from '@/components/editor/SQLEditorView';
 import { TableDetailView } from '@/components/database/sql/TableDetailView';
 import { CollectionDetailView } from '@/components/database/mongodb/CollectionDetailView';
 import { RedisDetailView } from '@/components/database/redis/RedisDetailView';
-import { Database } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 
 export function TabContent() {
@@ -89,11 +88,11 @@ export function TabContent() {
     // Render all tabs but only show the active one
     // This preserves state for inactive tabs
     return (
-        <div className="flex-1 flex flex-col overflow-hidden relative">
+        <div className="flex-1 flex flex-col overflow-hidden relative p-2 pt-0">
             {tabs.map(tab => (
                 <div
                     key={tab.id}
-                    className={tab.id === activeTabId ? 'flex-1 flex flex-col overflow-hidden' : 'hidden'}
+                    className={tab.id === activeTabId ? 'flex-1 flex flex-col overflow-hidden rounded-lg border border-border/50' : 'hidden'}
                 >
                     {renderTabContent(tab)}
                 </div>

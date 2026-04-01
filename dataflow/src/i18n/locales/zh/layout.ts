@@ -10,4 +10,5 @@ export const zhLayoutMessages = {
   'layout.tab.close': '关闭标签页',
   'layout.tab.closeOthers': '关闭其他标签页',
   'layout.tab.closeAll': '关闭所有标签页',
+  'layout.tab.newQuery': '新建查询',
 } as const
