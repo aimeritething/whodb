@@ -117,7 +117,7 @@ export function TabBar() {
     };
 
     return (
-        <ScrollArea className="">
+        <ScrollArea className="border-b border-sidebar-border mb-2">
             <div className="flex items-center pr-2">
                 {tabs.map(tab => (
                     <TabItem
