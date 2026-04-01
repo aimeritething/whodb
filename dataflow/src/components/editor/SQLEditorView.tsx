@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Play, AlignLeft, CheckCircle, AlertCircle, FileText, Loader2, XCircle, CheckCircle2, GalleryVerticalEnd, PenTool, Database, Network } from "lucide-react";
+import { Play, AlignLeft, CheckCircle, AlertCircle, FileText, Loader2, XCircle, CheckCircle2, GalleryVerticalEnd, Database, Network } from "lucide-react";
 import { format } from 'sql-formatter';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -9,7 +9,7 @@ import type { editor } from 'monaco-editor';
 import { useConnectionStore } from "@/stores/useConnectionStore";
 import { useRawExecuteLazyQuery } from '@graphql';
 import { getEditorLanguage, isReadOperation, supportsSchema } from "@/utils/database-features";
-import { splitSQLStatements } from '@/utils/sql-split';
+import { splitRedisCommands, splitSQLStatements } from '@/utils/sql-split';
 import { useTabStore } from "@/stores/useTabStore";
 import { useI18n } from "@/i18n/useI18n";
 
@@ -30,6 +30,14 @@ interface SQLEditorViewProps {
     ) => void;
 }
 
+interface StatementResult {
+    columns: string[];
+    rows: Record<string, string>[];
+    info: string;
+    isError?: boolean;
+    sql: string;
+}
+
 /** SQL editor with integrated database/schema selectors and query execution. */
 export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQueryResults }: SQLEditorViewProps) {
     const { t } = useI18n();
@@ -39,7 +47,7 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
     const [activeResultTab, setActiveResultTab] = useState<'result' | 'message'>('result');
     const [query, setQuery] = useState(initialSql || "");
     const [isExecuting, setIsExecuting] = useState(false);
-    const [queryResults, setQueryResults] = useState<any>(null);
+    const [queryResults, setQueryResults] = useState<StatementResult[] | null>(null);
     const [executionTime, setExecutionTime] = useState<number | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -84,14 +92,16 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
     };
 
     const handleRun = async () => {
-        const statements = splitSQLStatements(query);
+        const statements = connectionType.toUpperCase() === 'REDIS'
+            ? splitRedisCommands(query)
+            : splitSQLStatements(query);
         if (statements.length === 0) return;
 
         setIsExecuting(true);
         setErrorMessage(null);
         setQueryResults(null);
         const startTime = Date.now();
-        const results: any[] = [];
+        const results: StatementResult[] = [];
 
         for (let idx = 0; idx < statements.length; idx++) {
             const sql = statements[idx];
@@ -380,7 +390,7 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                             <div className="w-full text-sm">
                                 {queryResults && queryResults.length > 0 ? (
                                     <div className="divide-y divide-border">
-                                        {queryResults.map((result: any, resultIndex: number) => (
+                                        {queryResults.map((result, resultIndex) => (
                                             <div key={resultIndex} className="flex flex-col">
                                                 {/* Result Header */}
                                                 <div className="flex flex-col border-b border-border/50">
@@ -412,16 +422,10 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                                                             </span>
                                                         </div>
                                                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                                            {result.rows && !result.isError && (
+                                                            {!result.isError && (
                                                                 <span className="flex items-center gap-1.5">
                                                                     <GalleryVerticalEnd className="h-3.5 w-3.5" />
                                                                     {t('sql.editor.rows', { count: result.rows.length })}
-                                                                </span>
-                                                            )}
-                                                            {result.affectedRows !== undefined && (
-                                                                <span className="flex items-center gap-1.5">
-                                                                    <PenTool className="h-3.5 w-3.5" />
-                                                                    {t('sql.editor.rowsAffected', { count: result.affectedRows })}
                                                                 </span>
                                                             )}
                                                         </div>
@@ -448,7 +452,7 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                                                         <thead className="bg-muted sticky top-0 z-10">
                                                             <tr>
                                                                 <th className="border-b border-r px-4 py-2 font-medium text-muted-foreground w-16 text-center bg-muted">#</th>
-                                                                {result.columns?.map((col: string, i: number) => (
+                                                                {result.columns.map((col, i) => (
                                                                     <th key={i} className="border-b border-r px-4 py-2 font-medium text-muted-foreground bg-muted whitespace-nowrap">
                                                                         {col}
                                                                     </th>
@@ -456,13 +460,13 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                                                             </tr>
                                                         </thead>
                                                         <tbody>
-                                                            {result.rows?.length > 0 ? (
-                                                                result.rows.map((row: any, i: number) => (
+                                                            {result.rows.length > 0 ? (
+                                                                result.rows.map((row, i) => (
                                                                     <tr key={i} className="hover:bg-muted/10">
                                                                         <td className="border-b border-r px-4 py-1.5 text-muted-foreground text-center bg-muted/5 font-mono text-xs">
                                                                             {i + 1}
                                                                         </td>
-                                                                        {result.columns?.map((col: string, j: number) => (
+                                                                        {result.columns.map((col, j) => (
                                                                             <td key={j} className="border-b border-r px-4 py-1.5 whitespace-nowrap max-w-[300px] truncate">
                                                                                 {typeof row[col] === 'object' ? JSON.stringify(row[col]) : String(row[col] ?? '')}
                                                                             </td>
@@ -471,7 +475,7 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                                                                 ))
                                                             ) : (
                                                                 <tr>
-                                                                    <td colSpan={(result.columns?.length || 0) + 1} className="px-4 py-8 text-center text-muted-foreground">
+                                                                    <td colSpan={result.columns.length + 1} className="px-4 py-8 text-center text-muted-foreground">
                                                                         {t('sql.editor.noRowsReturned')}
                                                                     </td>
                                                                 </tr>
@@ -507,7 +511,7 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                                             <CheckCircle className="h-3.5 w-3.5" />
                                             <span>
                                                 {t('sql.editor.affectedRowsWithTime', {
-                                                    count: Array.isArray(queryResults) ? queryResults.reduce((acc: number, res: any) => acc + (res.rows?.length || 0), 0) : 0,
+                                                    count: queryResults.reduce((acc, res) => acc + res.rows.length, 0),
                                                     time: executionTime?.toFixed(3) ?? 0,
                                                 })}
                                             </span>

@@ -1,4 +1,27 @@
-import { splitSQLStatements } from '../sql-split';
+import { splitRedisCommands, splitSQLStatements } from '../sql-split';
+
+describe('splitRedisCommands', () => {
+  it('splits commands by newline', () => {
+    expect(splitRedisCommands('GET key1\nSET key2 value')).toEqual(['GET key1', 'SET key2 value']);
+  });
+
+  it('returns single command as-is', () => {
+    expect(splitRedisCommands('GET key1')).toEqual(['GET key1']);
+  });
+
+  it('ignores empty lines', () => {
+    expect(splitRedisCommands('GET key1\n\n\nSET key2 value')).toEqual(['GET key1', 'SET key2 value']);
+  });
+
+  it('ignores empty input', () => {
+    expect(splitRedisCommands('')).toEqual([]);
+    expect(splitRedisCommands('   ')).toEqual([]);
+  });
+
+  it('trims whitespace from each command', () => {
+    expect(splitRedisCommands('  GET key1  \n  HGETALL myhash  ')).toEqual(['GET key1', 'HGETALL myhash']);
+  });
+});
 
 describe('splitSQLStatements', () => {
   it('splits simple statements', () => {
@@ -70,5 +93,12 @@ describe('splitSQLStatements', () => {
 
   it('preserves semicolons inside backtick-quoted identifiers', () => {
     expect(splitSQLStatements('SELECT `col;name`; SELECT 2')).toEqual(['SELECT `col;name`', 'SELECT 2']);
+  });
+
+  it('treats unclosed block comment as part of the statement', () => {
+    expect(splitSQLStatements('SELECT 1; /* unclosed comment ; SELECT 2')).toEqual([
+      'SELECT 1',
+      '/* unclosed comment ; SELECT 2',
+    ]);
   });
 });

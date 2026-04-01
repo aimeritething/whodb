@@ -1,4 +1,12 @@
 /**
+ * Splits a Redis input into individual commands on newlines.
+ * Each non-empty, trimmed line becomes one command.
+ */
+export function splitRedisCommands(input: string): string[] {
+  return input.split('\n').map((line) => line.trim()).filter(Boolean);
+}
+
+/**
  * Splits a SQL string into individual statements on semicolons,
  * respecting single-quoted strings, double-quoted identifiers,
  * backtick-quoted identifiers (MySQL), single-line comments (--),
