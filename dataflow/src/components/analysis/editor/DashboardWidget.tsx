@@ -114,7 +114,7 @@ export function DashboardWidget({
 
             {/* Maximize Button - Bottom Right */}
             {!isReadOnly && (
-                <div className="flex items-center justify-end p-2 shrink-0">
+                <div className="flex items-center justify-end p-2 shrink-0 relative z-10">
                     <button
                         onMouseDown={(e) => e.stopPropagation()}
                         onClick={() => onMaximize?.(component.id)}
