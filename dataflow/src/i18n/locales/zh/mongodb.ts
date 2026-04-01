@@ -57,6 +57,7 @@ export const zhMongodbMessages = {
   'mongodb.export.failedWithStatus': '导出失败，状态码：{status}',
   'mongodb.export.errorOccurred': '发生错误',
   'mongodb.filter.title': '筛选集合',
+  'mongodb.filter.conditions': '过滤条件',
   'mongodb.filter.noFilters': '未应用筛选条件',
   'mongodb.filter.addCondition': '添加条件',
   'mongodb.filter.addAnotherCondition': '再添加一个条件',

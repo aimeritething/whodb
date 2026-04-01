@@ -122,7 +122,7 @@ function ColumnSelector() {
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
           {t('sql.filter.visibleColumns')}
         </h3>
-        <Button variant="ghost" size="sm" onClick={toggleAllColumns} className="h-6 text-xs">
+        <Button variant="link" size="sm" onClick={toggleAllColumns} className="h-6 text-xs text-primary p-0">
           {selectedColumns.size === columns.length ? t('sql.filter.deselectAll') : t('sql.filter.selectAll')}
         </Button>
       </div>
@@ -130,7 +130,7 @@ function ColumnSelector() {
         {columns.map(col => (
           <div
             key={col}
-            className={`flex items-center gap-2 p-2 rounded-md border cursor-pointer transition-colors ${selectedColumns.has(col) ? 'bg-primary/5 border-primary/30 text-foreground' : 'bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50'}`}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${selectedColumns.has(col) ? 'bg-primary/5 border-primary/40 text-foreground' : 'bg-background border-input text-foreground hover:bg-muted/30'}`}
             onClick={() => toggleColumn(col)}
           >
             <Checkbox checked={selectedColumns.has(col)} tabIndex={-1} className="pointer-events-none" />
@@ -152,15 +152,23 @@ function ConditionList() {
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
           {t('sql.filter.conditions')}
         </h3>
-        <Button onClick={addCondition} size="sm" variant="outline" className="h-7 text-xs gap-1">
-          <Plus className="h-3 w-3" />
-          {t('sql.filter.addCondition')}
-        </Button>
+        {conditions.length > 0 && (
+          <Button onClick={addCondition} size="sm" variant="outline" className="h-7 text-xs gap-1">
+            <Plus className="h-3 w-3" />
+            {t('sql.filter.addCondition')}
+          </Button>
+        )}
       </div>
 
       {conditions.length === 0 ? (
-        <div className="text-center py-8 border border-dashed rounded-lg text-muted-foreground text-sm">
-          {t('sql.filter.emptyState')}
+        <div className="flex flex-col items-center gap-3 py-8 border border-dashed rounded-lg">
+          <Button onClick={addCondition} size="sm" className="gap-1">
+            <Plus className="h-3.5 w-3.5" />
+            {t('sql.filter.addCondition')}
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            {t('sql.filter.emptyState')}
+          </p>
         </div>
       ) : (
         <div className="space-y-2">

@@ -23,7 +23,7 @@ export function RedisFilterModal({
 }: RedisFilterModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
         <RedisFilterProvider
           open={open}
           onApply={onApply}
@@ -80,8 +80,8 @@ function RedisFilterFields() {
               className={[
                 'flex items-center justify-center rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
                 selectedTypes.includes(type)
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-transparent bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground',
+                  ? 'border-primary/40 bg-primary/5 text-primary'
+                  : 'border-input bg-background text-foreground hover:bg-muted/30',
               ].join(' ')}
             >
               {type.toUpperCase()}

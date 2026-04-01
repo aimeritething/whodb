@@ -53,7 +53,7 @@ export function FilterCollectionModal({
 }: FilterCollectionModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
         <FilterCollectionProvider
           open={open}
           fields={fields}
@@ -79,37 +79,50 @@ function FilterConditionList() {
   const usedFields = new Set(conditions.map((condition) => condition.field.trim()).filter(Boolean))
   const canAddCondition = fields.some((field) => !usedFields.has(field))
 
-  if (conditions.length === 0) {
-    return (
-      <div className="rounded-lg border border-dashed p-6 text-center">
-        <p className="text-sm text-muted-foreground">{t('mongodb.filter.noFilters')}</p>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={addCondition}
-          disabled={state.isSubmitting || !canAddCondition}
-          className="mt-4"
-        >
-          <Plus className="h-4 w-4" />
-          {t('mongodb.filter.addCondition')}
-        </Button>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-3">
-      {conditions.map((condition) => {
-        const fieldOptions = fields.filter(
-          (field) => field === condition.field || !usedFields.has(field),
-        )
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          {t('mongodb.filter.conditions')}
+        </h3>
+        {conditions.length > 0 && (
+          <Button
+            type="button"
+            onClick={addCondition}
+            size="sm"
+            variant="outline"
+            disabled={state.isSubmitting || !canAddCondition}
+            className="h-7 text-xs gap-1"
+          >
+            <Plus className="h-3 w-3" />
+            {t('mongodb.filter.addCondition')}
+          </Button>
+        )}
+      </div>
 
-        return (
-          <div key={condition.id} className="rounded-lg border p-4">
-            <div className="grid grid-cols-12 gap-3">
-              <div className="col-span-4 space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">{t('mongodb.filter.field')}</label>
+      {conditions.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-8 border border-dashed rounded-lg">
+          <Button
+            type="button"
+            size="sm"
+            onClick={addCondition}
+            disabled={state.isSubmitting || !canAddCondition}
+            className="gap-1"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {t('mongodb.filter.addCondition')}
+          </Button>
+          <p className="text-sm text-muted-foreground">{t('mongodb.filter.noFilters')}</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {conditions.map((condition) => {
+            const fieldOptions = fields.filter(
+              (field) => field === condition.field || !usedFields.has(field),
+            )
+
+            return (
+              <div key={condition.id} className="flex items-center gap-2">
                 <Select
                   value={condition.field}
                   onValueChange={(value) => updateCondition(condition.id, { field: value })}
@@ -126,10 +139,7 @@ function FilterConditionList() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
 
-              <div className="col-span-3 space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">{t('mongodb.filter.operator')}</label>
                 <Select
                   value={condition.operator}
                   onValueChange={(value) =>
@@ -137,7 +147,7 @@ function FilterConditionList() {
                   }
                   disabled={state.isSubmitting}
                 >
-                  <SelectTrigger className="h-9">
+                  <SelectTrigger className="h-9 w-28">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -148,10 +158,7 @@ function FilterConditionList() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
 
-              <div className="col-span-4 space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">{t('mongodb.filter.value')}</label>
                 <Input
                   value={condition.value}
                   onChange={(event) => updateCondition(condition.id, { value: event.target.value })}
@@ -160,12 +167,10 @@ function FilterConditionList() {
                       ? t('mongodb.filter.valueInPlaceholder')
                       : t('mongodb.filter.valuePlaceholder')
                   }
-                  className="h-9"
+                  className="flex-1 h-9"
                   disabled={state.isSubmitting}
                 />
-              </div>
 
-              <div className="col-span-1 flex items-end">
                 <Button
                   type="button"
                   variant="ghost"
@@ -173,27 +178,14 @@ function FilterConditionList() {
                   onClick={() => removeCondition(condition.id)}
                   disabled={state.isSubmitting}
                   className="h-9 w-9 text-muted-foreground hover:text-destructive"
-                  title={t('mongodb.filter.removeCondition')}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
-          </div>
-        )
-      })}
-
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={addCondition}
-        disabled={state.isSubmitting || !canAddCondition}
-        className="w-full border-dashed"
-      >
-        <Plus className="h-4 w-4" />
-        {t('mongodb.filter.addAnotherCondition')}
-      </Button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

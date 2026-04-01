@@ -66,6 +66,7 @@ export const enMongodbMessages = {
   'mongodb.export.failedWithStatus': 'Export failed with status {status}',
   'mongodb.export.errorOccurred': 'An error occurred',
   'mongodb.filter.title': 'Filter Collection',
+  'mongodb.filter.conditions': 'Filter Conditions',
   'mongodb.filter.noFilters': 'No filters applied',
   'mongodb.filter.addCondition': 'Add Condition',
   'mongodb.filter.addAnotherCondition': 'Add Another Condition',
