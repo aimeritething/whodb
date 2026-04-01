@@ -3,7 +3,7 @@ import { useAnalysisStore } from "@/stores/useAnalysisStore";
 import { Plus, Search, LayoutDashboard, SlidersHorizontal, Edit2, Trash2, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
-import { ContextMenu } from "../../ui/ContextMenu";
+import { ContextMenu } from "@/components/ui/ContextMenu";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CreateDashboardModal } from './CreateDashboardModal'
@@ -39,7 +39,7 @@ export function DashboardSidebar() {
     };
 
     return (
-        <div className="flex flex-col h-full w-64 border-r bg-background shrink-0 relative">
+        <div className="flex flex-col h-full w-full border-r bg-background relative">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b h-14">
                 <h2 className="font-semibold text-sm">{t('analysis.dashboard.listTitle')}</h2>

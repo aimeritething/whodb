@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Sidebar } from "@/components/sidebar/Sidebar";
+import { DashboardSidebar } from "@/components/dashboard-sidebar";
 
 import { ActivityBar, ActivityTab } from "./ActivityBar";
 import { AnalysisView } from "../analysis/AnalysisView";
@@ -14,8 +15,6 @@ export function MainLayout() {
     const [activeTab, setActiveTab] = useState<ActivityTab>('connections');
     const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
     const isResizing = useRef(false);
-
-    const showSidebar = activeTab === 'connections';
 
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
@@ -51,15 +50,13 @@ export function MainLayout() {
         <div className="flex h-screen w-full overflow-hidden bg-background">
             <ActivityBar activeTab={activeTab} onTabChange={setActiveTab} />
 
-            {showSidebar && (
-                <div className="relative shrink-0" style={{ width: sidebarWidth }}>
-                    <Sidebar />
-                    <div
-                        className="absolute top-0 right-0 h-full w-1 cursor-col-resize hover:bg-primary/30 active:bg-primary/50 z-10"
-                        onMouseDown={handleMouseDown}
-                    />
-                </div>
-            )}
+            <div className="relative shrink-0" style={{ width: sidebarWidth }}>
+                {activeTab === 'connections' ? <Sidebar /> : <DashboardSidebar />}
+                <div
+                    className="absolute top-0 right-0 h-full w-1 cursor-col-resize hover:bg-primary/30 active:bg-primary/50 z-10"
+                    onMouseDown={handleMouseDown}
+                />
+            </div>
 
             <main className="flex flex-1 flex-col overflow-hidden relative bg-sidebar">
                 {activeTab === 'connections' ? (
