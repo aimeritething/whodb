@@ -1,5 +1,5 @@
 import { createContext, use, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { useInlineEditing } from './useInlineEditing'
+import { useChangesetManager } from './useChangesetManager'
 import { useDataQuery } from './useDataQuery'
 import { useColumnResize } from './useColumnResize'
 import type { TableViewContextValue, TableViewState, TableViewActions, FilterCondition } from './types'
@@ -91,17 +91,40 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
 
   const closeAlert = useCallback(() => setAlert(null), [])
 
-  // ---- Inline editing (edit/add/delete rows) ----
-  const { state: editingState, actions: editingActions } = useInlineEditing({
+  const pageOffset = (currentPage - 1) * pageSize
+
+  // ---- Changeset editing ----
+  const { state: changesetState, actions: changesetActions } = useChangesetManager({
     connectionId,
     databaseName,
     schema,
     tableName,
-    primaryKey: queryState.primaryKey,
     data: queryState.data,
+    pageOffset,
+    visibleColumns,
+    primaryKey: queryState.primaryKey,
     refresh: queryActions.refresh,
     showAlert,
   })
+
+  const pendingReloadActionRef = useRef<null | (() => void)>(null)
+
+  const runWithDiscardGuard = useCallback((action: () => void) => {
+    if (!changesetState.hasPendingChanges) {
+      action()
+      return
+    }
+
+    pendingReloadActionRef.current = action
+    changesetActions.setShowDiscardModal(true)
+  }, [changesetActions, changesetState.hasPendingChanges])
+
+  const confirmDiscardAndContinue = useCallback(() => {
+    changesetActions.discardChanges()
+    changesetActions.setShowDiscardModal(false)
+    pendingReloadActionRef.current?.()
+    pendingReloadActionRef.current = null
+  }, [changesetActions])
 
   // ---- Table switch: reset state ----
   useEffect(() => {
@@ -114,47 +137,71 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
       setSortDirection(null)
       setSearchTerm('')
       setCurrentPage(1)
-      editingActions.resetEditing()
+      changesetActions.discardChanges()
     }
-  }, [connectionId, databaseName, schema, tableName, editingActions])
+  }, [changesetActions, connectionId, databaseName, schema, tableName])
+
+  useEffect(() => {
+    if (!changesetState.hasPendingChanges) return
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [changesetState.hasPendingChanges])
 
   // ---- Search submit (reset to page 1) ----
   const handleSearchSubmit = useCallback(() => {
-    setCurrentPage(1)
-    queryActions.handleSubmitRequest(0)
-  }, [queryActions.handleSubmitRequest])
+    runWithDiscardGuard(() => {
+      setCurrentPage(1)
+      queryActions.handleSubmitRequest(0)
+    })
+  }, [queryActions.handleSubmitRequest, runWithDiscardGuard])
 
   // ---- Sorting ----
   const handleSort = useCallback((column: string, direction: 'asc' | 'desc') => {
-    setSortColumn(column)
-    setSortDirection(direction)
-    setActiveColumnMenu(null)
-  }, [])
+    runWithDiscardGuard(() => {
+      setSortColumn(column)
+      setSortDirection(direction)
+      setActiveColumnMenu(null)
+    })
+  }, [runWithDiscardGuard])
 
   const clearSort = useCallback(() => {
-    setSortColumn(null)
-    setSortDirection(null)
-    setActiveColumnMenu(null)
-  }, [])
+    runWithDiscardGuard(() => {
+      setSortColumn(null)
+      setSortDirection(null)
+      setActiveColumnMenu(null)
+    })
+  }, [runWithDiscardGuard])
 
   // ---- Page change ----
   const handlePageChange = useCallback((page: number) => {
-    setCurrentPage(page)
-  }, [])
+    runWithDiscardGuard(() => {
+      setCurrentPage(page)
+    })
+  }, [runWithDiscardGuard])
 
   // ---- Page size change ----
   const handlePageSizeChange = useCallback((size: number) => {
-    setPageSize(size)
-    setCurrentPage(1)
-  }, [])
+    runWithDiscardGuard(() => {
+      setPageSize(size)
+      setCurrentPage(1)
+    })
+  }, [runWithDiscardGuard])
 
   // ---- Filter apply ----
   const handleFilterApply = useCallback((cols: string[], conditions: FilterCondition[]) => {
-    setVisibleColumns(cols)
-    setFilterConditions(conditions)
-    setCurrentPage(1)
-    queryActions.refresh()
-  }, [queryActions.refresh])
+    runWithDiscardGuard(() => {
+      setVisibleColumns(cols)
+      setFilterConditions(conditions)
+      setCurrentPage(1)
+      queryActions.refresh()
+    })
+  }, [queryActions.refresh, runWithDiscardGuard])
 
   const state: TableViewState = {
     ...queryState,
@@ -166,7 +213,7 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
     sortColumn,
     sortDirection,
     activeColumnMenu,
-    ...editingState,
+    ...changesetState,
     columnWidths,
     showExportModal,
     isFilterModalOpen,
@@ -174,7 +221,7 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
   }
 
   const actions: TableViewActions = {
-    refresh: queryActions.refresh,
+    refresh: () => runWithDiscardGuard(queryActions.refresh),
     handleSubmitRequest: queryActions.handleSubmitRequest,
     handlePageChange,
     handlePageSizeChange,
@@ -183,15 +230,15 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
     handleSort,
     clearSort,
     setActiveColumnMenu,
-    ...editingActions,
+    ...changesetActions,
     handleResizeStart,
     setIsFilterModalOpen,
     handleFilterApply,
     setShowExportModal,
+    confirmDiscardAndContinue,
     showAlert,
     closeAlert,
   }
 
   return <TableViewCtx value={{ state, actions }}>{children}</TableViewCtx>
 }
-

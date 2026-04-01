@@ -11,6 +11,7 @@ export const enCommonMessages = {
   'common.actions.ok': 'OK',
   'common.actions.submit': 'Submit',
   'common.actions.delete': 'Delete',
+  'common.actions.discard': 'Discard',
   'common.actions.retry': 'Retry',
   'common.actions.clearAll': 'Clear All',
   'common.actions.filter': 'Filter',

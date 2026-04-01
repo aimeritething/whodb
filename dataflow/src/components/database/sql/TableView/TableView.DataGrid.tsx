@@ -1,28 +1,39 @@
-import { use } from 'react'
-import {
-  Loader2,
-  Edit2,
-  Trash2,
-  Save,
-  X,
-  EyeOff,
-} from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { use, useEffect, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { Loader2, EyeOff } from 'lucide-react'
 import { useI18n } from '@/i18n/useI18n'
 import { cn } from '@/lib/utils'
 import { useTableView } from './TableViewProvider'
 import { TableViewColumnHeader } from './TableView.ColumnHeader'
 import { FindBarContext } from '@/components/database/shared/FindBar.Provider'
 
-/** Renders the data grid including `<table>`, column headers, add-row form, data rows with inline editing, and action buttons. */
+/** Renders the SQL table data grid with row-number selection, cell editing, and pending-change states. */
 export function TableViewDataGrid() {
   const { t } = useI18n()
   const { state, actions } = useTableView()
   const findBar = use(FindBarContext)
 
+  const visibleColumns = state.data?.columns?.filter((col) => state.visibleColumns.includes(col)) ?? []
   const hiddenColumnCount = state.data?.columns
     ? state.data.columns.length - state.visibleColumns.length
     : 0
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null
+      const isTypingTarget =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target?.isContentEditable
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z' && !isTypingTarget) {
+        event.preventDefault()
+        actions.undoLastChange()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [actions.undoLastChange])
 
   if (state.loading && !state.data) {
     return (
@@ -32,193 +43,182 @@ export function TableViewDataGrid() {
     )
   }
 
+  function isEditableCell(rowKey: string, column: string, isDeleted: boolean, isInserted: boolean) {
+    if (!state.canEdit || isDeleted) return false
+    if (isInserted) return true
+    if (state.primaryKey && column === state.primaryKey) return false
+    return true
+  }
+
+  function handleCellKeyDown(
+    event: ReactKeyboardEvent<HTMLInputElement>,
+    rowKey: string,
+    column: string,
+  ) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      actions.deactivateCell()
+      return
+    }
+
+    if (event.key === 'Tab') {
+      event.preventDefault()
+      actions.moveActiveCell(event.shiftKey ? 'left' : 'right')
+      return
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      actions.moveActiveCell(event.shiftKey ? 'up' : 'down')
+      return
+    }
+
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
+      event.preventDefault()
+      actions.deactivateCell()
+      actions.undoLastChange()
+      return
+    }
+
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+      event.preventDefault()
+      actions.deactivateCell()
+      actions.setShowSubmitModal(true)
+      return
+    }
+
+    if (state.activeCell?.rowKey !== rowKey || state.activeCell.column !== column) {
+      actions.activateCell(rowKey, column)
+    }
+  }
+
   return (
-    <div className="overflow-auto flex-1">
-      <table className="w-full text-sm border-collapse">
-        <thead className="bg-background border-b border-border">
+    <div className="flex-1 overflow-auto">
+      <table className="w-full border-collapse text-sm">
+        <thead className="border-b border-border bg-background">
           <tr>
-            {state.data?.columns?.filter((col: string) => state.visibleColumns.includes(col)).map((col: string, idx: number) => (
-              <TableViewColumnHeader
-                key={idx}
-                column={col}
-                index={idx}
-              />
+            <th className="sticky top-0 left-0 z-50 w-12 border-b border-r border-border/50 bg-background px-2 py-2 text-center text-xs font-semibold text-muted-foreground">
+              #
+            </th>
+            {visibleColumns.map((col, idx) => (
+              <TableViewColumnHeader key={col} column={col} index={idx} />
             ))}
-            {state.canEdit && (
-              <th className="px-6 py-2 text-right font-semibold text-xs text-muted-foreground uppercase tracking-wider border-b border-r border-border/50 w-[120px] sticky top-0 right-0 bg-background z-50 shadow-[-1px_0_0_0_rgba(0,0,0,0.05)]">
-                {t('sql.table.actions')}
-              </th>
-            )}
             {hiddenColumnCount > 0 && (
               <th
-                className="px-4 py-2 text-center font-medium text-xs text-muted-foreground border-b border-border/50 sticky top-0 bg-background z-40"
+                className="sticky top-0 z-40 border-b border-border/50 bg-background px-4 py-2 text-center text-xs font-medium text-muted-foreground"
                 title={t('sql.table.hiddenColumnsTitle', { count: hiddenColumnCount })}
               >
-                <div className="flex items-center gap-1 justify-center">
+                <div className="flex items-center justify-center gap-1">
                   <EyeOff className="h-3.5 w-3.5" />
                   <span>{hiddenColumnCount}</span>
                 </div>
               </th>
             )}
-            <th className="border-b border-border/50 w-full bg-background sticky top-0 z-40"></th>
+            <th className="sticky top-0 z-40 w-full border-b border-border/50 bg-background" />
           </tr>
         </thead>
-        <tbody className="divide-y divide-border/50 bg-background">
-          {/* Add Row */}
-          {state.canEdit && state.isAddingRow && (
-            <tr className="bg-muted border-b border-border/50">
-              {state.data?.columns?.filter((col: string) => state.visibleColumns.includes(col)).map((col: string, idx: number) => {
-                const width = state.columnWidths[col] || 120
-                return (
-                  <td key={idx} className="p-0 border-r border-border/50" style={{ width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` }}>
-                    <input
-                      type="text"
-                      autoFocus={idx === 0}
-                      className="w-full h-full min-h-[36px] bg-transparent border-none rounded-none px-6 py-2 text-sm focus:outline-none focus:bg-background focus:ring-2 focus:ring-inset focus:ring-primary transition-colors"
-                      placeholder={t('sql.table.enterValue', { column: col })}
-                      value={state.newRowData[col] || ''}
-                      onChange={(e) => actions.handleNewRowInputChange(col, e.target.value)}
-                    />
-                  </td>
-                )
-              })}
-              <td className="px-6 py-2 text-right whitespace-nowrap sticky right-0 bg-muted border-r border-border/50 shadow-[-1px_0_0_0_rgba(0,0,0,0.05)] z-20">
-                <div className="flex items-center justify-end gap-1">
-                  <Button
-                    onClick={actions.handleSaveNewRow}
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-primary"
-                    title={t('sql.table.saveNewRow')}
-                  >
-                    <Save className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    onClick={actions.handleCancelAdd}
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                    title={t('common.actions.cancel')}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </td>
-              <td className="border-b border-border/50 bg-muted"></td>
-            </tr>
-          )}
+        <tbody className="bg-background">
+          {state.renderedRows.map((row, rowIdx) => {
+            const isSelected = state.selectedRowKeys.has(row.rowKey)
 
-          {state.data?.rows?.map((row: any, rowIdx: number) => {
-            const isEditing = state.editingRowIndex === rowIdx
-            const isSelected = state.selectedRowIndex === rowIdx
             return (
               <tr
-                key={rowIdx}
-                onClick={() => {
-                  // If editing another row, close edit mode to keep only one row highlighted
-                  if (state.editingRowIndex !== null && state.editingRowIndex !== rowIdx) {
-                    actions.handleCancelEdit()
-                  }
-                  actions.setSelectedRowIndex(rowIdx)
-                }}
+                key={row.rowKey}
                 className={cn(
-                  "transition-colors group cursor-pointer",
-                  isEditing ? "bg-muted" : isSelected ? "bg-muted" : "hover:bg-muted/30"
+                  'group transition-colors',
+                  row.isInserted && 'bg-blue-100/20',
+                  row.isDeleted && 'bg-red-100/20',
+                  !row.isInserted && !row.isDeleted && 'hover:bg-muted/20',
                 )}
               >
-                {state.data?.columns?.filter((col: string) => state.visibleColumns.includes(col)).map((col: string, colIdx: number) => {
+                <td
+                  className={cn(
+                    'sticky left-0 z-30 border-b border-r border-border/50 px-2 py-2 text-center text-xs font-medium',
+                    row.isInserted && 'bg-blue-100/60',
+                    row.isDeleted && 'bg-red-100/60 text-muted-foreground line-through',
+                    isSelected && 'bg-primary text-primary-foreground',
+                  )}
+                  onClick={() => {
+                    if (state.canEdit) actions.toggleRowSelection(row.rowKey)
+                  }}
+                >
+                  {row.rowNumber ?? 'new'}
+                </td>
+
+                {visibleColumns.map((col) => {
                   const width = state.columnWidths[col] || 120
+                  const isActiveCell =
+                    state.activeCell?.rowKey === row.rowKey &&
+                    state.activeCell.column === col
+                  const editable = isEditableCell(row.rowKey, col, row.isDeleted, row.isInserted)
+                  const changed =
+                    row.changeType === 'update' &&
+                    row.originalRow[col] !== row.values[col]
                   const highlight = findBar?.state.total
-                    ? findBar.state.matches.findIndex((m) => m.rowIndex === rowIdx && m.columnKey === col) === findBar.state.currentMatchIndex
+                    ? findBar.state.matches.findIndex((match) => match.rowIndex === rowIdx && match.columnKey === col) === findBar.state.currentMatchIndex
                       ? 'current'
-                      : findBar.state.matches.some((m) => m.rowIndex === rowIdx && m.columnKey === col)
+                      : findBar.state.matches.some((match) => match.rowIndex === rowIdx && match.columnKey === col)
                         ? 'match'
                         : null
                     : null
+                  const displayValue = row.values[col]
+
                   return (
                     <td
-                      key={colIdx}
+                      key={col}
                       data-find-current={highlight === 'current' ? 'true' : undefined}
                       className={cn(
-                        "whitespace-nowrap text-sm text-foreground/80 border-b border-r border-border/50",
-                        isEditing ? "p-0" : "px-6 py-2",
-                        highlight === 'current' && "bg-blue-200 ",
-                        highlight === 'match' && "bg-blue-100/60",
+                        'border-b border-r border-border/50 text-sm text-foreground/80',
+                        isActiveCell ? 'p-0' : 'px-6 py-2',
+                        row.isInserted && 'bg-blue-100/60',
+                        row.isDeleted && 'bg-red-100/60 line-through text-muted-foreground',
+                        changed && 'bg-green-100/60',
+                        highlight === 'current' && 'bg-blue-200',
+                        highlight === 'match' && 'bg-blue-100/60',
+                        editable && !isActiveCell && 'cursor-text',
                       )}
                       style={{ width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` }}
+                      onDoubleClick={() => {
+                        if (editable) actions.activateCell(row.rowKey, col)
+                      }}
                     >
-                      {isEditing ? (
+                      {isActiveCell ? (
                         <input
+                          autoFocus
                           type="text"
-                          autoFocus={colIdx === 0}
-                          value={state.editValues[col] !== undefined ? state.editValues[col] : (row[col] ?? '')}
-                          onChange={(e) => actions.handleInputChange(col, e.target.value)}
-                          className="w-full h-full min-h-[36px] bg-transparent border-none rounded-none px-6 py-2 text-sm focus:outline-none focus:bg-background focus:ring-2 focus:ring-inset focus:ring-primary transition-colors"
+                          data-changeset-editor="true"
+                          value={state.activeDraftValue}
+                          onChange={(event) => actions.updateActiveCellValue(event.target.value)}
+                          onBlur={() => {
+                            queueMicrotask(() => {
+                              const activeElement = document.activeElement
+                              if (
+                                activeElement instanceof HTMLInputElement &&
+                                activeElement.dataset.changesetEditor === 'true'
+                              ) {
+                                return
+                              }
+                              actions.deactivateCell()
+                            })
+                          }}
+                          onKeyDown={(event) => handleCellKeyDown(event, row.rowKey, col)}
+                          className="w-full min-h-[36px] bg-transparent px-6 py-2 text-sm focus:bg-background focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
                         />
                       ) : (
-                        <span className="block truncate" title={String(row[col])}>
-                          {row[col] === null ? <span className="text-muted-foreground italic">NULL</span> : String(row[col])}
+                        <span className="block truncate" title={displayValue ?? 'NULL'}>
+                          {displayValue == null ? (
+                            <span className="italic text-muted-foreground">NULL</span>
+                          ) : (
+                            String(displayValue)
+                          )}
                         </span>
                       )}
                     </td>
                   )
                 })}
-                {state.canEdit && (
-                  <td className={cn(
-                    "px-6 py-2 text-right whitespace-nowrap sticky right-0 transition-colors z-20 shadow-[-1px_0_0_0_rgba(0,0,0,0.05)] border-r border-b border-border/50",
-                    isEditing ? "bg-muted" : isSelected ? "bg-muted" : "bg-background group-hover:bg-muted/30"
-                  )}>
-                    <div className="flex items-center justify-end gap-1">
-                      {isEditing ? (
-                        <>
-                          <Button
-                            onClick={actions.handleSave}
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-primary"
-                            title={t('common.actions.submit')}
-                          >
-                            <Save className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            onClick={actions.handleCancelEdit}
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            title={t('common.actions.cancel')}
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            onClick={() => actions.handleEditClick(row, rowIdx)}
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-primary"
-                            title={t('sql.table.editRow')}
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            onClick={() => actions.handleDeleteClick(rowIdx)}
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            title={t('sql.table.deleteRowAction')}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                )}
-                <td className={cn(
-                  "border-b border-border/50",
-                  isEditing ? "bg-muted" : ""
-                )}></td>
+
+                {hiddenColumnCount > 0 && <td className="border-b border-border/50 bg-background" />}
+                <td className="w-full border-b border-border/50 bg-background" />
               </tr>
             )
           })}

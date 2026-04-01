@@ -5,6 +5,7 @@ export const zhCommonMessages = {
   'common.actions.ok': '确定',
   'common.actions.submit': '提交',
   'common.actions.delete': '删除',
+  'common.actions.discard': '丢弃',
   'common.actions.retry': '重试',
   'common.actions.clearAll': '清除全部',
   'common.actions.filter': '筛选',

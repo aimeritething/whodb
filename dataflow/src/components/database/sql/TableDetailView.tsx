@@ -1,13 +1,16 @@
 import { Plus, Minus, Download, RefreshCw, Undo2, Eye, Send } from 'lucide-react'
 import { TableViewProvider, useTableView } from './TableView/TableViewProvider'
 import { TableViewDataGrid } from './TableView/TableView.DataGrid'
+import { buildPreviewSql, summarizeChanges } from './TableView/changeset-sql-preview'
 import { DataView } from '@/components/database/shared/DataView'
 import { FindBar } from '@/components/database/shared/FindBar'
-import { Button } from '@/components/ui/Button'
+import { ActionButton } from '@/components/ui/ActionButton'
 import { FilterTableModal } from './FilterTableModal'
 import { ExportDataModal } from './ExportDataModal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { AlertModal } from '@/components/ui/AlertModal'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { useI18n } from '@/i18n/useI18n'
 import { cn } from '@/lib/utils'
 import type { FilterChip } from '@/components/database/shared/types'
@@ -45,52 +48,81 @@ function TableDetailViewContent({ databaseName, tableName, schema }: TableDetail
     },
   }))
 
+  const previewStatements = buildPreviewSql(tableName, state.changes)
+  const summary = summarizeChanges(state.changes)
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <DataView.FilterBar
         filters={filterChips}
         onClearAll={() => actions.handleFilterApply(state.visibleColumns, [])}
       />
 
-      {/* Action bar */}
-      <div className="flex items-center justify-between h-12 pr-2">
-        <div className="flex items-center">
-          <Button variant="ghost" size="icon" onClick={actions.refresh} disabled={state.loading} title={t('sql.actions.refresh')}>
-            <RefreshCw className={cn("h-4 w-4", state.loading && "animate-spin")} />
-          </Button>
+      <div className="flex items-center justify-between border-b border-border/50 px-4 py-2">
+        <div className="flex items-center gap-2">
           {state.canEdit && (
             <>
-              <Button variant="ghost" size="icon" onClick={actions.handleAddClick} title={t('sql.actions.addData')}>
-                <Plus className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" disabled title={t('common.actions.delete')}>
-                <Minus className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" disabled title={t('common.actions.undo')}>
-                <Undo2 className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => {}} title={t('sql.actions.previewChanges')}>
-                <Eye className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => {}} title={t('common.actions.submit')}>
-                <Send className="h-4 w-4" />
-              </Button>
+              <ActionButton onClick={actions.addPendingRow}>
+                <Plus className="h-3.5 w-3.5" />
+                {t('sql.actions.addData')}
+              </ActionButton>
+              <ActionButton
+                variant="outline"
+                onClick={actions.markSelectedRowsForDelete}
+                disabled={state.selectedRowKeys.size === 0}
+              >
+                <Minus className="h-3.5 w-3.5" />
+                {t('sql.changes.deleteSelected')}
+              </ActionButton>
+              <ActionButton
+                variant="outline"
+                onClick={actions.undoLastChange}
+                disabled={state.undoStack.length === 0}
+              >
+                <Undo2 className="h-3.5 w-3.5" />
+                {t('sql.changes.undo')}
+              </ActionButton>
+              <ActionButton
+                variant="outline"
+                onClick={() => actions.setShowPreviewModal(true)}
+                disabled={!state.hasPendingChanges}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                {t('sql.actions.previewChanges')}
+              </ActionButton>
+              <ActionButton
+                onClick={() => actions.setShowSubmitModal(true)}
+                disabled={!state.hasPendingChanges}
+              >
+                <Send className="h-3.5 w-3.5" />
+                {t('sql.changes.submit', { count: state.pendingChangeCount })}
+              </ActionButton>
+              <div className="mx-1 h-4 w-px bg-border" />
             </>
           )}
-        </div>
-        <div className="flex items-center gap-2">
           <DataView.FilterButton
             onClick={() => actions.setIsFilterModalOpen(true)}
             count={state.filterConditions.length}
           />
-          <Button className="rounded-lg gap-2.5" onClick={() => actions.setShowExportModal(true)}>
-            <Download className="h-4 w-4" />
+
+          <ActionButton variant="outline" onClick={() => actions.setShowExportModal(true)}>
+            <Download className="h-3.5 w-3.5" />
             {t('sql.actions.export')}
-          </Button>
+          </ActionButton>
+
+          <ActionButton variant="outline" onClick={actions.refresh} disabled={state.loading}>
+            <div className={cn('flex items-center justify-center', state.loading && 'animate-spin')}>
+              <RefreshCw className="h-3.5 w-3.5" />
+            </div>
+            {t('sql.actions.refresh')}
+          </ActionButton>
         </div>
       </div>
 
-      <FindBar.Provider rows={state.data?.rows} columns={state.visibleColumns}>
+      <FindBar.Provider
+        rows={state.renderedRows.map((row) => row.values)}
+        columns={state.visibleColumns}
+      >
         <FindBar.Bar />
         <TableViewDataGrid />
       </FindBar.Provider>
@@ -126,20 +158,44 @@ function TableDetailViewContent({ databaseName, tableName, schema }: TableDetail
         />
       )}
 
+      <Dialog open={state.showPreviewModal} onOpenChange={actions.setShowPreviewModal}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{t('sql.changes.previewTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('sql.changes.previewDescription', { count: state.pendingChangeCount })}
+            </DialogDescription>
+          </DialogHeader>
+
+          <ScrollArea className="max-h-[60vh] rounded-md border bg-muted/20">
+            <pre className="whitespace-pre-wrap p-4 font-mono text-xs">
+              {previewStatements.join('\n\n')}
+            </pre>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
       <ConfirmationModal
-        isOpen={state.showDeleteModal}
-        onClose={() => actions.setShowDeleteModal(false)}
-        onConfirm={actions.handleConfirmDelete}
-        title={t('sql.deleteRow.title')}
-        message={t('sql.deleteRow.message')}
-        confirmText={t('sql.deleteRow.confirmText')}
-        isDestructive={true}
-        verificationText={state.deletingRowIndex !== null && state.data?.rows?.[state.deletingRowIndex] && state.primaryKey
-          ? String(state.data.rows[state.deletingRowIndex][state.primaryKey])
-          : t('common.actions.delete')}
-        verificationLabel={state.deletingRowIndex !== null && state.data?.rows?.[state.deletingRowIndex] && state.primaryKey
-          ? t('sql.deleteRow.typeToConfirm', { value: String(state.data.rows[state.deletingRowIndex][state.primaryKey]) })
-          : t('sql.deleteRow.typeConfirmation')}
+        isOpen={state.showSubmitModal}
+        onClose={() => actions.setShowSubmitModal(false)}
+        onConfirm={actions.submitChanges}
+        title={t('sql.changes.submitConfirmTitle', { count: state.pendingChangeCount })}
+        message={t('sql.changes.submitConfirmMessage', {
+          count: state.pendingChangeCount,
+          updates: summary.updates,
+          inserts: summary.inserts,
+          deletes: summary.deletes,
+        })}
+        confirmText={t('common.actions.confirm')}
+      />
+
+      <ConfirmationModal
+        isOpen={state.showDiscardModal}
+        onClose={() => actions.setShowDiscardModal(false)}
+        onConfirm={actions.confirmDiscardAndContinue}
+        title={t('sql.changes.discardTitle')}
+        message={t('sql.changes.discardMessage', { count: state.pendingChangeCount })}
+        confirmText={t('common.actions.discard')}
       />
 
       {state.alert && (
