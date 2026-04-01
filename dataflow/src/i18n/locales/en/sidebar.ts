@@ -27,8 +27,8 @@ export const enSidebarMessages = {
   'sidebar.alert.connectionFailedTitle': 'Connection Failed',
   'sidebar.alert.connectionFailedMessage':
     'Failed to connect to the database. Please check the connection settings.',
-  'sidebar.tab.queryWithDatabase': 'Query - {database}',
-  'sidebar.tab.queryWithConnection': 'Query - {connection}',
+  'sidebar.tab.queryWithDatabase': 'Query [{database}]',
+  'sidebar.tab.queryWithConnection': 'Query [{connection}]',
   'sidebar.tab.tableWithDatabase': '{table} [{database}]',
   'sidebar.tab.redisKeys': '{database} Keys',
   'sidebar.redis.allData': 'All Data',

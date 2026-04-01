@@ -1,9 +1,9 @@
-import { Plus, Download, RefreshCw } from 'lucide-react'
+import { Plus, Minus, Download, RefreshCw, Undo2, Eye, Send } from 'lucide-react'
 import { TableViewProvider, useTableView } from './TableView/TableViewProvider'
 import { TableViewDataGrid } from './TableView/TableView.DataGrid'
 import { DataView } from '@/components/database/shared/DataView'
 import { FindBar } from '@/components/database/shared/FindBar'
-import { ActionButton } from '@/components/ui/ActionButton'
+import { Button } from '@/components/ui/Button'
 import { FilterTableModal } from './FilterTableModal'
 import { ExportDataModal } from './ExportDataModal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
@@ -53,31 +53,40 @@ function TableDetailViewContent({ databaseName, tableName, schema }: TableDetail
       />
 
       {/* Action bar */}
-      <div className="border-b border-border/50 px-4 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between h-12 pr-2">
+        <div className="flex items-center">
+          <Button variant="ghost" size="icon" onClick={actions.refresh} disabled={state.loading} title={t('sql.actions.refresh')}>
+            <RefreshCw className={cn("h-4 w-4", state.loading && "animate-spin")} />
+          </Button>
           {state.canEdit && (
             <>
-              <ActionButton onClick={actions.handleAddClick}>
-                <Plus className="h-3.5 w-3.5" />
-                {t('sql.actions.addData')}
-              </ActionButton>
-              <div className="h-4 w-px bg-border mx-1" />
+              <Button variant="ghost" size="icon" onClick={actions.handleAddClick} title={t('sql.actions.addData')}>
+                <Plus className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" disabled title={t('common.actions.delete')}>
+                <Minus className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" disabled title={t('common.actions.undo')}>
+                <Undo2 className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => {}} title={t('sql.actions.previewChanges')}>
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => {}} title={t('common.actions.submit')}>
+                <Send className="h-4 w-4" />
+              </Button>
             </>
           )}
+        </div>
+        <div className="flex items-center gap-2">
           <DataView.FilterButton
             onClick={() => actions.setIsFilterModalOpen(true)}
             count={state.filterConditions.length}
           />
-          <ActionButton variant="outline" onClick={() => actions.setShowExportModal(true)}>
-            <Download className="h-3.5 w-3.5" />
+          <Button className="rounded-lg gap-2.5" onClick={() => actions.setShowExportModal(true)}>
+            <Download className="h-4 w-4" />
             {t('sql.actions.export')}
-          </ActionButton>
-          <ActionButton variant="outline" onClick={actions.refresh} disabled={state.loading}>
-            <div className={cn("flex items-center justify-center", state.loading && "animate-spin")}>
-              <RefreshCw className="h-3.5 w-3.5" />
-            </div>
-            {t('sql.actions.refresh')}
-          </ActionButton>
+          </Button>
         </div>
       </div>
 

@@ -10,6 +10,7 @@ export const zhCommonMessages = {
   'common.actions.filter': '筛选',
   'common.actions.startExport': '开始导出',
   'common.actions.refresh': '刷新',
+  'common.actions.undo': '撤销',
   'common.unknownError': '未知错误',
   'common.untitled': '未命名',
   'common.search.placeholder': '搜索...',

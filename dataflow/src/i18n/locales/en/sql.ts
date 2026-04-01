@@ -22,6 +22,7 @@ export const enSqlMessages = {
   'sql.actions.refresh': 'Refresh',
   'sql.actions.run': 'Run',
   'sql.actions.format': 'Format',
+  'sql.actions.previewChanges': 'Preview Pending Changes',
   'sql.deleteRow.title': 'Delete Row',
   'sql.deleteRow.message': 'Warning: This action cannot be undone. The selected row will be permanently deleted.',
   'sql.deleteRow.confirmText': 'Delete Row',

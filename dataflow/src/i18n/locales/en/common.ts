@@ -16,6 +16,7 @@ export const enCommonMessages = {
   'common.actions.filter': 'Filter',
   'common.actions.startExport': 'Start Export',
   'common.actions.refresh': 'Refresh',
+  'common.actions.undo': 'Undo',
   'common.unknownError': 'Unknown error',
   'common.untitled': 'Untitled',
   'common.search.placeholder': 'Search...',

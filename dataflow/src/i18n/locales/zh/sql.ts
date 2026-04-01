@@ -16,6 +16,7 @@ export const zhSqlMessages = {
   'sql.actions.refresh': '刷新',
   'sql.actions.run': '运行',
   'sql.actions.format': '格式化',
+  'sql.actions.previewChanges': '预览待提交更改',
   'sql.deleteRow.title': '删除行',
   'sql.deleteRow.message': '警告：此操作无法撤销，所选行将被永久删除。',
   'sql.deleteRow.confirmText': '删除行',
