@@ -224,7 +224,7 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
     return (
         <div className="flex h-full flex-col bg-background overflow-hidden" ref={containerRef}>
             {/* Toolbar */}
-            <div className="flex h-12 items-center justify-between border-b pr-2 shrink-0">
+            <div className="flex h-12 items-center justify-between border-b px-2 shrink-0">
                 {/* Left: Action Buttons */}
                 <div className="flex items-center">
                     <Button
@@ -233,7 +233,7 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                         onClick={handleRun}
                         disabled={isExecuting}
                     >
-                        {isExecuting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-current" />}
+                        {isExecuting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
                     </Button>
                     {getEditorLanguage(connectionType) === 'sql' && (
                         <Button
@@ -341,13 +341,13 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                     style={{ height: resultsHeight, maxHeight: '80%' }}
                 >
                     {/* Result Tabs */}
-                    <div className="flex items-center border-b px-2 bg-muted/10">
+                    <div className="flex items-center border-b bg-muted/10 h-10">
                         <Button
                             onClick={() => setActiveResultTab('result')}
                             variant="ghost"
                             size="sm"
                             className={cn(
-                                "h-auto rounded-none border-b-2 px-4 py-2 text-xs font-medium",
+                                "h-full w-25 rounded-none border-b-2 px-4 py-2 text-xs font-medium",
                                 activeResultTab === 'result' ? "border-primary text-primary bg-background" : "border-transparent text-muted-foreground hover:text-foreground"
                             )}
                         >
@@ -359,7 +359,7 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                             variant="ghost"
                             size="sm"
                             className={cn(
-                                "h-auto rounded-none border-b-2 px-4 py-2 text-xs font-medium",
+                                "h-full w-25 rounded-none border-b-2 px-4 py-2 text-xs font-medium",
                                 activeResultTab === 'message' ? "border-primary text-primary bg-background" : "border-transparent text-muted-foreground hover:text-foreground"
                             )}
                         >
