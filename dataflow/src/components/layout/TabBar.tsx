@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, FileCode, Table, Database, Plus, SplitSquareHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useTabStore, type Tab, type TabType } from '@/stores/useTabStore';
 import { cn } from '@/lib/utils';
 import { ContextMenu } from '@/components/ui/ContextMenu';
@@ -48,20 +49,24 @@ function TabItem({ tab, isActive, onActivate, onClose, onContextMenu, closeTitle
                 {tab.title}
                 {tab.isDirty && <span className="text-primary ml-1">•</span>}
             </span>
-            <Button
-                variant="ghost"
-                size="icon-xs"
-                onClick={onClose}
-                className={cn(
-                    "flex-shrink-0 transition-colors text-muted-foreground cursor-pointer",
-                    isActive
-                        ? "hover:bg-muted-foreground/20"
-                        : "hover:bg-input"
-                )}
-                title={closeTitle}
-            >
-                <X className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={onClose}
+                        className={cn(
+                            "flex-shrink-0 transition-colors text-muted-foreground cursor-pointer",
+                            isActive
+                                ? "hover:bg-muted-foreground/20"
+                                : "hover:bg-input"
+                        )}
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>{closeTitle}</TooltipContent>
+            </Tooltip>
         </div>
     );
 }
@@ -130,15 +135,19 @@ export function TabBar() {
                         closeTitle={t('layout.tab.close')}
                     />
                 ))}
-                <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    onClick={handleAddTab}
-                    className="h-9 w-9 shrink-0 rounded-none border-r border-sidebar-border hover:bg-muted"
-                    title={t('layout.tab.newQuery')}
-                >
-                    <Plus className="h-4 w-4" />
-                </Button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={handleAddTab}
+                            className="h-9 w-9 shrink-0 rounded-none border-r border-sidebar-border hover:bg-muted"
+                        >
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{t('layout.tab.newQuery')}</TooltipContent>
+                </Tooltip>
             </div>
 
             {contextMenu && (

@@ -1,6 +1,7 @@
 import { createContext, use, useState, type ReactNode } from 'react'
 import { Filter, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/Input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -210,14 +211,19 @@ function ConditionList() {
                 disabled={['IS NULL', 'IS NOT NULL'].includes(condition.operator)}
               />
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 text-muted-foreground hover:text-destructive"
-                onClick={() => removeCondition(condition.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                    onClick={() => removeCondition(condition.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('sql.filter.removeCondition')}</TooltipContent>
+              </Tooltip>
             </div>
           ))}
         </div>

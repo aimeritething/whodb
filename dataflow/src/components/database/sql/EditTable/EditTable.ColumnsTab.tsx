@@ -2,6 +2,7 @@ import { Plus, Save, Trash2, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import {
   Select,
   SelectTrigger,
@@ -115,30 +116,38 @@ export function EditTableColumnsTab() {
                 </td>
                 <td className="p-2">
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      onClick={() => saveColumn(col)}
-                      disabled={isExecuting}
-                      className="text-primary hover:text-primary/80 hover:bg-primary/5"
-                      title={t('sql.editTable.columns.save')}
-                    >
-                      {isExecuting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      onClick={() => removeColumn(col)}
-                      disabled={isExecuting}
-                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/5"
-                      title={t('sql.editTable.columns.delete')}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => saveColumn(col)}
+                          disabled={isExecuting}
+                          className="text-primary hover:text-primary/80 hover:bg-primary/5"
+                        >
+                          {isExecuting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{t('sql.editTable.columns.save')}</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => removeColumn(col)}
+                          disabled={isExecuting}
+                          className="text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{t('sql.editTable.columns.delete')}</TooltipContent>
+                    </Tooltip>
                   </div>
                 </td>
               </tr>

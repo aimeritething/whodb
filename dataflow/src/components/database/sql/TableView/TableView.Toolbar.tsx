@@ -2,6 +2,7 @@ import { Plus, Minus, Download, RefreshCw, Undo2, Eye, SendHorizontal, TerminalS
 import { useTableView } from './TableViewProvider'
 import { DataView } from '@/components/database/shared/DataView'
 import { Button } from '@/components/ui/Button'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n/useI18n'
 import { cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
@@ -34,52 +35,90 @@ export function TableViewToolbar({ connectionId, databaseName, tableName, schema
   return (
     <div className="flex items-center justify-between h-12 px-2">
       <div className="flex items-center">
-        <Button variant="ghost" size="icon" onClick={actions.refresh} disabled={state.loading}>
-          <RefreshCw className={cn('h-4 w-4', state.loading && 'animate-spin')} />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={actions.refresh} disabled={state.loading}>
+              <RefreshCw className={cn('h-4 w-4', state.loading && 'animate-spin')} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('common.actions.refresh')}</TooltipContent>
+        </Tooltip>
 
         <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-4" />
 
         {state.canEdit && (
           <>
-            <Button variant="ghost" size="icon" onClick={actions.addPendingRow}>
-              <Plus className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={actions.markSelectedRowsForDelete}
-              disabled={state.selectedRowKeys.size === 0}
-            >
-              <Minus className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={actions.undoLastChange}
-              disabled={state.undoStack.length === 0}
-            >
-              <Undo2 className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={actions.addPendingRow}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t('sql.actions.addData')}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={actions.markSelectedRowsForDelete}
+                    disabled={state.selectedRowKeys.size === 0}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('sql.changes.deleteSelected')}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={actions.undoLastChange}
+                    disabled={state.undoStack.length === 0}
+                  >
+                    <Undo2 className="h-4 w-4" />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('sql.changes.undo')}</TooltipContent>
+            </Tooltip>
 
             <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-4" />
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => actions.setShowPreviewModal(true)}
-              disabled={!state.hasPendingChanges}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => actions.setShowSubmitModal(true)}
-              disabled={!state.hasPendingChanges}
-            >
-              <SendHorizontal className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => actions.setShowPreviewModal(true)}
+                    disabled={!state.hasPendingChanges}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('sql.actions.previewChanges')}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => actions.setShowSubmitModal(true)}
+                    disabled={!state.hasPendingChanges}
+                  >
+                    <SendHorizontal className="h-4 w-4" />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('sql.actions.submitChanges')}</TooltipContent>
+            </Tooltip>
           </>
         )}
       </div>

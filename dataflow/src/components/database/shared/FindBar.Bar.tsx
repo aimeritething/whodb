@@ -1,4 +1,5 @@
 import { Search, ArrowUp, ArrowDown, X } from 'lucide-react'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { useFindBar } from './FindBar.Provider'
 import { useI18n } from '@/i18n/useI18n'
 import { cn } from '@/lib/utils'
@@ -60,37 +61,55 @@ export function FindBarBar({ className }: { className?: string }) {
         )}
 
         {/* Previous match */}
-        <button
-          type="button"
-          onClick={actions.goToPrevious}
-          disabled={state.total === 0}
-          className="flex items-center justify-center size-9 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
-          title={t('common.findBar.previousMatch')}
-        >
-          <ArrowUp className="h-4 w-4" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span>
+              <button
+                type="button"
+                onClick={actions.goToPrevious}
+                disabled={state.total === 0}
+                className="flex items-center justify-center size-9 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <ArrowUp className="h-4 w-4" />
+              </button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('common.findBar.previousMatch')}</TooltipContent>
+        </Tooltip>
 
         {/* Next match */}
-        <button
-          type="button"
-          onClick={actions.goToNext}
-          disabled={state.total === 0}
-          className="flex items-center justify-center size-9 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
-          title={t('common.findBar.nextMatch')}
-        >
-          <ArrowDown className="h-4 w-4" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span>
+              <button
+                type="button"
+                onClick={actions.goToNext}
+                disabled={state.total === 0}
+                className="flex items-center justify-center size-9 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <ArrowDown className="h-4 w-4" />
+              </button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('common.findBar.nextMatch')}</TooltipContent>
+        </Tooltip>
 
         {/* Clear / close */}
-        <button
-          type="button"
-          onClick={actions.clear}
-          disabled={!state.searchTerm}
-          className="flex items-center justify-center size-9 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
-          title={t('common.findBar.clear')}
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span>
+              <button
+                type="button"
+                onClick={actions.clear}
+                disabled={!state.searchTerm}
+                className="flex items-center justify-center size-9 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('common.findBar.clear')}</TooltipContent>
+        </Tooltip>
       </div>
     </div>
   )

@@ -3,6 +3,7 @@ import { Play, AlignLeft, CheckCircle, AlertCircle, FileText, Loader2, XCircle, 
 import { format } from 'sql-formatter';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MonacoEditor from "./MonacoEditorWrapper";
 import type { editor } from 'monaco-editor';
@@ -49,7 +50,6 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
     const [isExecuting, setIsExecuting] = useState(false);
     const [queryResults, setQueryResults] = useState<StatementResult[] | null>(null);
     const [executionTime, setExecutionTime] = useState<number | null>(null);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const { updateTab } = useTabStore();
     const { fetchDatabases, fetchSchemas } = useConnectionStore();
@@ -98,7 +98,6 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
         if (statements.length === 0) return;
 
         setIsExecuting(true);
-        setErrorMessage(null);
         setQueryResults(null);
         const startTime = Date.now();
         const results: StatementResult[] = [];
@@ -144,20 +143,14 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                     isError: true,
                     sql,
                 });
-                break;
             }
         }
 
         const endTime = Date.now();
         setExecutionTime((endTime - startTime) / 1000);
 
-        const hasError = results.some((r) => r.isError);
-        if (hasError) {
-            setErrorMessage(results.find((r) => r.isError)?.info ?? null);
-        }
-
         setQueryResults(results);
-        setActiveResultTab(hasError ? 'message' : 'result');
+        setActiveResultTab(results.some((r) => r.isError) ? 'message' : 'result');
 
         // Notify parent of the last successful read result
         const lastRead = [...results].reverse().find((r) => !r.isError && r.rows.length > 0);
@@ -227,23 +220,33 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
             <div className="flex h-12 items-center justify-between border-b px-2 shrink-0">
                 {/* Left: Action Buttons */}
                 <div className="flex items-center">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleRun}
-                        disabled={isExecuting}
-                    >
-                        {isExecuting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleRun}
+                                disabled={isExecuting}
+                            >
+                                {isExecuting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('sql.actions.run')}</TooltipContent>
+                    </Tooltip>
                     {getEditorLanguage(connectionType) === 'sql' && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={handleFormat}
-                            disabled={!query.trim()}
-                        >
-                            <AlignLeft className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={handleFormat}
+                                    disabled={!query.trim()}
+                                >
+                                    <AlignLeft className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('sql.actions.format')}</TooltipContent>
+                        </Tooltip>
                     )}
                 </div>
 
@@ -363,7 +366,11 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                                 activeResultTab === 'message' ? "border-primary text-primary bg-background" : "border-transparent text-muted-foreground hover:text-foreground"
                             )}
                         >
-                            <CheckCircle className="h-4 w-4" />
+                            {queryResults?.some(r => r.isError) ? (
+                                <AlertCircle className="h-4 w-4 text-destructive" />
+                            ) : (
+                                <CheckCircle className="h-4 w-4" />
+                            )}
                             {t('sql.editor.message')}
                         </Button>
                     </div>
@@ -431,42 +438,51 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                                                 </div>
 
                                                 {/* Result Body */}
-                                                <div className="overflow-x-auto">
-                                                    <table className="w-full border-collapse text-left">
-                                                        <thead className="bg-muted sticky top-0 z-10">
-                                                            <tr>
-                                                                <th className="border-b border-r px-4 py-2 font-medium text-muted-foreground w-16 text-center bg-muted">#</th>
-                                                                {result.columns.map((col, i) => (
-                                                                    <th key={i} className="border-b border-r px-4 py-2 font-medium text-muted-foreground bg-muted whitespace-nowrap">
-                                                                        {col}
-                                                                    </th>
-                                                                ))}
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {result.rows.length > 0 ? (
-                                                                result.rows.map((row, i) => (
-                                                                    <tr key={i} className="hover:bg-muted/10">
-                                                                        <td className="border-b border-r px-4 py-1.5 text-muted-foreground text-center bg-muted/5 font-mono text-xs">
-                                                                            {i + 1}
-                                                                        </td>
-                                                                        {result.columns.map((col, j) => (
-                                                                            <td key={j} className="border-b border-r px-4 py-1.5 whitespace-nowrap max-w-[300px] truncate">
-                                                                                {typeof row[col] === 'object' ? JSON.stringify(row[col]) : String(row[col] ?? '')}
-                                                                            </td>
-                                                                        ))}
-                                                                    </tr>
-                                                                ))
-                                                            ) : (
+                                                {result.isError ? (
+                                                    <div className="px-4 py-3">
+                                                        <div className="flex items-start gap-2 text-destructive text-sm">
+                                                            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                                                            <pre className="font-mono whitespace-pre-wrap break-all text-xs">{result.info}</pre>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="overflow-x-auto">
+                                                        <table className="w-full border-collapse text-left">
+                                                            <thead className="bg-muted sticky top-0 z-10">
                                                                 <tr>
-                                                                    <td colSpan={result.columns.length + 1} className="px-4 py-8 text-center text-muted-foreground">
-                                                                        {t('sql.editor.noRowsReturned')}
-                                                                    </td>
+                                                                    <th className="border-b border-r px-4 py-2 font-medium text-muted-foreground w-16 text-center bg-muted">#</th>
+                                                                    {result.columns.map((col, i) => (
+                                                                        <th key={i} className="border-b border-r px-4 py-2 font-medium text-muted-foreground bg-muted whitespace-nowrap">
+                                                                            {col}
+                                                                        </th>
+                                                                    ))}
                                                                 </tr>
-                                                            )}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
+                                                            </thead>
+                                                            <tbody>
+                                                                {result.rows.length > 0 ? (
+                                                                    result.rows.map((row, i) => (
+                                                                        <tr key={i} className="hover:bg-muted/10">
+                                                                            <td className="border-b border-r px-4 py-1.5 text-muted-foreground text-center bg-muted/5 font-mono text-xs">
+                                                                                {i + 1}
+                                                                            </td>
+                                                                            {result.columns.map((col, j) => (
+                                                                                <td key={j} className="border-b border-r px-4 py-1.5 whitespace-nowrap max-w-[300px] truncate">
+                                                                                    {typeof row[col] === 'object' ? JSON.stringify(row[col]) : String(row[col] ?? '')}
+                                                                                </td>
+                                                                            ))}
+                                                                        </tr>
+                                                                    ))
+                                                                ) : (
+                                                                    <tr>
+                                                                        <td colSpan={result.columns.length + 1} className="px-4 py-8 text-center text-muted-foreground">
+                                                                            {t('sql.editor.noRowsReturned')}
+                                                                        </td>
+                                                                    </tr>
+                                                                )}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -480,25 +496,43 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                         )}
                         {activeResultTab === 'message' && (
                             <div className="p-4 text-sm font-mono space-y-2">
-                                {errorMessage ? (
-                                    <div className="flex items-center gap-2 text-destructive">
-                                        <AlertCircle className="h-3.5 w-3.5" />
-                                        <span>{errorMessage}</span>
-                                    </div>
-                                ) : queryResults ? (
+                                {queryResults && queryResults.length > 0 ? (
                                     <>
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <span className="text-xs">[{new Date().toLocaleString()}]</span>
-                                            <span>{t('sql.editor.queryExecutedSuccessfully')}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-success">
-                                            <CheckCircle className="h-3.5 w-3.5" />
-                                            <span>
-                                                {t('sql.editor.affectedRowsWithTime', {
-                                                    count: queryResults.reduce((acc, res) => acc + res.rows.length, 0),
-                                                    time: executionTime?.toFixed(3) ?? 0,
-                                                })}
-                                            </span>
+                                        {queryResults.map((result, idx) => (
+                                            <div key={idx} className={cn(
+                                                "flex flex-col gap-1 rounded px-3 py-2",
+                                                result.isError ? 'bg-destructive/5' : 'bg-muted/30'
+                                            )}>
+                                                <div className="flex items-center gap-2">
+                                                    {result.isError ? (
+                                                        <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
+                                                    ) : (
+                                                        <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+                                                    )}
+                                                    <span className="font-medium text-xs">
+                                                        {t('sql.editor.resultNumber', { index: idx + 1 })}
+                                                    </span>
+                                                    {queryResults.length > 1 && (
+                                                        <code className="text-xs text-muted-foreground truncate max-w-[400px]">
+                                                            {result.sql}
+                                                        </code>
+                                                    )}
+                                                </div>
+                                                <div className={cn(
+                                                    "pl-6 text-xs",
+                                                    result.isError ? 'text-destructive' : 'text-muted-foreground'
+                                                )}>
+                                                    {result.info}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <div className="flex items-center gap-2 pt-2 border-t text-xs text-muted-foreground">
+                                            <span>{t('sql.editor.executionSummary', {
+                                                total: queryResults.length,
+                                                success: queryResults.filter(r => !r.isError).length,
+                                                failed: queryResults.filter(r => r.isError).length,
+                                                time: executionTime?.toFixed(3) ?? '0',
+                                            })}</span>
                                         </div>
                                     </>
                                 ) : (

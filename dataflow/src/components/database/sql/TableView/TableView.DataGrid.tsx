@@ -169,7 +169,7 @@ export function TableViewDataGrid() {
                       key={col}
                       data-find-current={highlight === 'current' ? 'true' : undefined}
                       className={cn(
-                        'relative border-b border-r border-border/50 text-sm text-foreground/80',
+                        'relative border-b border-r border-border/50 text-sm text-foreground/80 scroll-mt-14',
                         isActiveCell ? 'p-0' : 'px-6 py-2',
                         row.isInserted && 'bg-blue-100/60',
                         row.isDeleted && 'bg-red-100/60 line-through text-muted-foreground',

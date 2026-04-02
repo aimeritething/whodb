@@ -48,6 +48,7 @@ export const enRedisMessages = {
   'redis.key.setItemPlaceholder': 'Member value',
   'redis.key.zsetScorePlaceholder': 'Score',
   'redis.key.zsetMemberPlaceholder': 'Member value',
+  'redis.key.removeItem': 'Remove Item',
   'redis.key.addField': 'Add Field',
   'redis.key.addItem': 'Add Item',
   'redis.key.addMember': 'Add Member',

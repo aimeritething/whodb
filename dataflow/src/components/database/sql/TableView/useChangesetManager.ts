@@ -671,11 +671,10 @@ export function useChangesetManager({
     }
 
     dispatch({ type: 'prune-successes', rowKeys: successfulRowKeys })
-    showAlert(
-      t('common.alert.error'),
-      t('sql.changes.submitPartialFailure', { count: failedMessages.length }),
-      'error',
-    )
+    refresh()
+    const summary = t('sql.changes.submitPartialFailure', { count: failedMessages.length })
+    const details = failedMessages.join('\n')
+    showAlert(t('common.alert.error'), `${summary}\n\n${details}`, 'error')
   }, [
     addRowMutation,
     connectionId,

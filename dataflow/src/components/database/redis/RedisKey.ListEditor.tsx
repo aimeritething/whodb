@@ -1,5 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/Input'
 import { useModalForm } from '@/components/ui/ModalForm'
 import { useI18n } from '@/i18n/useI18n'
@@ -28,15 +29,20 @@ export function RedisKeyListEditor() {
               className="flex-1 font-mono"
               disabled={state.isSubmitting}
             />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => setListItems(draft.listItems.filter((_, itemIndex) => itemIndex !== index))}
-              disabled={state.isSubmitting || draft.listItems.length === 1}
-            >
-              <Trash2 className="h-4 w-4 text-muted-foreground" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setListItems(draft.listItems.filter((_, itemIndex) => itemIndex !== index))}
+                  disabled={state.isSubmitting || draft.listItems.length === 1}
+                >
+                  <Trash2 className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t('redis.key.removeItem')}</TooltipContent>
+            </Tooltip>
           </div>
         ))}
         <Button

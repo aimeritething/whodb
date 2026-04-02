@@ -1,6 +1,7 @@
 import { use } from 'react'
 import { FileJson, Edit2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { useCollectionView } from './CollectionViewProvider'
 import { useI18n } from '@/i18n/useI18n'
@@ -47,24 +48,32 @@ export function CollectionViewDocumentList() {
           )}
         >
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-            <Button
-              onClick={(e) => { e.stopPropagation(); actions.handleEditClick(doc) }}
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-primary"
-              title={t('mongodb.document.editAction')}
-            >
-              <Edit2 className="h-4 w-4" />
-            </Button>
-            <Button
-              onClick={(e) => { e.stopPropagation(); actions.handleDeleteClick(doc._id) }}
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-              title={t('mongodb.document.deleteAction')}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={(e) => { e.stopPropagation(); actions.handleEditClick(doc) }}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-primary"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t('mongodb.document.editAction')}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={(e) => { e.stopPropagation(); actions.handleDeleteClick(doc._id) }}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t('mongodb.document.deleteAction')}</TooltipContent>
+            </Tooltip>
           </div>
           <pre className="text-sm overflow-x-auto font-mono text-foreground/80">
             {JSON.stringify(doc, null, 2).replace(/^\{\n/, '').replace(/\n\}$/, '')}

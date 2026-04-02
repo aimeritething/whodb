@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/Input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useI18n } from '@/i18n/useI18n'
@@ -38,14 +39,28 @@ export function DataViewPagination({
           </Select>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" className="h-7 w-7"
-            disabled={currentPage === 1 || loading} onClick={() => onPageChange(1)} title={t('common.pagination.firstPage')}>
-            <ChevronsLeft className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="outline" size="icon" className="h-7 w-7"
-            disabled={currentPage === 1 || loading} onClick={() => onPageChange(Math.max(1, currentPage - 1))} title={t('common.pagination.previousPage')}>
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button variant="outline" size="icon" className="h-7 w-7"
+                  disabled={currentPage === 1 || loading} onClick={() => onPageChange(1)}>
+                  <ChevronsLeft className="h-3.5 w-3.5" />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('common.pagination.firstPage')}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button variant="outline" size="icon" className="h-7 w-7"
+                  disabled={currentPage === 1 || loading} onClick={() => onPageChange(Math.max(1, currentPage - 1))}>
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('common.pagination.previousPage')}</TooltipContent>
+          </Tooltip>
           <div className="flex items-center gap-1 mx-2">
             <span className="text-sm text-muted-foreground">{t('common.pagination.page')}</span>
             <Input className="h-7 w-12 px-1 text-center" value={currentPage} type="number"
@@ -57,14 +72,28 @@ export function DataViewPagination({
             />
             <span className="text-sm text-muted-foreground">{t('common.pagination.of')} {safeTotalPages}</span>
           </div>
-          <Button variant="outline" size="icon" className="h-7 w-7"
-            disabled={currentPage >= safeTotalPages || loading} onClick={() => onPageChange(Math.min(safeTotalPages, currentPage + 1))} title={t('common.pagination.nextPage')}>
-            <ChevronRight className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="outline" size="icon" className="h-7 w-7"
-            disabled={currentPage >= safeTotalPages || loading} onClick={() => onPageChange(safeTotalPages)} title={t('common.pagination.lastPage')}>
-            <ChevronsRight className="h-3.5 w-3.5" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button variant="outline" size="icon" className="h-7 w-7"
+                  disabled={currentPage >= safeTotalPages || loading} onClick={() => onPageChange(Math.min(safeTotalPages, currentPage + 1))}>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('common.pagination.nextPage')}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button variant="outline" size="icon" className="h-7 w-7"
+                  disabled={currentPage >= safeTotalPages || loading} onClick={() => onPageChange(safeTotalPages)}>
+                  <ChevronsRight className="h-3.5 w-3.5" />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('common.pagination.lastPage')}</TooltipContent>
+          </Tooltip>
         </div>
       </div>
     </div>

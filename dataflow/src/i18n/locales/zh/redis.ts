@@ -41,6 +41,7 @@ export const zhRedisMessages = {
   'redis.key.setItemPlaceholder': '成员值',
   'redis.key.zsetScorePlaceholder': '分数',
   'redis.key.zsetMemberPlaceholder': '成员值',
+  'redis.key.removeItem': '删除项',
   'redis.key.addField': '添加字段',
   'redis.key.addItem': '添加项目',
   'redis.key.addMember': '添加成员',
