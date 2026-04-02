@@ -275,7 +275,7 @@ export function FilterTableModal({
             initialConditions={initialConditions}
           >
             <ModalForm.Header />
-            <div className="flex-1 overflow-y-auto flex flex-col gap-6">
+            <div className="flex-1 overflow-y-auto flex flex-col gap-4">
               <ColumnSelector />
               <Separator />
               <ConditionList />

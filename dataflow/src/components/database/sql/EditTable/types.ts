@@ -8,6 +8,7 @@ export interface ColumnDefinition {
   isPrimaryKey: boolean
   isNullable: boolean
   isNew?: boolean
+  isMarkedForDeletion?: boolean
 }
 
 /** Index definition for the Edit Table indexes tab. */
@@ -18,6 +19,7 @@ export interface IndexDefinition {
   type: string
   isUnique: boolean
   isNew?: boolean
+  isMarkedForDeletion?: boolean
 }
 
 /** Foreign key definition for the Edit Table foreign keys tab. */
@@ -30,9 +32,18 @@ export interface ForeignKeyDefinition {
   onDelete: string
   onUpdate: string
   isNew?: boolean
+  isMarkedForDeletion?: boolean
 }
 
 export type EditTableTab = 'fields' | 'indexes' | 'foreignKeys'
+
+/** Result of a single DDL operation within a batch apply. */
+export interface OperationResult {
+  label: string
+  success: boolean
+  message: string
+  sql?: string
+}
 
 /** State exposed by EditTableProvider. */
 export interface EditTableState {
@@ -45,6 +56,8 @@ export interface EditTableState {
   dialect: SqlDialect
   /** Column names derived from current columns, used by index column selectors and FK column selectors. */
   columnNames: string[]
+  /** Number of pending changes across all tabs. */
+  pendingChangeCount: number
 }
 
 /** Actions exposed by EditTableProvider. */
@@ -52,19 +65,21 @@ export interface EditTableActions {
   setActiveTab: (tab: EditTableTab) => void
   // Column operations
   addColumn: () => void
-  removeColumn: (col: ColumnDefinition) => Promise<void>
   updateColumn: (id: string, field: keyof ColumnDefinition, value: string | boolean) => void
-  saveColumn: (col: ColumnDefinition) => Promise<void>
+  /** Remove a new (unsaved) column from the list, or toggle deletion mark on an existing column. */
+  toggleColumnDeletion: (col: ColumnDefinition) => void
   // Index operations
   addIndex: () => void
-  removeIndex: (idx: IndexDefinition) => Promise<void>
   updateIndex: (id: string, field: keyof IndexDefinition, value: string | boolean | string[]) => void
-  saveIndex: (idx: IndexDefinition) => Promise<void>
+  /** Remove a new (unsaved) index from the list, or toggle deletion mark on an existing index. */
+  toggleIndexDeletion: (idx: IndexDefinition) => void
   // Foreign key operations
   addForeignKey: () => void
-  removeForeignKey: (fk: ForeignKeyDefinition) => Promise<void>
   updateForeignKey: (id: string, field: keyof ForeignKeyDefinition, value: string) => void
-  saveForeignKey: (fk: ForeignKeyDefinition) => Promise<void>
+  /** Remove a new (unsaved) FK from the list, or toggle deletion mark on an existing FK. */
+  toggleForeignKeyDeletion: (fk: ForeignKeyDefinition) => void
+  /** Apply all pending changes (additions, modifications, deletions) as a batch. */
+  applyAllChanges: () => Promise<void>
 }
 
 /** Combined context value for EditTable. */

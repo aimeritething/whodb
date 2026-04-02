@@ -120,7 +120,7 @@ const ALERT_STYLES: Record<ModalAlert['type'], string> = {
 }
 
 /** Renders an inline dismissible alert banner. Returns `null` when no alert is active. */
-function ModalFormAlert() {
+function ModalFormAlert({ className }: { className?: string }) {
   const { t } = useI18n()
   const { state, actions } = useModalForm()
   if (!state.alert) return null
@@ -129,20 +129,21 @@ function ModalFormAlert() {
   const Icon = ALERT_ICONS[type]
 
   return (
-    <div role="alert" className={cn('flex items-start gap-3 rounded-lg border p-3', ALERT_STYLES[type])}>
+    <div role="alert" className={cn('flex items-start gap-3 rounded-lg border p-3', ALERT_STYLES[type], className)}>
       {Icon && <Icon className="mt-0.5 h-4 w-4 shrink-0" />}
       <div className="flex-1 flex flex-col gap-0.5">
         <p className="text-sm font-medium">{title}</p>
         <p className="text-sm opacity-80">{message}</p>
       </div>
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="icon-xs"
         onClick={actions.closeAlert}
-        className="shrink-0 rounded-sm opacity-70 hover:opacity-100"
+        className="shrink-0 opacity-70 hover:opacity-100"
       >
         <X className="h-3.5 w-3.5" />
         <span className="sr-only">{t('common.alert.dismiss')}</span>
-      </button>
+      </Button>
     </div>
   )
 }

@@ -176,7 +176,7 @@ function ExportDataFields() {
   const disabled = state.isSubmitting || isSuccess
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <FormatSelector options={FORMAT_OPTIONS} value={format} onChange={setFormat} disabled={disabled} />
 
       <div className="flex flex-col gap-2">

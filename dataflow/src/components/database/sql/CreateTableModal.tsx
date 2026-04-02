@@ -308,7 +308,7 @@ export function CreateTableModal({
           onSuccess={handleSuccess}
         >
           <ModalForm.Header />
-          <div className="flex-1 overflow-y-auto flex flex-col gap-6">
+          <div className="flex-1 overflow-y-auto flex flex-col gap-4">
             <CreateTableNameField />
             <CreateTableColumnEditor />
           </div>

@@ -54,12 +54,15 @@ export function dropDatabaseSQL(dialect: SqlDialect, name: string): string {
 }
 
 /**
- * Rename database. Only Postgres supports ALTER DATABASE RENAME.
+ * Rename database. Postgres and ClickHouse support this natively.
  * Returns null if the dialect does not support it.
  */
 export function renameDatabaseSQL(dialect: SqlDialect, oldName: string, newName: string): string | null {
   if (dialect === 'POSTGRES') {
     return `ALTER DATABASE ${quoteId(oldName, dialect)} RENAME TO ${quoteId(newName, dialect)}`;
+  }
+  if (dialect === 'CLICKHOUSE') {
+    return `RENAME DATABASE ${quoteId(oldName, dialect)} TO ${quoteId(newName, dialect)}`;
   }
   return null;
 }

@@ -122,7 +122,6 @@ export function SidebarModals({
         <EditDatabaseModal
           open
           onOpenChange={onOpenChange}
-          connectionId={activeModal.params.connectionId}
           databaseName={activeModal.params.databaseName}
           onSuccess={() => {
             const conn = connections.find((c) => c.id === activeModal.params.connectionId)

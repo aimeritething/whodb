@@ -44,7 +44,7 @@ function RedisFilterFields() {
   const { pattern, setPattern, selectedTypes, availableTypes, toggleType } = useRedisFilterCtx()
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium text-muted-foreground">{t('redis.filter.pattern')}</label>
         <div className="relative">

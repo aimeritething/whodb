@@ -30,12 +30,10 @@ function useEditDatabaseCtx(): EditDatabaseCtxValue {
 
 /** Owns business logic for renaming a database. */
 function EditDatabaseProvider({
-  connectionId,
   databaseName,
   onSuccess,
   children,
 }: {
-  connectionId: string
   databaseName: string
   onSuccess?: () => void
   children: ReactNode
@@ -45,7 +43,7 @@ function EditDatabaseProvider({
   const [newName, setNewName] = useState(databaseName)
 
   const handleSubmit = useCallback(async () => {
-    if (!newName || newName === databaseName) return
+    if (!newName.trim() || newName === databaseName) return
     const result = await renameDatabase(databaseName, newName)
     if (result.success) {
       onSuccess?.()
@@ -70,23 +68,32 @@ function EditDatabaseProvider({
 // Subcomponents
 // ---------------------------------------------------------------------------
 
-/** Input field for the new database name. */
+/** Shows current database name (disabled) and new name input. */
 function EditDatabaseFields() {
   const { t } = useI18n()
-  const { newName, setNewName } = useEditDatabaseCtx()
+  const { newName, setNewName, databaseName } = useEditDatabaseCtx()
   const { state } = useModalForm()
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-muted-foreground">
-        {t('database.name')}
-      </label>
-      <Input
-        value={newName}
-        onChange={(e) => setNewName(e.target.value)}
-        placeholder={t('database.namePlaceholder')}
-        disabled={state.isSubmitting}
-      />
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm font-medium text-muted-foreground">
+          {t('database.rename.currentName')}
+        </label>
+        <Input value={databaseName} disabled />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm font-medium text-muted-foreground">
+          {t('database.rename.newName')}
+        </label>
+        <Input
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          placeholder={t('database.rename.newNamePlaceholder')}
+          disabled={state.isSubmitting}
+          autoFocus
+        />
+      </div>
     </div>
   )
 }
@@ -95,7 +102,7 @@ function EditDatabaseFields() {
 function EditSubmitButton() {
   const { t } = useI18n()
   const { newName, databaseName } = useEditDatabaseCtx()
-  return <ModalForm.SubmitButton label={t('database.rename.submit')} disabled={!newName || newName === databaseName} />
+  return <ModalForm.SubmitButton label={t('database.rename.submit')} disabled={!newName.trim() || newName === databaseName} />
 }
 
 // ---------------------------------------------------------------------------
@@ -105,7 +112,6 @@ function EditSubmitButton() {
 interface EditDatabaseModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  connectionId: string
   databaseName: string
   onSuccess?: () => void
 }
@@ -114,7 +120,6 @@ interface EditDatabaseModalProps {
 export function EditDatabaseModal({
   open,
   onOpenChange,
-  connectionId,
   databaseName,
   onSuccess,
 }: EditDatabaseModalProps) {
@@ -127,7 +132,6 @@ export function EditDatabaseModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <EditDatabaseProvider
-          connectionId={connectionId}
           databaseName={databaseName}
           onSuccess={handleSuccess}
         >

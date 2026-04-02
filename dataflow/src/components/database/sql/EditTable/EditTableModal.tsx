@@ -22,7 +22,7 @@ function EditTableContent() {
     <Tabs
       value={state.activeTab}
       onValueChange={(v) => actions.setActiveTab(v as typeof state.activeTab)}
-      className="flex-1 flex flex-col min-h-0"
+      className="flex-1 flex flex-col"
     >
       <TabsList
         variant="line"
@@ -42,7 +42,7 @@ function EditTableContent() {
         </TabsTrigger>
       </TabsList>
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 flex flex-col overflow-y-auto px-6">
         {state.isLoading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -62,6 +62,31 @@ function EditTableContent() {
         )}
       </div>
     </Tabs>
+  )
+}
+
+/** Footer with Apply Changes and Close buttons. */
+function EditTableFooter({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n()
+  const { state, actions } = useEditTable()
+  const { pendingChangeCount, isExecuting } = state
+
+  return (
+    <ModalForm.Footer className="shrink-0 border-t bg-muted/5 px-6 py-4">
+      <Button variant="outline" onClick={onClose} disabled={isExecuting}>
+        {t('sql.editTable.close')}
+      </Button>
+      <Button
+        onClick={actions.applyAllChanges}
+        disabled={isExecuting || pendingChangeCount === 0}
+      >
+        {isExecuting ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : null}
+        {t('sql.editTable.applyChanges')}
+        {pendingChangeCount > 0 && ` (${pendingChangeCount})`}
+      </Button>
+    </ModalForm.Footer>
   )
 }
 
@@ -92,8 +117,6 @@ export function EditTableModal({
   schema,
   onSuccess,
 }: EditTableModalProps) {
-  const { t } = useI18n()
-
   const handleClose = (isOpen: boolean) => {
     if (!isOpen) onSuccess?.()
     onOpenChange(isOpen)
@@ -101,7 +124,7 @@ export function EditTableModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-5xl h-[90vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-5xl min-h-[50vh] max-h-[90vh] flex flex-col p-0">
         <EditTableProvider
           connectionId={connectionId}
           databaseName={databaseName}
@@ -112,14 +135,8 @@ export function EditTableModal({
             <ModalForm.Header />
           </div>
           <EditTableContent />
-          <div className="shrink-0 px-6 pb-4">
-            <ModalForm.Alert />
-          </div>
-          <ModalForm.Footer className="shrink-0 border-t bg-muted/5 px-6 py-4">
-            <Button variant="outline" onClick={() => handleClose(false)}>
-              {t('sql.editTable.close')}
-            </Button>
-          </ModalForm.Footer>
+          <ModalForm.Alert className="shrink-0 mx-6" />
+          <EditTableFooter onClose={() => handleClose(false)} />
         </EditTableProvider>
       </DialogContent>
     </Dialog>
