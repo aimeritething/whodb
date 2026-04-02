@@ -7,7 +7,7 @@ export function DataViewFilterButton({ onClick, count }: { onClick: () => void; 
   const { t } = useI18n()
 
   return (
-    <Button className="rounded-lg gap-2.5" onClick={onClick}>
+    <Button className="rounded-lg gap-2.5 min-w-[86px]" onClick={onClick}>
       <Filter className="h-4 w-4" />
       {t('common.actions.filter')}
       {count ? (

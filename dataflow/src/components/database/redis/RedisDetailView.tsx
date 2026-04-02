@@ -1,15 +1,13 @@
-import { Plus, Minus, Download, RefreshCw, Undo2 } from 'lucide-react'
 import { RedisViewProvider, useRedisView } from './RedisView/RedisViewProvider'
 import { RedisViewFilterBar } from './RedisView/RedisView.FilterBar'
+import { RedisViewToolbar } from './RedisView/RedisView.Toolbar'
 import { RedisViewKeyList } from './RedisView/RedisView.KeyList'
 import { DataView } from '@/components/database/shared/DataView'
-import { Button } from '@/components/ui/Button'
 import { RedisKeyModal } from './RedisKeyModal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { ExportRedisModal } from './ExportRedisModal'
 import { AlertModal } from '@/components/ui/AlertModal'
 import { RedisFilterModal } from './RedisFilterModal'
-import { cn } from '@/lib/utils'
 import { useI18n } from '@/i18n/useI18n'
 
 interface RedisDetailViewProps {
@@ -33,30 +31,7 @@ function RedisDetailViewContent({ connectionId, databaseName }: RedisDetailViewP
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Action bar */}
-      <div className="flex items-center justify-between h-12 pr-2">
-        <div className="flex items-center">
-          <Button variant="ghost" size="icon" onClick={() => actions.refresh()} disabled={state.loading} title={t('redis.actions.refresh')}>
-            <RefreshCw className={cn("h-4 w-4", state.loading && "animate-spin")} />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={actions.openAddModal} title={t('redis.actions.addKey')}>
-            <Plus className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" disabled title={t('common.actions.delete')}>
-            <Minus className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" disabled title={t('common.actions.undo')}>
-            <Undo2 className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex items-center gap-2">
-          <DataView.FilterButton onClick={() => actions.setIsFilterModalOpen(true)} />
-          <Button className="rounded-lg gap-2.5" onClick={() => actions.setShowExportModal(true)}>
-            <Download className="h-4 w-4" />
-            {t('redis.actions.export')}
-          </Button>
-        </div>
-      </div>
+      <RedisViewToolbar />
 
       <RedisViewFilterBar />
       <RedisViewKeyList />

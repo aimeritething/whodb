@@ -1,17 +1,15 @@
 import { useMemo } from 'react'
-import { Plus, Minus, Download, RefreshCw, Undo2 } from 'lucide-react'
 import { CollectionViewProvider, useCollectionView } from './CollectionView/CollectionViewProvider'
 import { CollectionViewDocumentList } from './CollectionView/CollectionView.DocumentList'
+import { CollectionViewToolbar } from './CollectionView/CollectionView.Toolbar'
 import { AddDocumentModal } from './CollectionView/CollectionView.AddDocumentModal'
 import { EditDocumentModal } from './CollectionView/CollectionView.EditDocumentModal'
 import { DataView } from '@/components/database/shared/DataView'
 import { FindBar } from '@/components/database/shared/FindBar'
-import { Button } from '@/components/ui/Button'
 import { ExportCollectionModal } from './ExportCollectionModal'
 import { FilterCollectionModal } from './FilterCollectionModal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { AlertModal } from '@/components/ui/AlertModal'
-import { cn } from '@/lib/utils'
 import { useI18n } from '@/i18n/useI18n'
 
 interface CollectionDetailViewProps {
@@ -55,33 +53,7 @@ function CollectionDetailViewContent({ databaseName, collectionName, connectionI
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Action bar */}
-      <div className="flex items-center justify-between h-12 pr-2">
-        <div className="flex items-center">
-          <Button variant="ghost" size="icon" onClick={actions.refresh} disabled={state.loading} title={t('mongodb.collection.refresh')}>
-            <RefreshCw className={cn('h-4 w-4', state.loading && 'animate-spin')} />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={actions.handleAddClick} title={t('mongodb.collection.addData')}>
-            <Plus className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" disabled title={t('common.actions.delete')}>
-            <Minus className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" disabled title={t('common.actions.undo')}>
-            <Undo2 className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex items-center gap-2">
-          <DataView.FilterButton
-            onClick={() => actions.setIsFilterModalOpen(true)}
-            count={Object.keys(state.activeFilter).length}
-          />
-          <Button className="rounded-lg gap-2.5" onClick={() => actions.setShowExportModal(true)}>
-            <Download className="h-4 w-4" />
-            {t('mongodb.collection.export')}
-          </Button>
-        </div>
-      </div>
+      <CollectionViewToolbar />
 
       <FindBar.Provider rows={state.documents} columns={docColumns}>
         <FindBar.Bar />

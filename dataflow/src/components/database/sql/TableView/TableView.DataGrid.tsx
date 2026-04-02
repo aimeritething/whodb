@@ -94,12 +94,13 @@ export function TableViewDataGrid() {
 
   return (
     <div className="flex-1 overflow-auto">
-      <table className="w-full border-collapse text-sm">
+      <table className="min-w-full border-collapse text-sm">
         <thead className="border-b border-border bg-background">
           <tr>
-            <th className="sticky top-0 left-0 z-50 w-12 border-b border-r border-border/50 bg-background px-2 py-2 text-center text-xs font-semibold text-muted-foreground">
-              #
-            </th>
+            <th
+              className="sticky top-0 left-0 z-50 border-b border-r border-border/50 bg-background px-2 py-2 text-center text-xs font-semibold text-muted-foreground"
+              style={{ width: 64, minWidth: 64, maxWidth: 64 }}
+            > </th>
             {visibleColumns.map((col, idx) => (
               <TableViewColumnHeader key={col} column={col} index={idx} />
             ))}
@@ -114,7 +115,6 @@ export function TableViewDataGrid() {
                 </div>
               </th>
             )}
-            <th className="sticky top-0 z-40 w-full border-b border-border/50 bg-background" />
           </tr>
         </thead>
         <tbody className="bg-background">
@@ -138,11 +138,12 @@ export function TableViewDataGrid() {
                     row.isDeleted && 'bg-red-100/60 text-muted-foreground line-through',
                     isSelected && 'bg-primary text-primary-foreground',
                   )}
+                  style={{ width: 64, minWidth: 64, maxWidth: 64 }}
                   onClick={() => {
                     if (state.canEdit) actions.toggleRowSelection(row.rowKey)
                   }}
                 >
-                  {row.rowNumber ?? 'new'}
+                  {row.rowNumber ?? ''}
                 </td>
 
                 {visibleColumns.map((col) => {
@@ -218,7 +219,6 @@ export function TableViewDataGrid() {
                 })}
 
                 {hiddenColumnCount > 0 && <td className="border-b border-border/50 bg-background" />}
-                <td className="w-full border-b border-border/50 bg-background" />
               </tr>
             )
           })}
