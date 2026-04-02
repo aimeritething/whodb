@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/clidey/whodb/core/graph/model"
+	"github.com/clidey/whodb/core/src/dashboard"
 	"github.com/clidey/whodb/core/src"
 	"github.com/clidey/whodb/core/src/auth"
 	"github.com/clidey/whodb/core/src/engine"
@@ -33,7 +34,19 @@ import (
 //
 // It serves as dependency injection for your app, add any dependencies you require here.
 
-type Resolver struct{}
+type Resolver struct {
+	DashboardService dashboard.ServiceAPI
+}
+
+func NewResolver() *Resolver {
+	service, err := dashboard.NewServiceFromEnv()
+	if err != nil {
+		log.Warnf("dashboard metadata disabled: %v", err)
+		return &Resolver{}
+	}
+
+	return &Resolver{DashboardService: service}
+}
 
 // GetPluginForContext returns the appropriate database plugin and config for the current session.
 func GetPluginForContext(ctx context.Context) (*engine.Plugin, *engine.PluginConfig) {
