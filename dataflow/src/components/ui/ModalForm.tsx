@@ -151,9 +151,9 @@ function ModalFormAlert() {
  * Layout wrapper for modal action buttons.
  * When no children are provided, renders default Cancel + Submit buttons.
  */
-function ModalFormFooter({ children }: { children?: ReactNode }) {
+function ModalFormFooter({ children, className }: { children?: ReactNode; className?: string }) {
   return (
-    <DialogFooter>
+    <DialogFooter className={className}>
       {children ?? (
         <>
           <ModalFormCancelButton />

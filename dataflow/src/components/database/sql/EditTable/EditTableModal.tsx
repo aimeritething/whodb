@@ -1,5 +1,5 @@
 import { Table, Key, Link as LinkIcon, Loader2 } from 'lucide-react'
-import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/Button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ModalForm } from '@/components/ui/ModalForm'
@@ -101,7 +101,7 @@ export function EditTableModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-5xl max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-5xl h-[90vh] flex flex-col p-0">
         <EditTableProvider
           connectionId={connectionId}
           databaseName={databaseName}
@@ -115,11 +115,11 @@ export function EditTableModal({
           <div className="shrink-0 px-6 pb-4">
             <ModalForm.Alert />
           </div>
-          <DialogFooter className="shrink-0 border-t bg-muted/5 px-6 py-4">
+          <ModalForm.Footer className="shrink-0 border-t bg-muted/5 px-6 py-4">
             <Button variant="outline" onClick={() => handleClose(false)}>
               {t('sql.editTable.close')}
             </Button>
-          </DialogFooter>
+          </ModalForm.Footer>
         </EditTableProvider>
       </DialogContent>
     </Dialog>
