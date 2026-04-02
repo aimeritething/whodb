@@ -38,7 +38,7 @@ export function MultiSelect({
         <button
           type="button"
           className={cn(
-            'flex w-full items-center justify-between rounded border border-transparent bg-transparent px-2 py-1 text-xs hover:border-border min-h-[26px]',
+            'flex w-full items-center justify-between rounded border border-transparent bg-transparent px-2 py-1 text-xs cursor-pointer hover:border-border min-h-[26px]',
             disabled && 'pointer-events-none opacity-50',
             className,
           )}

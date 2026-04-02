@@ -12,7 +12,7 @@ export function FindBarBar({ className }: { className?: string }) {
   const shortcutLabel = isMac ? '⌘F' : 'Ctrl+F'
 
   return (
-    <div className={cn('border-b border-t border-border/50 flex items-center justify-between', className)}>
+    <div className={cn('border-b border-t border-border/50 flex items-center justify-between px-2', className)}>
       {/* Left: search icon + input */}
       <div className="flex items-center gap-2 h-9 flex-1 px-2">
         <Search className="h-4 w-4 text-muted-foreground shrink-0" />
