@@ -179,7 +179,7 @@ function escLit(value: string): string {
 
 export function columnsQuery(dialect: SqlDialect, database: string, table: string, schema?: string): string {
   if (dialect === 'MYSQL') {
-    return `SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_KEY, COLUMN_COMMENT ` +
+    return `SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_KEY ` +
       `FROM INFORMATION_SCHEMA.COLUMNS ` +
       `WHERE TABLE_SCHEMA = '${escLit(database)}' AND TABLE_NAME = '${escLit(table)}' ` +
       `ORDER BY ORDINAL_POSITION`;
@@ -187,8 +187,7 @@ export function columnsQuery(dialect: SqlDialect, database: string, table: strin
   if (dialect === 'POSTGRES') {
     const s = schema || 'public';
     return `SELECT c.column_name, c.data_type, c.is_nullable, ` +
-      `CASE WHEN pk.column_name IS NOT NULL THEN 'PRI' ELSE '' END AS column_key, ` +
-      `'' AS column_comment ` +
+      `CASE WHEN pk.column_name IS NOT NULL THEN 'PRI' ELSE '' END AS column_key ` +
       `FROM information_schema.columns c ` +
       `LEFT JOIN (` +
       `SELECT kcu.column_name FROM information_schema.table_constraints tc ` +

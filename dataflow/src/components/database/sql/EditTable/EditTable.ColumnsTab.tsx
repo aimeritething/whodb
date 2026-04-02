@@ -26,7 +26,7 @@ const COLUMN_TYPES = [
 
 /**
  * Columns tab for EditTableModal — per-row save/delete for column definitions.
- * Renders a table of columns with name, type, PK, nullable, comment, and action buttons.
+ * Renders a table of columns with name, type, nullable, and action buttons.
  * Consumes `useEditTable()` for all state and actions.
  */
 export function EditTableColumnsTab() {
@@ -54,9 +54,7 @@ export function EditTableColumnsTab() {
             <tr>
               <th className="px-3 py-2 text-left font-medium">{t('sql.editTable.columns.name')}</th>
               <th className="px-3 py-2 text-left font-medium">{t('sql.editTable.columns.type')}</th>
-              <th className="px-3 py-2 text-center font-medium w-14">{t('sql.editTable.columns.pk')}</th>
               <th className="px-3 py-2 text-center font-medium w-14">{t('sql.editTable.columns.null')}</th>
-              <th className="px-3 py-2 text-left font-medium">{t('sql.editTable.columns.comment')}</th>
               <th className="px-3 py-2 w-20">{t('sql.editTable.columns.actions')}</th>
             </tr>
           </thead>
@@ -70,6 +68,7 @@ export function EditTableColumnsTab() {
                   <Input
                     value={col.name}
                     onChange={(e) => updateColumn(col.id, 'name', e.target.value)}
+                    readOnly={!col.isNew}
                     className="h-auto border-transparent bg-transparent px-2 py-1 shadow-none focus-visible:border-primary focus-visible:ring-0 focus-visible:bg-background"
                     placeholder={t('sql.editTable.columns.columnNamePlaceholder')}
                     disabled={isExecuting}
@@ -93,24 +92,8 @@ export function EditTableColumnsTab() {
                 </td>
                 <td className="p-2 text-center">
                   <Checkbox
-                    checked={col.isPrimaryKey}
-                    onCheckedChange={(checked) => updateColumn(col.id, 'isPrimaryKey', checked === true)}
-                    disabled={isExecuting}
-                  />
-                </td>
-                <td className="p-2 text-center">
-                  <Checkbox
                     checked={col.isNullable}
                     onCheckedChange={(checked) => updateColumn(col.id, 'isNullable', checked === true)}
-                    disabled={isExecuting}
-                  />
-                </td>
-                <td className="p-2">
-                  <Input
-                    value={col.comment}
-                    onChange={(e) => updateColumn(col.id, 'comment', e.target.value)}
-                    className="h-auto border-transparent bg-transparent px-2 py-1 shadow-none focus-visible:border-primary focus-visible:ring-0 focus-visible:bg-background text-muted-foreground text-xs"
-                    placeholder={t('sql.editTable.columns.commentPlaceholder')}
                     disabled={isExecuting}
                   />
                 </td>

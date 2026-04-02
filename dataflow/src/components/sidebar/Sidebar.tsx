@@ -364,7 +364,10 @@ function SidebarInner() {
       case "view_folder":
         return getViewFolderMenuItems(callbacks);
       case "table":
-        return getTableMenuItems(callbacks);
+        return getTableMenuItems(
+          connections.find((c) => c.id === node.connectionId)!.type,
+          callbacks,
+        );
       case "view":
         return getViewMenuItems(callbacks);
       case "collection":

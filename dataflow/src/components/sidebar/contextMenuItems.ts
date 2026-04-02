@@ -146,13 +146,15 @@ export function getViewFolderMenuItems(callbacks: MenuCallbacks): ContextMenuIte
   ];
 }
 
-export function getTableMenuItems(callbacks: MenuCallbacks): ContextMenuItem[] {
+export function getTableMenuItems(connectionType: ConnectionType, callbacks: MenuCallbacks): ContextMenuItem[] {
   const { onAction, t } = callbacks;
   return [
     { label: t("sidebar.menu.exportData"), onClick: () => onAction("export_data"), icon: React.createElement(Download, { className: "h-4 w-4" }) },
     { label: t("sidebar.menu.duplicateTable"), onClick: () => onAction("copy_table"), icon: React.createElement(Copy, { className: "h-4 w-4" }) },
     { separator: true },
-    { label: t("sidebar.menu.designTable"), onClick: () => onAction("edit_table"), icon: React.createElement(Edit2, { className: "h-4 w-4" }) },
+    ...(connectionType === "CLICKHOUSE"
+      ? []
+      : [{ label: t("sidebar.menu.designTable"), onClick: () => onAction("edit_table"), icon: React.createElement(Edit2, { className: "h-4 w-4" }) }] as ContextMenuItem[]),
     { label: t("sidebar.menu.renameTable"), onClick: () => onAction("rename_table"), icon: React.createElement(Edit2, { className: "h-4 w-4" }) },
     { separator: true },
     { label: t("sidebar.menu.clearData"), onClick: () => onAction("clear_table_data"), icon: React.createElement(Eraser, { className: "h-4 w-4" }) },

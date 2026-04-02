@@ -85,6 +85,13 @@ interface OperationResult {
   executedSql?: string
 }
 
+export function resolveForeignKeyDropName(
+  foreignKey: ForeignKeyDefinition,
+  originalForeignKeys: ForeignKeyDefinition[],
+) {
+  return originalForeignKeys.find((originalForeignKey) => originalForeignKey.id === foreignKey.id)?.name ?? foreignKey.name
+}
+
 /** Inner bridge that owns all state, schema fetching, DDL execution, and per-row CRUD handlers. */
 function EditTableBridge({
   connectionId,
@@ -154,7 +161,6 @@ function EditTableBridge({
             type: get('column_type') || get('data_type') || get('type'),
             isPrimaryKey: (get('column_key') || get('pk')) === 'PRI' || get('pk') === '1',
             isNullable: (get('is_nullable') || get('notnull')) !== 'NO' && get('notnull') !== '1',
-            comment: get('column_comment') || '',
             isNew: false,
           }
         })
@@ -177,7 +183,6 @@ function EditTableBridge({
             columns: (get('columns') || get('column_name') || '').split(',').filter(Boolean),
             type: get('index_type') || 'BTREE',
             isUnique: get('is_unique') === 'true' || get('is_unique') === 't' || get('non_unique') === '0',
-            comment: '',
             isNew: false,
           }
         })
@@ -282,7 +287,6 @@ function EditTableBridge({
         type: 'VARCHAR(255)',
         isPrimaryKey: false,
         isNullable: true,
-        comment: '',
         isNew: true,
       },
     ])
@@ -351,7 +355,6 @@ function EditTableBridge({
         columns: [],
         type: 'BTREE',
         isUnique: false,
-        comment: '',
         isNew: true,
       },
     ])
@@ -471,7 +474,12 @@ function EditTableBridge({
 
     // For existing FKs, drop first
     if (!fk.isNew) {
-      const dropSql = dropForeignKeySQL(dialect, tableName, fk.name, schema)
+      const dropSql = dropForeignKeySQL(
+        dialect,
+        tableName,
+        resolveForeignKeyDropName(fk, originalForeignKeys),
+        schema,
+      )
       const dropResult = await executeOperation(dropSql)
       if (!dropResult.success) {
         showResult(dropResult)

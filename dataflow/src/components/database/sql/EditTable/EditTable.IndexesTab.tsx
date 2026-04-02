@@ -3,23 +3,14 @@ import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { MultiSelect } from '@/components/ui/MultiSelect'
 import { useEditTable } from './EditTableProvider'
 import { useI18n } from '@/i18n/useI18n'
 
-const INDEX_TYPES = ['BTREE', 'HASH', 'FULLTEXT', 'SPATIAL']
-
 /**
  * Indexes tab for EditTableModal — per-row save/delete for index definitions.
- * Renders a table of indexes with name, columns (MultiSelect), type, unique, comment, and action buttons.
+ * Renders a table of indexes with name, columns (MultiSelect), unique, and action buttons.
  * Consumes `useEditTable()` for all state and actions.
  */
 export function EditTableIndexesTab() {
@@ -47,16 +38,14 @@ export function EditTableIndexesTab() {
             <tr>
               <th className="px-3 py-2 text-left font-medium">{t('sql.editTable.indexes.name')}</th>
               <th className="px-3 py-2 text-left font-medium">{t('sql.editTable.indexes.columns')}</th>
-              <th className="px-3 py-2 text-left font-medium w-24">{t('sql.editTable.indexes.type')}</th>
               <th className="px-3 py-2 text-center font-medium w-16">{t('sql.editTable.indexes.unique')}</th>
-              <th className="px-3 py-2 text-left font-medium">{t('sql.editTable.indexes.comment')}</th>
               <th className="px-3 py-2 w-20">{t('sql.editTable.indexes.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {indexes.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                <td colSpan={4} className="p-8 text-center text-muted-foreground">
                   {t('sql.editTable.indexes.empty')}
                 </td>
               </tr>
@@ -85,34 +74,9 @@ export function EditTableIndexesTab() {
                     />
                   </td>
                   <td className="p-2">
-                    <Select
-                      value={idx.type}
-                      onValueChange={(v) => updateIndex(idx.id, 'type', v)}
-                      disabled={isExecuting}
-                    >
-                      <SelectTrigger size="sm" className="w-full border-transparent bg-transparent text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {INDEX_TYPES.map((t) => (
-                          <SelectItem key={t} value={t}>{t}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="p-2 text-center">
                     <Checkbox
                       checked={idx.isUnique}
                       onCheckedChange={(checked) => updateIndex(idx.id, 'isUnique', checked === true)}
-                      disabled={isExecuting}
-                    />
-                  </td>
-                  <td className="p-2">
-                    <Input
-                      value={idx.comment}
-                      onChange={(e) => updateIndex(idx.id, 'comment', e.target.value)}
-                      className="h-auto border-transparent bg-transparent px-2 py-1 shadow-none focus-visible:border-primary focus-visible:ring-0 focus-visible:bg-background text-muted-foreground text-xs"
-                      placeholder={t('sql.editTable.indexes.commentPlaceholder')}
                       disabled={isExecuting}
                     />
                   </td>

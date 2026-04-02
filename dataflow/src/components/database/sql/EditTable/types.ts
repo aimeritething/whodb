@@ -7,7 +7,6 @@ export interface ColumnDefinition {
   type: string
   isPrimaryKey: boolean
   isNullable: boolean
-  comment: string
   isNew?: boolean
 }
 
@@ -18,7 +17,6 @@ export interface IndexDefinition {
   columns: string[]
   type: string
   isUnique: boolean
-  comment: string
   isNew?: boolean
 }
 
