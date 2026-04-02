@@ -106,7 +106,19 @@ export function TableViewColumnHeader({ column, index }: ColumnHeaderProps) {
 
       {/* Resize Handle */}
       <div
-        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 z-20"
+        data-resize-col={column}
+        className={cn(
+          'absolute right-0 top-0 -bottom-px w-1 cursor-col-resize z-20 data-[resize-active]:bg-primary/50',
+          state.resizingColumn === column && 'bg-primary/50',
+        )}
+        onMouseEnter={() => {
+          if (state.resizingColumn) return
+          document.querySelectorAll<HTMLElement>(`[data-resize-col="${column}"]`).forEach(el => { el.dataset.resizeActive = '' })
+        }}
+        onMouseLeave={() => {
+          if (state.resizingColumn) return
+          document.querySelectorAll<HTMLElement>(`[data-resize-col="${column}"]`).forEach(el => { delete el.dataset.resizeActive })
+        }}
         onMouseDown={(e) => actions.handleResizeStart(e, column)}
       />
     </th>

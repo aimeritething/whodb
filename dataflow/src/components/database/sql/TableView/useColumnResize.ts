@@ -6,9 +6,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  */
 export function useColumnResize(columns: string[] | undefined): {
   columnWidths: Record<string, number>
+  resizingColumn: string | null
   handleResizeStart: (e: React.MouseEvent, column: string) => void
 } {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
+  const [resizingColumn, setResizingColumn] = useState<string | null>(null)
   const resizingRef = useRef<{ column: string; startX: number; startWidth: number } | null>(null)
 
   // Initialize widths when columns first arrive
@@ -36,7 +38,11 @@ export function useColumnResize(columns: string[] | undefined): {
     const handleMouseUp = () => {
       if (resizingRef.current) {
         resizingRef.current = null
+        setResizingColumn(null)
         document.body.style.cursor = 'default'
+        document.querySelectorAll<HTMLElement>('[data-resize-active]').forEach(el => {
+          delete el.dataset.resizeActive
+        })
       }
     }
 
@@ -56,8 +62,9 @@ export function useColumnResize(columns: string[] | undefined): {
       startX: e.clientX,
       startWidth: columnWidths[column] || 120,
     }
+    setResizingColumn(column)
     document.body.style.cursor = 'col-resize'
   }, [columnWidths])
 
-  return { columnWidths, handleResizeStart }
+  return { columnWidths, resizingColumn, handleResizeStart }
 }

@@ -82,7 +82,7 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
   })
 
   // ---- Column resizing ----
-  const { columnWidths, handleResizeStart } = useColumnResize(queryState.data?.columns)
+  const { columnWidths, resizingColumn, handleResizeStart } = useColumnResize(queryState.data?.columns)
 
   // ---- Alert helpers ----
   const showAlert = useCallback((title: string, message: string, type: Alert['type'] = 'info') => {
@@ -215,6 +215,7 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
     activeColumnMenu,
     ...changesetState,
     columnWidths,
+    resizingColumn,
     showExportModal,
     isFilterModalOpen,
     alert,

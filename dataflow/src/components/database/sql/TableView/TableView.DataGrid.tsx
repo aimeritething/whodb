@@ -169,7 +169,7 @@ export function TableViewDataGrid() {
                       key={col}
                       data-find-current={highlight === 'current' ? 'true' : undefined}
                       className={cn(
-                        'border-b border-r border-border/50 text-sm text-foreground/80',
+                        'relative border-b border-r border-border/50 text-sm text-foreground/80',
                         isActiveCell ? 'p-0' : 'px-6 py-2',
                         row.isInserted && 'bg-blue-100/60',
                         row.isDeleted && 'bg-red-100/60 line-through text-muted-foreground',
@@ -177,7 +177,7 @@ export function TableViewDataGrid() {
                         isSelected && !row.isInserted && !row.isDeleted && !changed && 'bg-primary/10',
                         highlight === 'current' && 'bg-blue-200',
                         highlight === 'match' && 'bg-blue-100/60',
-                        editable && !isActiveCell && 'cursor-text',
+                        editable && !isActiveCell && 'cursor-default',
                       )}
                       style={{ width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` }}
                       onDoubleClick={() => {
@@ -215,6 +215,22 @@ export function TableViewDataGrid() {
                           )}
                         </span>
                       )}
+                      <div
+                        data-resize-col={col}
+                        className={cn(
+                          'absolute right-0 top-0 -bottom-px w-1 cursor-col-resize z-20 data-[resize-active]:bg-primary/50',
+                          state.resizingColumn === col && 'bg-primary/50',
+                        )}
+                        onMouseEnter={() => {
+                          if (state.resizingColumn) return
+                          document.querySelectorAll<HTMLElement>(`[data-resize-col="${col}"]`).forEach(el => { el.dataset.resizeActive = '' })
+                        }}
+                        onMouseLeave={() => {
+                          if (state.resizingColumn) return
+                          document.querySelectorAll<HTMLElement>(`[data-resize-col="${col}"]`).forEach(el => { delete el.dataset.resizeActive })
+                        }}
+                        onMouseDown={(e) => actions.handleResizeStart(e, col)}
+                      />
                     </td>
                   )
                 })}
