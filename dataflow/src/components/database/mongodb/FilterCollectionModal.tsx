@@ -1,5 +1,5 @@
 import { Plus, Search, Trash2 } from 'lucide-react'
-import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import {
@@ -202,7 +202,7 @@ function FilterCollectionFooter() {
   const { state, actions } = useModalForm()
 
   return (
-    <DialogFooter className="justify-between gap-2 sm:justify-between">
+    <ModalForm.Footer className="justify-between gap-2 sm:justify-between">
       <Button type="button" variant="ghost" onClick={clearAndClose} disabled={state.isSubmitting}>
         {t('mongodb.filter.clear')}
       </Button>
@@ -213,6 +213,6 @@ function FilterCollectionFooter() {
           {t('mongodb.filter.apply')}
         </Button>
       </div>
-    </DialogFooter>
+    </ModalForm.Footer>
   )
 }

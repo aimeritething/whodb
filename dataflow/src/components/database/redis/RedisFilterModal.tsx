@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react'
-import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ModalForm, useModalForm } from '@/components/ui/ModalForm'
@@ -99,7 +99,7 @@ function RedisFilterFooter({ onOpenChange }: { onOpenChange: (open: boolean) => 
   const { actions } = useModalForm()
 
   return (
-    <DialogFooter className="justify-between gap-2 sm:justify-between">
+    <ModalForm.Footer className="justify-between gap-2 sm:justify-between">
       <Button type="button" variant="outline" onClick={reset}>
         {t('redis.filter.reset')}
       </Button>
@@ -117,6 +117,6 @@ function RedisFilterFooter({ onOpenChange }: { onOpenChange: (open: boolean) => 
           {t('redis.filter.apply')}
         </Button>
       </div>
-    </DialogFooter>
+    </ModalForm.Footer>
   )
 }

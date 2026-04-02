@@ -6,14 +6,8 @@ import { Input } from '@/components/ui/Input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { ModalForm } from '@/components/ui/ModalForm'
 import { useI18n } from '@/i18n/useI18n'
 import type { FilterCondition } from './TableView/types'
 
@@ -274,29 +268,24 @@ export function FilterTableModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col" showCloseButton={false}>
-        <FilterTableProvider
-          columns={columns}
-          initialSelectedColumns={initialSelectedColumns}
-          initialConditions={initialConditions}
-        >
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-primary" />
-              {t('sql.filter.title')}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto space-y-6">
-            <ColumnSelector />
-            <Separator />
-            <ConditionList />
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="ghost">{t('common.actions.cancel')}</Button>
-            </DialogClose>
-            <ApplyButton onApply={onApply} onClose={() => onOpenChange(false)} />
-          </DialogFooter>
-        </FilterTableProvider>
+        <ModalForm.Provider meta={{ title: t('sql.filter.title'), icon: Filter }}>
+          <FilterTableProvider
+            columns={columns}
+            initialSelectedColumns={initialSelectedColumns}
+            initialConditions={initialConditions}
+          >
+            <ModalForm.Header />
+            <div className="flex-1 overflow-y-auto space-y-6">
+              <ColumnSelector />
+              <Separator />
+              <ConditionList />
+            </div>
+            <ModalForm.Footer>
+              <ModalForm.CancelButton />
+              <ApplyButton onApply={onApply} onClose={() => onOpenChange(false)} />
+            </ModalForm.Footer>
+          </FilterTableProvider>
+        </ModalForm.Provider>
       </DialogContent>
     </Dialog>
   )
