@@ -9,6 +9,7 @@ export const zhMongodbMessages = {
   'mongodb.collection.warningTitle': '警告：此操作无法撤销。',
   'mongodb.collection.warningMessage': '这将永久删除集合 {collectionName} 及其所有文档。',
   'mongodb.collection.export': '导出',
+  'mongodb.collection.query': '查询',
   'mongodb.collection.refresh': '刷新',
   'mongodb.collection.documents': '文档',
   'mongodb.collection.noDocuments': '当前集合中没有文档',

@@ -128,7 +128,7 @@ export function TableViewDataGrid() {
                   'group transition-colors',
                   row.isInserted && 'bg-blue-100/20',
                   row.isDeleted && 'bg-red-100/20',
-                  !row.isInserted && !row.isDeleted && 'hover:bg-muted/20',
+                  !row.isInserted && !row.isDeleted && 'hover:bg-muted/50',
                 )}
               >
                 <td
@@ -174,6 +174,7 @@ export function TableViewDataGrid() {
                         row.isInserted && 'bg-blue-100/60',
                         row.isDeleted && 'bg-red-100/60 line-through text-muted-foreground',
                         changed && 'bg-green-100/60',
+                        isSelected && !row.isInserted && !row.isDeleted && !changed && 'bg-primary/10',
                         highlight === 'current' && 'bg-blue-200',
                         highlight === 'match' && 'bg-blue-100/60',
                         editable && !isActiveCell && 'cursor-text',

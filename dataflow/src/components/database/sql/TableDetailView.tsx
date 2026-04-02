@@ -28,7 +28,7 @@ export function TableDetailView(props: TableDetailViewProps) {
   )
 }
 
-function TableDetailViewContent({ databaseName, tableName, schema }: TableDetailViewProps) {
+function TableDetailViewContent({ connectionId, databaseName, tableName, schema }: TableDetailViewProps) {
   const { t } = useI18n()
   const { state, actions } = useTableView()
 
@@ -56,7 +56,7 @@ function TableDetailViewContent({ databaseName, tableName, schema }: TableDetail
         onClearAll={() => actions.handleFilterApply(state.visibleColumns, [])}
       />
 
-      <TableViewToolbar />
+      <TableViewToolbar connectionId={connectionId} databaseName={databaseName} tableName={tableName} schema={schema} />
 
       <FindBar.Provider
         rows={state.renderedRows.map((row) => row.values)}

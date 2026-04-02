@@ -1,14 +1,35 @@
-import { Plus, Minus, Download, RefreshCw, Undo2, Eye, SendHorizontal } from 'lucide-react'
+import { Plus, Minus, Download, RefreshCw, Undo2, Eye, SendHorizontal, TerminalSquare } from 'lucide-react'
 import { useTableView } from './TableViewProvider'
 import { DataView } from '@/components/database/shared/DataView'
 import { Button } from '@/components/ui/Button'
 import { useI18n } from '@/i18n/useI18n'
 import { cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
+import { useTabStore } from '@/stores/useTabStore'
 
-export function TableViewToolbar() {
+interface TableViewToolbarProps {
+  connectionId: string
+  databaseName: string
+  tableName: string
+  schema?: string
+}
+
+export function TableViewToolbar({ connectionId, databaseName, tableName, schema }: TableViewToolbarProps) {
   const { t } = useI18n()
   const { state, actions } = useTableView()
+  const openTab = useTabStore((s) => s.openTab)
+
+  const handleOpenQuery = () => {
+    const qualifiedName = schema ? `${schema}.${tableName}` : tableName
+    openTab({
+      type: 'query',
+      title: t('sidebar.tab.queryWithDatabase', { database: databaseName }),
+      connectionId,
+      databaseName,
+      schemaName: schema,
+      sqlContent: `SELECT * FROM ${qualifiedName};`,
+    })
+  }
 
   return (
     <div className="flex items-center justify-between h-12 px-2">
@@ -70,6 +91,10 @@ export function TableViewToolbar() {
         <Button className="rounded-lg gap-2.5 min-w-[86px]" onClick={() => actions.setShowExportModal(true)}>
           <Download className="h-4 w-4" />
           {t('sql.actions.export')}
+        </Button>
+        <Button className="rounded-lg gap-2.5 min-w-[86px]" onClick={handleOpenQuery}>
+          <TerminalSquare className="h-4 w-4" />
+          {t('sql.actions.query')}
         </Button>
       </div>
     </div>

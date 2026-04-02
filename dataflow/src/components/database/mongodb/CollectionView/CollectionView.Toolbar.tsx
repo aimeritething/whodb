@@ -1,13 +1,31 @@
-import { Plus, Minus, Download, RefreshCw, Undo2 } from 'lucide-react'
+import { Plus, Minus, Download, RefreshCw, Undo2, TerminalSquare } from 'lucide-react'
 import { useCollectionView } from './CollectionViewProvider'
 import { DataView } from '@/components/database/shared/DataView'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/i18n/useI18n'
+import { useTabStore } from '@/stores/useTabStore'
 
-export function CollectionViewToolbar() {
+interface CollectionViewToolbarProps {
+  connectionId: string
+  databaseName: string
+  collectionName: string
+}
+
+export function CollectionViewToolbar({ connectionId, databaseName, collectionName }: CollectionViewToolbarProps) {
   const { t } = useI18n()
   const { state, actions } = useCollectionView()
+  const openTab = useTabStore((s) => s.openTab)
+
+  const handleOpenQuery = () => {
+    openTab({
+      type: 'query',
+      title: t('sidebar.tab.queryWithDatabase', { database: databaseName }),
+      connectionId,
+      databaseName,
+      sqlContent: `db.${collectionName}.find({});`,
+    })
+  }
 
   return (
     <div className="flex items-center justify-between h-12 pr-2">
@@ -33,6 +51,10 @@ export function CollectionViewToolbar() {
         <Button className="rounded-lg gap-2.5 min-w-[86px]" onClick={() => actions.setShowExportModal(true)}>
           <Download className="h-4 w-4" />
           {t('mongodb.collection.export')}
+        </Button>
+        <Button className="rounded-lg gap-2.5 min-w-[86px]" onClick={handleOpenQuery}>
+          <TerminalSquare className="h-4 w-4" />
+          {t('mongodb.collection.query')}
         </Button>
       </div>
     </div>

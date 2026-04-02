@@ -497,6 +497,16 @@ export function useChangesetManager({
       rowKey,
       initialValues: buildEmptyRowValues(columns),
     })
+
+    const firstColumn = visibleColumns[0]
+    if (firstColumn) {
+      dispatch({
+        type: 'activate-cell',
+        rowKey,
+        column: firstColumn,
+        initialValue: '',
+      })
+    }
   }, [data?.columns, state.newRowCounter, visibleColumns])
 
   const markSelectedRowsForDelete = useCallback(() => {

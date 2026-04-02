@@ -23,6 +23,7 @@ export const enSqlMessages = {
   'sql.actions.previewChanges': 'Preview Pending Changes',
   'sql.actions.run': 'Run',
   'sql.actions.format': 'Format',
+  'sql.actions.query': 'Query',
   'sql.changes.deleteSelected': 'Mark selected rows for delete',
   'sql.changes.undo': 'Undo last change',
   'sql.changes.previewTitle': 'Pending SQL Preview',

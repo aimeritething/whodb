@@ -9,6 +9,7 @@ export const enRedisMessages = {
   'redis.actions.addKey': 'Add Key',
   'redis.actions.export': 'Export',
   'redis.actions.refresh': 'Refresh',
+  'redis.actions.query': 'Query',
   'redis.pagination.keys': 'keys',
   'redis.filter.title': 'Filter Redis Keys',
   'redis.filter.pattern': 'Key Pattern',

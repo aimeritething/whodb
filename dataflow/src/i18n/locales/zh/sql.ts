@@ -17,6 +17,7 @@ export const zhSqlMessages = {
   'sql.actions.previewChanges': '预览待提交更改',
   'sql.actions.run': '运行',
   'sql.actions.format': '格式化',
+  'sql.actions.query': '查询',
   'sql.changes.deleteSelected': '标记所选行为删除',
   'sql.changes.undo': '撤销上一次更改',
   'sql.changes.previewTitle': '待提交 SQL 预览',

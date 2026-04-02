@@ -31,7 +31,7 @@ function RedisDetailViewContent({ connectionId, databaseName }: RedisDetailViewP
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <RedisViewToolbar />
+      <RedisViewToolbar connectionId={connectionId} databaseName={databaseName} />
 
       <RedisViewFilterBar />
       <RedisViewKeyList />

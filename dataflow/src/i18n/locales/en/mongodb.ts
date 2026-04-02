@@ -16,6 +16,7 @@ export const enMongodbMessages = {
   'mongodb.collection.warningMessage':
     'This will permanently drop the collection {collectionName} and all its documents.',
   'mongodb.collection.export': 'Export',
+  'mongodb.collection.query': 'Query',
   'mongodb.collection.refresh': 'Refresh',
   'mongodb.collection.documents': 'documents',
   'mongodb.collection.noDocuments': 'No documents found in this collection',

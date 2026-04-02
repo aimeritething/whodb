@@ -53,7 +53,7 @@ function CollectionDetailViewContent({ databaseName, collectionName, connectionI
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <CollectionViewToolbar />
+      <CollectionViewToolbar connectionId={connectionId} databaseName={databaseName} collectionName={collectionName} />
 
       <FindBar.Provider rows={state.documents} columns={docColumns}>
         <FindBar.Bar />

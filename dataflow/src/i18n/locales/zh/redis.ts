@@ -3,6 +3,7 @@ export const zhRedisMessages = {
   'redis.actions.addKey': '新增键',
   'redis.actions.export': '导出',
   'redis.actions.refresh': '刷新',
+  'redis.actions.query': '查询',
   'redis.pagination.keys': '键',
   'redis.filter.title': '筛选 Redis 键',
   'redis.filter.pattern': '键模式',
