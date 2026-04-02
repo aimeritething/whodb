@@ -93,6 +93,9 @@ export function EditTableColumnsTab() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      {col.type && !COLUMN_TYPES.includes(col.type) && (
+                        <SelectItem value={col.type}>{col.type}</SelectItem>
+                      )}
                       {COLUMN_TYPES.map((t) => (
                         <SelectItem key={t} value={t}>{t}</SelectItem>
                       ))}
