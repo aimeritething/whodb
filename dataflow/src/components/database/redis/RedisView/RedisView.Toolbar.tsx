@@ -69,7 +69,11 @@ export function RedisViewToolbar({ connectionId, databaseName }: RedisViewToolba
       </div>
       <div className="flex items-center gap-2">
         <DataView.FilterButton onClick={() => actions.setIsFilterModalOpen(true)} />
-        <Button className="rounded-lg gap-2.5 min-w-[86px]" onClick={() => actions.setShowExportModal(true)}>
+        <Button
+          className="rounded-lg gap-2.5 min-w-[86px]"
+          onClick={() => actions.setShowExportModal(true)}
+          disabled={state.loading || state.filteredKeys.length === 0}
+        >
           <Download className="h-4 w-4" />
           {t('redis.actions.export')}
         </Button>

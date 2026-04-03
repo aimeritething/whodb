@@ -26,7 +26,7 @@ export const enRedisMessages = {
   'redis.filter.currentPattern': 'Current Key Pattern',
   'redis.filter.currentTypes': 'Current Type Filter',
   'redis.filter.exportHint':
-    'Redis export currently shows the active filter for reference only. The backend still exports all keys.',
+    'Export includes the keys currently matched by the active pattern and type filters.',
   'redis.table.key': 'Key',
   'redis.table.type': 'Type',
   'redis.table.size': 'Size',
@@ -73,6 +73,7 @@ export const enRedisMessages = {
   'redis.alert.fetchKeyDetailsFailed': 'Failed to fetch key details',
   'redis.alert.fetchKeyDetailsFailedWithError': 'Failed to fetch key details: {error}',
   'redis.alert.unsupportedEditMode': 'Editing is currently supported only for string keys.',
+  'redis.alert.emptyValueRequired': 'Add at least one value before creating this key.',
   'redis.alert.saveFailed': 'Failed to save key',
   'redis.alert.saveFailedWithError': 'Failed to save key: {error}',
   'redis.alert.createSuccess': 'Key "{key}" created successfully!',

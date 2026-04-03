@@ -19,7 +19,7 @@ export const zhRedisMessages = {
   'redis.filter.currentPattern': '当前键模式',
   'redis.filter.currentTypes': '当前类型筛选',
   'redis.filter.exportHint':
-    'Redis 导出当前仅展示活动筛选作为参考，后端仍会导出全部键。',
+    '导出会包含当前模式和类型筛选命中的全部键。',
   'redis.table.key': '键',
   'redis.table.type': '类型',
   'redis.table.size': '大小',
@@ -66,6 +66,7 @@ export const zhRedisMessages = {
   'redis.alert.fetchKeyDetailsFailed': '获取键详情失败',
   'redis.alert.fetchKeyDetailsFailedWithError': '获取键详情失败：{error}',
   'redis.alert.unsupportedEditMode': '当前仅支持编辑 string 类型键。',
+  'redis.alert.emptyValueRequired': '请至少添加一条值后再创建该键。',
   'redis.alert.saveFailed': '保存键失败',
   'redis.alert.saveFailedWithError': '保存键失败：{error}',
   'redis.alert.createSuccess': '键“{key}”创建成功！',

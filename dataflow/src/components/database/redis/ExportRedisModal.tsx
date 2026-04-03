@@ -4,12 +4,14 @@ import { FormatSelector } from '@/components/database/shared/FormatSelector'
 import { ExportFooter, ExportProgress } from '@/components/database/shared/ExportProgress'
 import { useI18n } from '@/i18n/useI18n'
 import { ExportRedisProvider, useExportRedisCtx } from './ExportRedisProvider'
+import type { RedisKey } from './RedisView/types'
 
 interface ExportRedisModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   connectionId: string
   databaseName: string
+  keys: RedisKey[]
   initialPattern?: string
   initialTypes?: string[]
 }
@@ -19,6 +21,7 @@ export function ExportRedisModal({
   onOpenChange,
   connectionId,
   databaseName,
+  keys,
   initialPattern = '*',
   initialTypes = [],
 }: ExportRedisModalProps) {
@@ -29,6 +32,7 @@ export function ExportRedisModal({
           open={open}
           connectionId={connectionId}
           databaseName={databaseName}
+          keys={keys}
           initialPattern={initialPattern}
           initialTypes={initialTypes}
         >

@@ -16,6 +16,7 @@ import { RedisKeyListEditor } from './RedisKey.ListEditor'
 import { RedisKeySetEditor } from './RedisKey.SetEditor'
 import { RedisKeyZSetEditor } from './RedisKey.ZSetEditor'
 import type { RedisKeyDraft, RedisKeyType } from './redis-key.types'
+import { hasRedisDraftPayload } from './redis-key.utils'
 
 interface RedisKeyModalProps {
   open: boolean
@@ -129,7 +130,8 @@ function RedisKeyFooter() {
   const { draft, isEditMode, isStringEdit } = useRedisKeyCtx()
   const { state } = useModalForm()
   const submitLabel = draft.mode === 'edit' ? t('redis.key.saveAction') : t('redis.key.createAction')
-  const isSubmitDisabled = !draft.key.trim() || state.isSubmitting || (isEditMode && !isStringEdit)
+  const isCreateDisabled = draft.mode === 'create' && !hasRedisDraftPayload(draft)
+  const isSubmitDisabled = !draft.key.trim() || state.isSubmitting || (isEditMode && !isStringEdit) || isCreateDisabled
 
   return (
     <ModalForm.Footer>

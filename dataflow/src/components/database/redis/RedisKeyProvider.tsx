@@ -9,6 +9,7 @@ import type {
   RedisListItemDraft,
   RedisZSetItemDraft,
 } from './redis-key.types'
+import { hasRedisDraftPayload } from './redis-key.utils'
 
 /**
  * Domain context for Redis key create/edit draft state.
@@ -171,6 +172,9 @@ export function RedisKeyProvider({
 
   const handleSubmit = useCallback(async () => {
     if (!draft.key.trim()) return
+    if (draft.mode === 'create' && !hasRedisDraftPayload(draft)) {
+      throw new Error(t('redis.alert.emptyValueRequired'))
+    }
     if (draft.mode === 'edit' && draft.type !== 'string') {
       throw new Error(t('redis.alert.unsupportedEditMode'))
     }

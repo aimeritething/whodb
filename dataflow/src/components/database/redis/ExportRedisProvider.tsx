@@ -1,12 +1,20 @@
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useApolloClient } from '@apollo/client'
 import { Download, FileJson, FileText } from 'lucide-react'
 import { useConnectionStore } from '@/stores/useConnectionStore'
-import { addAuthHeader } from '@/config/auth-headers'
+import { GetStorageUnitRowsDocument, type GetStorageUnitRowsQuery, type GetStorageUnitRowsQueryVariables } from '@graphql'
 import { resolveSchemaParam } from '@/utils/database-features'
-import { downloadBlob } from '@/utils/export-utils'
+import { downloadBlob, toCSV } from '@/utils/export-utils'
 import { ModalForm, useModalForm } from '@/components/ui/ModalForm'
 import { useI18n } from '@/i18n/useI18n'
 import type { FormatOption } from '@/components/database/shared/FormatSelector'
+import type { RedisKey } from './RedisView/types'
+import {
+  REDIS_EXPORT_COLUMNS,
+  buildRedisExportRecords,
+  recordsToRedisExportNdjson,
+  recordsToRedisExportRows,
+} from './redis-export.utils'
 
 type RedisExportFormat = 'json' | 'csv'
 
@@ -53,6 +61,7 @@ interface ExportRedisProviderProps {
   open: boolean
   connectionId: string
   databaseName: string
+  keys: RedisKey[]
   initialPattern?: string
   initialTypes?: string[]
   children: ReactNode
@@ -63,6 +72,7 @@ export function ExportRedisProvider({
   open,
   connectionId,
   databaseName,
+  keys,
   initialPattern = '*',
   initialTypes = [],
   children,
@@ -80,6 +90,7 @@ export function ExportRedisProvider({
         open={open}
         connectionId={connectionId}
         databaseName={databaseName}
+        keys={keys}
         initialPattern={initialPattern}
         initialTypes={initialTypes}
       >
@@ -94,6 +105,7 @@ function ExportRedisBridge({
   open,
   connectionId,
   databaseName,
+  keys,
   initialPattern,
   initialTypes,
   children,
@@ -101,10 +113,12 @@ function ExportRedisBridge({
   open: boolean
   connectionId: string
   databaseName: string
+  keys: RedisKey[]
   initialPattern: string
   initialTypes: string[]
   children: ReactNode
 }) {
+  const client = useApolloClient()
   const { connections } = useConnectionStore()
   const { t } = useI18n()
   const [format, setFormat] = useState<RedisExportFormat>('json')
@@ -135,38 +149,48 @@ function ExportRedisBridge({
     try {
       const connection = connections.find((item) => item.id === connectionId)
       if (!connection) throw new Error(t('redis.error.connectionNotFound'))
+      if (keys.length === 0) throw new Error(t('redis.table.emptyState'))
 
       const graphqlSchema = resolveSchemaParam(connection.type, databaseName)
-      const backendFormat = format === 'json' ? 'ndjson' : 'csv'
+      const keyDetails = []
 
-      const response = await fetch('/api/export', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...addAuthHeader({}, databaseName),
-        },
-        body: JSON.stringify({
-          schema: graphqlSchema,
-          storageUnit: '',
-          format: backendFormat,
-        }),
-      })
+      for (const redisKey of keys) {
+        const pageSize = redisKey.type === 'string'
+          ? 1
+          : Math.max(Number.parseInt(redisKey.size, 10) || 1, 1)
 
-      if (!response.ok) {
-        const text = await response.text()
-        if (text.trim().length > 0) {
-          throw new Error(text)
+        const { data, error } = await client.query<GetStorageUnitRowsQuery, GetStorageUnitRowsQueryVariables>({
+          query: GetStorageUnitRowsDocument,
+          variables: {
+            schema: graphqlSchema,
+            storageUnit: redisKey.key,
+            pageSize,
+            pageOffset: 0,
+          },
+          context: { database: databaseName },
+          fetchPolicy: 'no-cache',
+        })
+
+        if (error) {
+          throw new Error(`${redisKey.key}: ${error.message}`)
         }
-        throw new Error(t('redis.export.failedWithStatus', { status: response.status }))
+        if (!data?.Row) {
+          throw new Error(`${redisKey.key}: ${t('redis.alert.fetchKeyDetailsFailed')}`)
+        }
+
+        keyDetails.push({
+          redisKey,
+          columns: data.Row.Columns,
+          rows: data.Row.Rows,
+        })
       }
 
-      const disposition = response.headers.get('Content-Disposition')
-      const filenameMatch = disposition?.match(/filename="(.+)"/)
-      const filename =
-        filenameMatch?.[1] ??
-        `redis_export_${databaseName}.${format === 'json' ? 'ndjson' : 'csv'}`
+      const records = buildRedisExportRecords(keyDetails)
+      const blob = format === 'json'
+        ? new Blob([recordsToRedisExportNdjson(records)], { type: 'application/x-ndjson;charset=utf-8' })
+        : toCSV(REDIS_EXPORT_COLUMNS, recordsToRedisExportRows(records))
+      const filename = `redis_export_${databaseName}.${format === 'json' ? 'ndjson' : 'csv'}`
 
-      const blob = await response.blob()
       downloadBlob(blob, filename)
       setStatusText(t('common.status.exportComplete'))
       setIsSuccess(true)
@@ -183,7 +207,7 @@ function ExportRedisBridge({
     } finally {
       actions.setSubmitting(false)
     }
-  }, [actions, connectionId, connections, databaseName, format, t])
+  }, [actions, client, connectionId, connections, databaseName, format, keys, t])
 
   return (
     <ExportRedisCtx

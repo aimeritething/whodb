@@ -17,6 +17,7 @@ export interface RedisViewContextValue {
 /** All state managed by the RedisView provider. */
 export interface RedisViewState {
   keys: RedisKey[]
+  filteredKeys: RedisKey[]
   loading: boolean
   total: number
   currentPage: number

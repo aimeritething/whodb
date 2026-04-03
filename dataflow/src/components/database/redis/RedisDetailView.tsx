@@ -76,6 +76,7 @@ function RedisDetailViewContent({ connectionId, databaseName }: RedisDetailViewP
         onOpenChange={actions.setShowExportModal}
         connectionId={connectionId}
         databaseName={databaseName}
+        keys={state.filteredKeys}
         initialPattern={state.pattern}
         initialTypes={state.filterTypes}
       />

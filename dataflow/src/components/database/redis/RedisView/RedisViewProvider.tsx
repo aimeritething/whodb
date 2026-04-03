@@ -1,4 +1,4 @@
-import { createContext, use, useCallback, useEffect, useState, type ReactNode } from 'react'
+import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useConnectionStore } from '@/stores/useConnectionStore'
 import {
   useGetStorageUnitsLazyQuery,
@@ -13,6 +13,8 @@ import { useI18n } from '@/i18n/useI18n'
 import type { RedisKey, RedisViewContextValue } from './types'
 import type { Alert } from '@/components/database/shared/types'
 import type { RedisKeyDraft } from '@/components/database/redis/redis-key.types'
+import { buildRedisFields } from '@/components/database/redis/redis-key.utils'
+import { applyRedisFilters, paginateRedisKeys } from './redis-view.utils'
 
 const RedisViewCtx = createContext<RedisViewContextValue | null>(null)
 
@@ -35,45 +37,6 @@ export function useRedisView(): RedisViewContextValue {
   const ctx = use(RedisViewCtx)
   if (!ctx) throw new Error('useRedisView must be used within RedisViewProvider')
   return ctx
-}
-
-/** Build fields for AddStorageUnit (create). Redis plugin reads type from fields[0].Extra["type"]. */
-function buildRedisFields(draft: RedisKeyDraft): RecordInput[] {
-  const fields: RecordInput[] = []
-  switch (draft.type) {
-    case 'string':
-      fields.push({ Key: 'value', Value: draft.stringValue })
-      break
-    case 'hash':
-      for (const item of draft.hashPairs) {
-        if (!item.field) continue
-        fields.push({ Key: item.field, Value: item.value })
-      }
-      break
-    case 'list':
-      for (const item of draft.listItems) {
-        if (!item.value) continue
-        fields.push({ Key: 'value', Value: item.value })
-      }
-      break
-    case 'set':
-      for (const item of draft.setItems) {
-        if (!item.value) continue
-        fields.push({ Key: 'value', Value: item.value })
-      }
-      break
-    case 'zset':
-      for (const item of draft.zsetItems) {
-        if (!item.member) continue
-        fields.push({ Key: item.score, Value: item.member })
-      }
-      break
-  }
-  // Signal key type to Redis plugin via Extra on first field
-  if (fields.length > 0) {
-    fields[0] = { ...fields[0], Extra: [{ Key: 'type', Value: draft.type }] }
-  }
-  return fields
 }
 
 /** Transform GraphQL rows for a Redis string key into the normalized edit draft state. */
@@ -113,9 +76,8 @@ export function RedisViewProvider({ connectionId, databaseName, children }: Redi
   const [updateStorageUnitMutation] = useUpdateStorageUnitMutation()
 
   // ---- Core state ----
-  const [keys, setKeys] = useState<RedisKey[]>([])
+  const [allKeys, setAllKeys] = useState<RedisKey[]>([])
   const [loading, setLoading] = useState(false)
-  const [total, setTotal] = useState(0)
 
   // ---- Filter state ----
   const [pattern, setPattern] = useState('*')
@@ -159,7 +121,7 @@ export function RedisViewProvider({ connectionId, databaseName, children }: Redi
       const units = data?.StorageUnit ?? []
 
       // Transform StorageUnit[] to RedisKey[]
-      let redisKeys: RedisKey[] = units.map(unit => {
+      const redisKeys: RedisKey[] = units.map(unit => {
         const typeAttr = unit.Attributes.find(a => a.Key === 'Type')
         const sizeAttr = unit.Attributes.find(a => a.Key === 'Size')
         return {
@@ -168,27 +130,7 @@ export function RedisViewProvider({ connectionId, databaseName, children }: Redi
           size: sizeAttr?.Value ?? '0',
         }
       })
-
-      // Client-side pattern filtering
-      if (pattern !== '*') {
-        const regexStr = pattern
-          .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-          .replace(/\*/g, '.*')
-          .replace(/\?/g, '.')
-        const regex = new RegExp(`^${regexStr}$`, 'i')
-        redisKeys = redisKeys.filter(k => regex.test(k.key))
-      }
-
-      // Client-side type filtering
-      if (filterTypes.length > 0) {
-        redisKeys = redisKeys.filter(k => filterTypes.includes(k.type))
-      }
-
-      // Client-side pagination
-      setTotal(redisKeys.length)
-      const start = (currentPage - 1) * pageSize
-      const paged = redisKeys.slice(start, start + pageSize)
-      setKeys(paged)
+      setAllKeys(redisKeys)
     } catch (error) {
       const rawError = getErrorMessage(error)
       showAlert(
@@ -201,11 +143,29 @@ export function RedisViewProvider({ connectionId, databaseName, children }: Redi
     } finally {
       setLoading(false)
     }
-  }, [connections, connectionId, databaseName, currentPage, pageSize, pattern, filterTypes, getStorageUnits, showAlert, t])
+  }, [connections, connectionId, databaseName, getStorageUnits, showAlert, t])
 
   useEffect(() => {
     refresh()
   }, [refresh])
+
+  const filteredKeys = useMemo(
+    () => applyRedisFilters(allKeys, pattern, filterTypes),
+    [allKeys, pattern, filterTypes],
+  )
+  const total = filteredKeys.length
+  const totalPages = Math.ceil(total / pageSize)
+  const keys = useMemo(
+    () => paginateRedisKeys(filteredKeys, currentPage, pageSize),
+    [currentPage, filteredKeys, pageSize],
+  )
+
+  useEffect(() => {
+    const nextPage = totalPages > 0 ? Math.min(currentPage, totalPages) : 1
+    if (currentPage !== nextPage) {
+      setCurrentPage(nextPage)
+    }
+  }, [currentPage, totalPages])
 
   // ---- Handlers ----
   const handleApplyFilter = useCallback((newPattern: string, newTypes: string[]) => {
@@ -349,11 +309,9 @@ export function RedisViewProvider({ connectionId, databaseName, children }: Redi
     setCurrentPage(1)
   }, [])
 
-  // ---- Derived values ----
-  const totalPages = Math.ceil(total / pageSize)
-
   const state = {
     keys,
+    filteredKeys,
     loading,
     total,
     currentPage,
