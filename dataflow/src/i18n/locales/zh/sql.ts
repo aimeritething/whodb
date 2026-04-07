@@ -61,7 +61,7 @@ export const zhSqlMessages = {
   'sql.editor.noQueryExecuted': '尚未执行查询。',
   'sql.editor.actionExecuted': '���作已执行',
   'sql.editor.success': '成功',
-  'sql.editor.executionSummary': '共 {total} 条语句，{success} 条成功，{failed} 条���败，耗时 {time}s',
+  'sql.editor.executionSummary': '共 {total} 条语句，{success} 条成功，{failed} 条失败，耗时 {time}s',
   'sql.export.title': '导出数据',
   'sql.export.rowLimit': '行数限制',
   'sql.export.rowLimitPlaceholder': '留空则导出全部行',
