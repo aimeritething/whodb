@@ -89,14 +89,14 @@ function ModalFormProvider({ children, meta, onSubmit }: ModalFormProviderProps)
   )
 }
 
-/** Renders the modal title with optional icon and description. Uses Dialog primitives. Applies destructive styling when `meta.isDestructive`. */
+/** Renders the modal title with optional icon and description. Uses Dialog primitives. */
 function ModalFormHeader() {
   const { meta } = useModalForm()
   const Icon = meta.icon
 
   return (
     <DialogHeader>
-      <DialogTitle className={cn('flex items-center gap-2', meta.isDestructive && 'text-destructive')}>
+      <DialogTitle className="flex items-center gap-2">
         {Icon && <Icon className="h-5 w-5" />}
         {meta.title}
       </DialogTitle>
@@ -184,7 +184,7 @@ function ModalFormSubmitButton({
       type="button"
       onClick={handleClick}
       disabled={disabled || state.isSubmitting}
-      variant={meta.isDestructive ? 'destructive' : 'default'}
+      variant="default"
     >
       {state.isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
       {label ?? (meta.isDestructive ? t('common.actions.delete') : t('common.actions.submit'))}
