@@ -1,4 +1,4 @@
-import { createContext, use, useCallback, useEffect, useState, type ReactNode } from 'react'
+import { createContext, use, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useConnectionStore } from '@/stores/useConnectionStore'
 import {
   useGetStorageUnitRowsLazyQuery,
@@ -9,7 +9,7 @@ import { resolveSchemaParam } from '@/utils/database-features'
 import type { CollectionViewContextValue } from './types'
 import type { Alert } from '@/components/database/shared/types'
 import type { FlatMongoFilter } from '@/components/database/mongodb/filter-collection.types'
-import { useDocumentEditing } from './useDocumentEditing'
+import { useDocumentChangesetManager } from './useDocumentChangesetManager'
 import { useI18n } from '@/i18n/useI18n'
 
 const CollectionViewCtx = createContext<CollectionViewContextValue | null>(null)
@@ -69,15 +69,50 @@ export function CollectionViewProvider({ connectionId, databaseName, collectionN
     setRefreshKey(prev => prev + 1)
   }, [])
 
-  // ---- Document editing (add / edit / delete) ----
-  const { state: editingState, actions: editingActions } = useDocumentEditing({
+  const pageOffset = (currentPage - 1) * pageSize
+
+  // ---- Document changeset (add / edit / delete) ----
+  const { state: changesetState, actions: changesetActions } = useDocumentChangesetManager({
     connectionId,
     databaseName,
     collectionName,
     documents,
+    pageOffset,
     refresh,
     showAlert,
   })
+
+  // ---- Discard guard ----
+  const pendingReloadActionRef = useRef<null | (() => void)>(null)
+
+  const runWithDiscardGuard = useCallback((action: () => void) => {
+    if (!changesetState.hasPendingChanges) {
+      action()
+      return
+    }
+    pendingReloadActionRef.current = action
+    changesetActions.setShowDiscardModal(true)
+  }, [changesetActions, changesetState.hasPendingChanges])
+
+  const confirmDiscardAndContinue = useCallback(() => {
+    changesetActions.discardChanges()
+    changesetActions.setShowDiscardModal(false)
+    pendingReloadActionRef.current?.()
+    pendingReloadActionRef.current = null
+  }, [changesetActions])
+
+  // ---- beforeunload guard ----
+  useEffect(() => {
+    if (!changesetState.hasPendingChanges) return
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [changesetState.hasPendingChanges])
 
   // ---- Extract available fields from documents ----
   useEffect(() => {
@@ -92,18 +127,19 @@ export function CollectionViewProvider({ connectionId, databaseName, collectionN
     }
   }, [documents])
 
-  // ---- Reset to page 1 when search term changes ----
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [searchTerm])
+  // ---- Guarded search term setter (resets to page 1) ----
+  const setSearchTermGuarded = useCallback((term: string) => {
+    runWithDiscardGuard(() => {
+      setSearchTerm(term)
+      setCurrentPage(1)
+    })
+  }, [runWithDiscardGuard])
 
   // ---- Main data fetch ----
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       setError(null)
-      editingActions.setEditingDoc(null)
-      editingActions.setSelectedDocIndex(null)
 
       const conn = connections.find(c => c.id === connectionId)
       if (!conn) {
@@ -202,20 +238,18 @@ export function CollectionViewProvider({ connectionId, databaseName, collectionN
 
   // ---- Page change ----
   const handlePageChange = useCallback((page: number) => {
-    setCurrentPage(page)
-  }, [])
+    runWithDiscardGuard(() => setCurrentPage(page))
+  }, [runWithDiscardGuard])
 
   // ---- Page size change ----
   const handlePageSizeChange = useCallback((size: number) => {
-    setPageSize(size)
-    setCurrentPage(1)
-  }, [])
+    runWithDiscardGuard(() => { setPageSize(size); setCurrentPage(1) })
+  }, [runWithDiscardGuard])
 
   // ---- Filter apply ----
   const handleFilterApply = useCallback((filter: FlatMongoFilter) => {
-    setActiveFilter(filter)
-    setCurrentPage(1)
-  }, [])
+    runWithDiscardGuard(() => { setActiveFilter(filter); setCurrentPage(1) })
+  }, [runWithDiscardGuard])
 
   // ---- Derived values ----
   const totalPages = Math.ceil(total / pageSize)
@@ -234,20 +268,21 @@ export function CollectionViewProvider({ connectionId, databaseName, collectionN
     showExportModal,
     isFilterModalOpen,
     alert,
-    ...editingState,
+    ...changesetState,
   }
 
   const actions: CollectionViewContextValue['actions'] = {
-    refresh,
+    refresh: () => runWithDiscardGuard(refresh),
     handlePageChange,
     handlePageSizeChange,
-    setSearchTerm,
+    setSearchTerm: setSearchTermGuarded,
     setIsFilterModalOpen,
     handleFilterApply,
     setShowExportModal,
     showAlert,
     closeAlert,
-    ...editingActions,
+    confirmDiscardAndContinue,
+    ...changesetActions,
   }
 
   return <CollectionViewCtx value={{ state, actions }}>{children}</CollectionViewCtx>
