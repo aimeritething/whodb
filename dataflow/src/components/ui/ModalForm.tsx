@@ -95,7 +95,7 @@ function ModalFormHeader() {
   const Icon = meta.icon
 
   return (
-    <DialogHeader>
+    <DialogHeader className={meta.description ? '-mb-2' : undefined}>
       <DialogTitle className="flex items-center gap-2">
         {Icon && <Icon className="h-5 w-5" />}
         {meta.title}

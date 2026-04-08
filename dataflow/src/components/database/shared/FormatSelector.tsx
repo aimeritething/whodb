@@ -32,12 +32,7 @@ export function FormatSelector<T extends string>({
   return (
     <div className="flex flex-col gap-2">
       <label className="text-sm font-medium text-foreground">{t('common.export.format')}</label>
-      <div
-        className={cn(
-          'grid gap-3',
-          options.length <= 2 ? 'grid-cols-2' : 'grid-cols-4',
-        )}
-      >
+      <div className="flex flex-wrap gap-2">
         {options.map((option) => (
           <button
             key={option.id}
@@ -45,19 +40,19 @@ export function FormatSelector<T extends string>({
             onClick={() => onChange(option.id)}
             disabled={disabled}
             className={cn(
-              'flex flex-col items-center justify-center p-3 rounded-md border transition-all',
+              'flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors',
               value === option.id
-                ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                : 'hover:border-primary/50 hover:bg-muted/50',
+                ? 'bg-highlight-background border-transparent text-foreground'
+                : 'bg-background border-input text-foreground hover:bg-muted/30',
             )}
           >
             <option.icon
               className={cn(
-                'h-6 w-6 mb-2',
-                value === option.id ? 'text-primary' : 'text-muted-foreground',
+                'h-4 w-4',
+                value === option.id ? 'text-foreground' : 'text-muted-foreground',
               )}
             />
-            <span className="text-xs font-medium">{option.label}</span>
+            <span className="text-sm font-normal">{option.label}</span>
           </button>
         ))}
       </div>
