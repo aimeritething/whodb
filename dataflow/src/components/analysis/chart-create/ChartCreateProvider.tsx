@@ -1,6 +1,6 @@
-import { createContext, use, useRef, useState, useCallback, type ReactNode } from 'react'
+import { createContext, use, useRef, useState, useEffect, useCallback, type ReactNode } from 'react'
 
-import { useAnalysisDefinitionStore, type ChartWidgetDefinition, type WidgetLayout } from '@/stores/analysisDefinitionStore'
+import { useAnalysisDefinitionStore, type DashboardDefinition, type ChartWidgetDefinition, type WidgetLayout } from '@/stores/analysisDefinitionStore'
 import { useAnalysisRuntimeStore } from '@/stores/analysisRuntimeStore'
 import { useConnectionStore } from '@/stores/useConnectionStore'
 import {
@@ -14,6 +14,16 @@ import {
 
 type ModalView = 'chart-config' | 'data-config'
 
+/** Pre-loaded data and connection context from a data view toolbar. */
+export interface ChartCreateInitialData {
+    connectionId: string
+    databaseName: string
+    schemaName?: string
+    query: string
+    columns: string[]
+    rows: Record<string, any>[]
+}
+
 interface ChartCreateCtxValue {
     activeView: ModalView
     title: string
@@ -23,7 +33,10 @@ interface ChartCreateCtxValue {
     isEditing: boolean
     canSave: boolean
     previewOption: ReturnType<typeof buildEChartsOption>
-    editorContext: { connectionId: string; databaseName: string } | null
+    editorContext: { connectionId: string; databaseName: string; schemaName?: string } | null
+    dashboards: DashboardDefinition[]
+    selectedDashboardId: string | null
+    setSelectedDashboardId: (id: string) => void
     setActiveView: (view: ModalView) => void
     setTitle: (title: string) => void
     handleConfigChange: (updates: Partial<ChartConfig>) => void
@@ -46,6 +59,8 @@ export function useChartCreateCtx(): ChartCreateCtxValue {
 
 interface ChartCreateProviderProps {
     editComponent?: ChartWidgetDefinition | null
+    initialQuery?: string
+    initialData?: ChartCreateInitialData
     onClose: () => void
     children: ReactNode
 }
@@ -81,12 +96,19 @@ function getNextWidgetLayout(widgets: ChartWidgetDefinition[]): WidgetLayout {
     return { i: crypto.randomUUID(), x: 0, y: maxY, w: width, h: height }
 }
 
-export function ChartCreateProvider({ editComponent, onClose, children }: ChartCreateProviderProps) {
+export function ChartCreateProvider({ editComponent, initialQuery, initialData, onClose, children }: ChartCreateProviderProps) {
     const addWidget = useAnalysisDefinitionStore(state => state.addWidget)
     const updateWidget = useAnalysisDefinitionStore(state => state.updateWidget)
+    const createDashboard = useAnalysisDefinitionStore(state => state.createDashboard)
     const dashboards = useAnalysisDefinitionStore(state => state.dashboards)
     const activeDashboardId = useAnalysisDefinitionStore(state => state.activeDashboardId)
+    const isInitialized = useAnalysisDefinitionStore(state => state.isInitialized)
+    const initializeFromAPI = useAnalysisDefinitionStore(state => state.initializeFromAPI)
     const { connections } = useConnectionStore()
+
+    useEffect(() => {
+        if (!isInitialized) void initializeFromAPI()
+    }, [isInitialized, initializeFromAPI])
 
     const isEditing = !!editComponent
     const initialQueryData = editComponent ? fromWidgetConfig(editComponent) : null
@@ -96,14 +118,32 @@ export function ChartCreateProvider({ editComponent, onClose, children }: ChartC
     const [chartConfig, setChartConfig] = useState<ChartConfig>(
         editComponent?.visualization?.chartConfig ?? DEFAULT_CHART_CONFIG,
     )
-    const [queryData, setQueryData] = useState<QueryData | null>(initialQueryData)
-    const [sqlQuery, setSqlQueryState] = useState(editComponent?.query ?? '')
-    const sqlQueryRef = useRef(editComponent?.query ?? '')
+    const [queryData, setQueryData] = useState<QueryData | null>(
+        initialQueryData ?? (initialData ? {
+            columns: initialData.columns,
+            rows: initialData.rows,
+            query: initialData.query,
+            database: initialData.databaseName,
+            schema: initialData.schemaName,
+        } : null),
+    )
+    const initialSql = editComponent?.query ?? initialData?.query ?? initialQuery ?? ''
+    const [sqlQuery, setSqlQueryState] = useState(initialSql)
+    const sqlQueryRef = useRef(initialSql)
+    const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(activeDashboardId)
+
+    useEffect(() => {
+        if (!selectedDashboardId) {
+            setSelectedDashboardId(dashboards.length > 0 ? dashboards[0].id : '__new__')
+        }
+    }, [selectedDashboardId, dashboards])
 
     const connection = connections[0]
-    const editorContext = connection
-        ? { connectionId: connection.id, databaseName: connection.database }
-        : null
+    const editorContext = initialData
+        ? { connectionId: initialData.connectionId, databaseName: initialData.databaseName, schemaName: initialData.schemaName }
+        : connection
+            ? { connectionId: connection.id, databaseName: connection.database }
+            : null
 
     const setSqlQuery = useCallback((sql: string) => {
         sqlQueryRef.current = sql
@@ -150,6 +190,7 @@ export function ChartCreateProvider({ editComponent, onClose, children }: ChartC
         && queryData !== null
         && chartConfig.xAxisColumn !== ''
         && chartConfig.yAxisColumns.length > 0
+        && (isEditing || selectedDashboardId !== null)
 
     const previewOption = buildEChartsOption(chartConfig, queryData)
 
@@ -173,12 +214,19 @@ export function ChartCreateProvider({ editComponent, onClose, children }: ChartC
                 layout: editComponent.layout,
                 sortOrder: editComponent.sortOrder,
             })
-        } else if (activeDashboardId) {
-            const activeDashboard = dashboards.find(dashboard => dashboard.id === activeDashboardId)
-            const widget = await addWidget(activeDashboardId, {
+        } else if (selectedDashboardId) {
+            let targetId = selectedDashboardId
+            let targetWidgets: ChartWidgetDefinition[] = []
+            if (targetId === '__new__') {
+                const created = await createDashboard(title.trim())
+                targetId = created.id
+            } else {
+                targetWidgets = dashboards.find(d => d.id === targetId)?.widgets ?? []
+            }
+            const widget = await addWidget(targetId, {
                 ...payload,
-                layout: getNextWidgetLayout(activeDashboard?.widgets ?? []),
-                sortOrder: activeDashboard?.widgets.length ?? 0,
+                layout: getNextWidgetLayout(targetWidgets),
+                sortOrder: targetWidgets.length,
             })
             widgetId = widget.id
         }
@@ -199,7 +247,7 @@ export function ChartCreateProvider({ editComponent, onClose, children }: ChartC
         }
 
         onClose()
-    }, [queryData, title, chartConfig, addWidget, updateWidget, editComponent, activeDashboardId, dashboards, onClose])
+    }, [queryData, title, chartConfig, addWidget, updateWidget, editComponent, selectedDashboardId, dashboards, onClose])
 
     return (
         <ChartCreateCtx value={{
@@ -212,6 +260,9 @@ export function ChartCreateProvider({ editComponent, onClose, children }: ChartC
             canSave,
             previewOption,
             editorContext,
+            dashboards,
+            selectedDashboardId,
+            setSelectedDashboardId,
             setActiveView,
             setTitle,
             handleConfigChange,

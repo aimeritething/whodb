@@ -154,7 +154,18 @@ export function TableViewToolbar({ connectionId, databaseName, tableName, schema
           {t('common.actions.query')}
         </Button>
       </div>
-      <ChartCreateModal open={isChartModalOpen} onOpenChange={setIsChartModalOpen} />
+      <ChartCreateModal
+        open={isChartModalOpen}
+        onOpenChange={setIsChartModalOpen}
+        initialData={state.data ? {
+          connectionId,
+          databaseName,
+          schemaName: schema,
+          query: `SELECT * FROM ${buildStorageUnitReference(connections.find(c => c.id === connectionId)?.type, tableName, schema)};`,
+          columns: state.data.columns,
+          rows: state.data.rows,
+        } : undefined}
+      />
     </div>
   )
 }

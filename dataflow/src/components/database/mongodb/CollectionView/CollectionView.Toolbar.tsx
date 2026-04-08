@@ -74,7 +74,17 @@ export function CollectionViewToolbar({ connectionId, databaseName, collectionNa
           {t('common.actions.query')}
         </Button>
       </div>
-      <ChartCreateModal open={isChartModalOpen} onOpenChange={setIsChartModalOpen} />
+      <ChartCreateModal
+        open={isChartModalOpen}
+        onOpenChange={setIsChartModalOpen}
+        initialData={state.documents.length > 0 ? {
+          connectionId,
+          databaseName,
+          query: `${buildMongoCollectionCommand(collectionName, 'find', '{}')};`,
+          columns: state.availableFields,
+          rows: state.documents,
+        } : undefined}
+      />
     </div>
   )
 }

@@ -97,7 +97,17 @@ export function RedisViewToolbar({ connectionId, databaseName }: RedisViewToolba
           {t('common.actions.query')}
         </Button>
       </div>
-      <ChartCreateModal open={isChartModalOpen} onOpenChange={setIsChartModalOpen} />
+      <ChartCreateModal
+        open={isChartModalOpen}
+        onOpenChange={setIsChartModalOpen}
+        initialData={state.filteredKeys.length > 0 ? {
+          connectionId,
+          databaseName,
+          query: 'KEYS *',
+          columns: ['key', 'type', 'size'],
+          rows: state.filteredKeys,
+        } : undefined}
+      />
     </div>
   )
 }

@@ -1,10 +1,12 @@
-import { BarChart3, ChevronLeft, X } from 'lucide-react'
-import { Dialog, DialogContent, DialogTitle, DialogClose } from '@/components/ui/dialog'
+import { BarChart3, ChevronLeft, Plus } from 'lucide-react'
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SafeECharts } from '@/components/ui/SafeECharts'
 import { SQLEditorView } from '@/components/editor/SQLEditorView'
 import { ChartConfigPanel } from './ChartConfigPanel'
-import { ChartCreateProvider, useChartCreateCtx } from './ChartCreateProvider'
+import { ChartCreateProvider, useChartCreateCtx, type ChartCreateInitialData } from './ChartCreateProvider'
 import { useAnalysisDefinitionStore, type ChartWidgetDefinition } from '@/stores/analysisDefinitionStore'
 import { useI18n } from '@/i18n/useI18n'
 
@@ -12,10 +14,12 @@ interface ChartCreateModalProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     editComponentId?: string | null
+    initialQuery?: string
+    initialData?: ChartCreateInitialData
 }
 
 /** Modal for creating or editing chart widgets with two views: chart configuration and SQL data. */
-export function ChartCreateModal({ open, onOpenChange, editComponentId }: ChartCreateModalProps) {
+export function ChartCreateModal({ open, onOpenChange, editComponentId, initialQuery, initialData }: ChartCreateModalProps) {
     const { t } = useI18n()
     const dashboards = useAnalysisDefinitionStore(state => state.dashboards)
     const activeDashboardId = useAnalysisDefinitionStore(state => state.activeDashboardId)
@@ -29,14 +33,12 @@ export function ChartCreateModal({ open, onOpenChange, editComponentId }: ChartC
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
                 className="max-w-[1200px] w-[90vw] h-[85vh] p-0 flex flex-col overflow-hidden gap-0"
-                showCloseButton={false}
             >
-                <DialogTitle className="sr-only">
-                    {editComponent ? t('analysis.chart.edit') : t('analysis.chart.create')}
-                </DialogTitle>
                 <ChartCreateProvider
                     key={editComponentId ?? 'create'}
                     editComponent={editComponent}
+                    initialQuery={initialQuery}
+                    initialData={initialData}
                     onClose={() => onOpenChange(false)}
                 >
                     <ChartCreateContent />
@@ -54,35 +56,56 @@ function ChartCreateContent() {
 
 function ChartConfigView() {
     const { t } = useI18n()
-    const { title, setTitle, previewOption, canSave, handleSave, isEditing } = useChartCreateCtx()
+    const {
+        title, setTitle, previewOption, canSave, handleSave, isEditing,
+        dashboards, selectedDashboardId, setSelectedDashboardId,
+    } = useChartCreateCtx()
 
     return (
         <>
-            {/* Header */}
-            <div className="h-14 border-b flex items-center justify-between px-6 shrink-0">
-                <div className="flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-muted-foreground" />
-                    <h2 className="font-medium text-xl">
-                        {isEditing ? t('analysis.chart.edit') : t('analysis.chart.create')}
-                    </h2>
-                </div>
-                <DialogClose className="p-2 hover:bg-muted rounded-full transition-colors" aria-label={t('common.actions.close')}>
-                    <X className="w-5 h-5 text-muted-foreground" />
-                </DialogClose>
-            </div>
+            <DialogHeader className="h-14 border-b px-6 flex flex-row items-center shrink-0 gap-0">
+                <DialogTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    {isEditing ? t('analysis.chart.edit') : t('analysis.chart.create')}
+                </DialogTitle>
+            </DialogHeader>
 
             {/* Two-column content */}
             <div className="flex-1 flex overflow-hidden">
-                {/* Left column: Title + Chart Preview */}
+                {/* Left column: Title + Dashboard + Chart Preview */}
                 <div className="flex-1 flex flex-col p-6 gap-4 overflow-hidden border-r">
-                    <input
-                        type="text"
-                        autoFocus
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder={t('analysis.chart.titlePlaceholder')}
-                        className="w-full px-3 py-2 border rounded-md bg-background text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                    />
+                    <div className="flex gap-3">
+                        <Input
+                            autoFocus
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            placeholder={t('analysis.chart.titlePlaceholder')}
+                            className="flex-1"
+                        />
+                        {!isEditing && (
+                            <Select
+                                value={selectedDashboardId ?? undefined}
+                                onValueChange={setSelectedDashboardId}
+                            >
+                                <SelectTrigger className="w-[180px] shrink-0">
+                                    <SelectValue placeholder={t('analysis.chart.selectDashboard')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {dashboards.map((dashboard) => (
+                                        <SelectItem key={dashboard.id} value={dashboard.id}>
+                                            {dashboard.name}
+                                        </SelectItem>
+                                    ))}
+                                    <SelectItem value="__new__">
+                                        <span className="flex items-center gap-1.5">
+                                            <Plus className="h-3.5 w-3.5" />
+                                            {t('analysis.dashboard.create')}
+                                        </span>
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        )}
+                    </div>
                     <div className="flex-1 border rounded-md bg-background overflow-hidden flex items-center justify-center">
                         {previewOption ? (
                             <SafeECharts
@@ -105,7 +128,7 @@ function ChartConfigView() {
             </div>
 
             {/* Footer */}
-            <div className="h-16 border-t px-6 flex items-center justify-end gap-3 shrink-0">
+            <div className="h-14 border-t px-6 flex items-center justify-end gap-3 shrink-0">
                 <DialogClose asChild>
                     <Button variant="outline">{t('common.actions.cancel')}</Button>
                 </DialogClose>
@@ -123,8 +146,10 @@ function DataConfigView() {
 
     return (
         <>
-            {/* Header with back button */}
-            <div className="h-14 border-b flex items-center justify-between px-6 shrink-0">
+            <DialogHeader className="h-14 border-b px-6 flex flex-row items-center shrink-0 gap-0">
+                <DialogTitle className="sr-only">
+                    {t('analysis.chart.dataConfiguration')}
+                </DialogTitle>
                 <Button
                     variant="outline"
                     onClick={() => setActiveView('chart-config')}
@@ -132,10 +157,7 @@ function DataConfigView() {
                     <ChevronLeft className="w-4 h-4" />
                     {t('analysis.chart.backToChart')}
                 </Button>
-                <DialogClose className="p-2 hover:bg-muted rounded-full transition-colors" aria-label={t('common.actions.close')}>
-                    <X className="w-5 h-5 text-muted-foreground" />
-                </DialogClose>
-            </div>
+            </DialogHeader>
 
             {/* Embedded SQL Editor.
                 tabId uses a sentinel value -- SQLEditorView calls updateTab() internally
