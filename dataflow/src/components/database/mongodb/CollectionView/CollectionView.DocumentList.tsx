@@ -84,6 +84,7 @@ export function CollectionViewDocumentList() {
               isSelected && 'outline-2 outline-primary',
             )}
             onClick={() => actions.toggleRowSelection(item.rowKey)}
+            onDoubleClick={() => { if (!item.isDeleted) actions.handleEditClick(item.rowKey) }}
           >
             <div className="relative">
               {!item.isDeleted && (
