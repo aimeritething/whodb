@@ -22,7 +22,6 @@ import { hasRedisDraftPayload } from './redis-key.utils'
 interface RedisKeyModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  connectionId: string
   databaseName: string
   onSuccess?: () => void
   initialData?: RedisKeyDraft | null
@@ -34,7 +33,6 @@ const REDIS_TYPES: RedisKeyType[] = ['string', 'hash', 'list', 'set', 'zset']
 export function RedisKeyModal({
   open,
   onOpenChange,
-  connectionId,
   databaseName,
   onSuccess,
   initialData,

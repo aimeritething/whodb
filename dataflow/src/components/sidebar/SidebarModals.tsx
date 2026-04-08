@@ -288,7 +288,6 @@ export function SidebarModals({
         <RedisKeyModal
           open
           onOpenChange={onOpenChange}
-          connectionId={activeModal.params.connectionId}
           databaseName={activeModal.params.databaseName}
           onSuccess={() => {
             refreshRedisKeysFolder(activeModal.params.connectionId, activeModal.params.databaseName)
