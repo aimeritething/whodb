@@ -19,7 +19,10 @@ import { RenameTableModal } from '@/components/database/sql/RenameTableModal'
 import { ExportCollectionModal } from '@/components/database/mongodb/ExportCollectionModal'
 import { CreateCollectionModal } from '@/components/database/mongodb/CreateCollectionModal'
 import { DropCollectionModal } from '@/components/database/mongodb/DropCollectionModal'
+import { RedisKeyModal } from '@/components/database/redis/RedisKeyModal'
+import { DeleteRedisKeyModal } from '@/components/database/redis/DeleteRedisKeyModal'
 import { AlertModal } from '@/components/ui/AlertModal'
+import { useTabStore } from '@/stores/useTabStore'
 
 interface SidebarModalsProps {
   activeModal: ModalState | null
@@ -66,6 +69,21 @@ export function SidebarModals({
           metadata: { database: databaseName },
         })
       }
+    },
+    [refreshNode],
+  )
+
+  /** Refresh the redis_keys_folder node after a key mutation. */
+  const refreshRedisKeysFolder = useCallback(
+    (connectionId: string, databaseName: string) => {
+      const folderId = `${connectionId}-${databaseName}-keys`
+      refreshNode({
+        id: folderId,
+        name: 'keys',
+        type: 'redis_keys_folder',
+        connectionId,
+        metadata: { database: databaseName },
+      })
     },
     [refreshNode],
   )
@@ -261,6 +279,40 @@ export function SidebarModals({
           onSuccess={() => {
             selectItem(null)
             refreshSchemaOrDb(activeModal.params.connectionId, activeModal.params.databaseName)
+          }}
+        />
+      )}
+
+      {/* Create Redis Key */}
+      {activeModal?.type === "create_redis_key" && (
+        <RedisKeyModal
+          open
+          onOpenChange={onOpenChange}
+          connectionId={activeModal.params.connectionId}
+          databaseName={activeModal.params.databaseName}
+          onSuccess={() => {
+            refreshRedisKeysFolder(activeModal.params.connectionId, activeModal.params.databaseName)
+          }}
+        />
+      )}
+
+      {/* Delete Redis Key */}
+      {activeModal?.type === "delete_redis_key" && (
+        <DeleteRedisKeyModal
+          open
+          onOpenChange={onOpenChange}
+          databaseName={activeModal.params.databaseName}
+          keyName={activeModal.params.keyName}
+          onSuccess={() => {
+            selectItem(null)
+            const existingTab = useTabStore.getState().findExistingTab(
+              'redis_key_detail',
+              activeModal.params.connectionId,
+              activeModal.params.keyName,
+              activeModal.params.databaseName,
+            )
+            if (existingTab) useTabStore.getState().closeTab(existingTab.id)
+            refreshRedisKeysFolder(activeModal.params.connectionId, activeModal.params.databaseName)
           }}
         />
       )}
