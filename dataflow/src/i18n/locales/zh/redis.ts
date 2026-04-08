@@ -73,4 +73,6 @@ export const zhRedisMessages = {
   'redis.alert.deleteSuccess': '键“{key}”删除成功！',
   'redis.alert.deleteFailed': '删除键失败',
   'redis.alert.deleteFailedWithError': '删除键失败：{error}',
+  'redis.detail.fetchFailed': '获取键数据失败',
+  'redis.detail.empty': '该键无数据。',
 } as const

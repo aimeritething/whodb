@@ -48,7 +48,7 @@ export interface Connection {
   createdAt: string;
 }
 
-export type SelectedItemType = 'connection' | 'database' | 'schema' | 'table_folder' | 'view_folder' | 'table' | 'view' | 'collection' | 'key' | 'redis_keys_list' | null;
+export type SelectedItemType = 'connection' | 'database' | 'schema' | 'table_folder' | 'view_folder' | 'table' | 'view' | 'collection' | 'key' | 'redis_keys_folder' | 'redis_key' | null;
 
 export interface SelectedItem {
   type: SelectedItemType;

@@ -97,9 +97,9 @@ export function SidebarTreeProvider({ children }: { children: React.ReactNode })
         if (conn?.type === "REDIS") {
           return [
             {
-              id: `${node.id}-all-keys`,
-              name: t("sidebar.redis.allData"),
-              type: "redis_keys_list" as const,
+              id: `${node.id}-keys`,
+              name: t("sidebar.redis.keysFolder"),
+              type: "redis_keys_folder" as const,
               parentId: node.id,
               connectionId: node.connectionId,
               metadata: { database: node.name },
@@ -118,6 +118,18 @@ export function SidebarTreeProvider({ children }: { children: React.ReactNode })
           parentId: node.id,
           connectionId: node.connectionId,
           metadata: { database: node.name, table: t.name },
+        }));
+      }
+
+      if (node.type === "redis_keys_folder") {
+        const keys = await fetchTables(node.connectionId, node.metadata.database!);
+        return keys.map((k) => ({
+          id: `${node.id}-${k.name}`,
+          name: k.name,
+          type: "redis_key" as const,
+          parentId: node.id,
+          connectionId: node.connectionId,
+          metadata: { database: node.metadata.database, redisKeyType: k.type },
         }));
       }
 
@@ -202,7 +214,7 @@ export function SidebarTreeProvider({ children }: { children: React.ReactNode })
       } else {
         newExpanded.add(node.id);
         // Always re-fetch databases when expanding (original behavior)
-        const shouldFetch = !treeData[node.id] || node.type === "database";
+        const shouldFetch = !treeData[node.id] || node.type === "database" || node.type === "redis_keys_folder";
         if (shouldFetch) {
           await fetchNodeChildren(node);
         }

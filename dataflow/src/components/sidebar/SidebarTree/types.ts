@@ -9,7 +9,8 @@ export type NodeType =
   | "table"
   | "view"
   | "collection"
-  | "redis_keys_list";
+  | "redis_keys_folder"
+  | "redis_key";
 
 export interface TreeNodeData {
   id: string;
@@ -21,6 +22,7 @@ export interface TreeNodeData {
     database?: string;
     schema?: string;
     table?: string;
+    redisKeyType?: string;
   };
 }
 
@@ -31,6 +33,7 @@ export const EXPANDABLE_TYPES: ReadonlySet<NodeType> = new Set([
   "schema",
   "table_folder",
   "view_folder",
+  "redis_keys_folder",
 ]);
 
 /** Icon color class per node type */
@@ -43,7 +46,8 @@ export const NODE_ICON_COLORS: Record<NodeType, string> = {
   table: "text-chart-2",
   view: "text-muted-foreground",
   collection: "text-chart-5",
-  redis_keys_list: "text-accent-foreground",
+  redis_keys_folder: "text-chart-2",
+  redis_key: "text-muted-foreground",
 };
 
 /** Database brand icons (connection-level, keyed by Connection.type) */

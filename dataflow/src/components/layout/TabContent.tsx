@@ -4,6 +4,7 @@ import { SQLEditorView } from '@/components/editor/SQLEditorView';
 import { TableDetailView } from '@/components/database/sql/TableDetailView';
 import { CollectionDetailView } from '@/components/database/mongodb/CollectionDetailView';
 import { RedisDetailView } from '@/components/database/redis/RedisDetailView';
+import { RedisKeyDetailView } from '@/components/database/redis/RedisKeyDetailView';
 import { Database } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 
@@ -79,6 +80,18 @@ export function TabContent() {
                         key={tab.id}
                         connectionId={tab.connectionId}
                         databaseName={tab.databaseName}
+                    />
+                );
+            case 'redis_key_detail':
+                if (!tab.databaseName || !tab.tableName) {
+                    return <div className="flex-1 flex items-center justify-center text-muted-foreground">{t('layout.invalid.tableConfig')}</div>;
+                }
+                return (
+                    <RedisKeyDetailView
+                        key={tab.id}
+                        connectionId={tab.connectionId}
+                        databaseName={tab.databaseName}
+                        keyName={tab.tableName}
                     />
                 );
             default:

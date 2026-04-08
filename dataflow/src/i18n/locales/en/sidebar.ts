@@ -31,7 +31,8 @@ export const enSidebarMessages = {
   'sidebar.tab.queryWithConnection': 'Query [{connection}]',
   'sidebar.tab.tableWithDatabase': '{table} [{database}]',
   'sidebar.tab.redisKeys': '{database} Keys',
-  'sidebar.redis.allData': 'All Data',
+  'sidebar.redis.keysFolder': 'keys',
+  'sidebar.tab.redisKeyDetail': '{key} [{database}]',
   'sidebar.tree.tables': 'Tables',
   'sidebar.tree.views': 'Views',
 } satisfies MessageShape<typeof zhSidebarMessages>

@@ -129,13 +129,14 @@ function SidebarInner() {
           collectionName: node.name,
         });
         triggerCollectionRefresh();
-      } else if (node.type === "redis_keys_list") {
-        const redisDatabase = node.metadata.database ?? node.name;
+      } else if (node.type === "redis_key") {
+        const redisDatabase = node.metadata.database ?? "";
         openTab({
-          type: "redis_keys_list",
-          title: t("sidebar.tab.redisKeys", { database: redisDatabase }),
+          type: "redis_key_detail",
+          title: t("sidebar.tab.redisKeyDetail", { key: node.name, database: redisDatabase }),
           connectionId: node.connectionId,
           databaseName: redisDatabase,
+          tableName: node.name,
         });
       }
     },

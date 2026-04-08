@@ -1,7 +1,8 @@
 import React, { createContext, use } from "react";
 import {
   ChevronRight, ChevronDown, Loader2,
-  Database, ListTree, Table, Files, List, Eye, Folder,
+  Database, ListTree, Table, Files, Eye, Folder,
+  Type, Hash, ListOrdered, CircleDot, ArrowUpDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TreeNodeData, NodeType } from "./types";
@@ -36,7 +37,16 @@ const NODE_ICONS: Record<NodeType, React.ComponentType<{ className?: string }>> 
   table: Table,
   view: Eye,
   collection: Files,
-  redis_keys_list: List,
+  redis_keys_folder: Folder,
+  redis_key: Type,
+};
+
+const REDIS_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  string: Type,
+  hash: Hash,
+  list: ListOrdered,
+  set: CircleDot,
+  zset: ArrowUpDown,
 };
 
 interface TreeNodeProps {
@@ -65,7 +75,9 @@ export function TreeNode({ node, depth }: TreeNodeProps) {
       ? "text-destructive"
       : NODE_ICON_COLORS[node.type];
 
-  const Icon = NODE_ICONS[node.type];
+  const Icon = node.type === "redis_key" && node.metadata.redisKeyType
+    ? (REDIS_TYPE_ICONS[node.metadata.redisKeyType] ?? NODE_ICONS[node.type])
+    : NODE_ICONS[node.type];
   const brandIcon = isRoot ? DB_ICONS[connectionDbType] : null;
 
   return (

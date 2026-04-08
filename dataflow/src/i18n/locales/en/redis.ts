@@ -80,4 +80,6 @@ export const enRedisMessages = {
   'redis.alert.deleteSuccess': 'Key "{key}" deleted successfully!',
   'redis.alert.deleteFailed': 'Failed to delete key',
   'redis.alert.deleteFailedWithError': 'Failed to delete key: {error}',
+  'redis.detail.fetchFailed': 'Failed to fetch key data',
+  'redis.detail.empty': 'This key has no data.',
 } satisfies MessageShape<typeof zhRedisMessages>
