@@ -410,7 +410,7 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                             variant="ghost"
                             size="sm"
                             className={cn(
-                                "h-full w-25 rounded-none border-b-2 px-4 py-2 text-xs font-medium",
+                                "h-full w-25 rounded-none border-b-2 px-4 py-2 text-sm font-normal",
                                 activeResultTab === 'result' ? "border-primary text-primary bg-background" : "border-transparent text-muted-foreground hover:text-foreground"
                             )}
                         >
@@ -422,7 +422,7 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                             variant="ghost"
                             size="sm"
                             className={cn(
-                                "h-full w-25 rounded-none border-b-2 px-4 py-2 text-xs font-medium",
+                                "h-full w-25 rounded-none border-b-2 px-4 py-2 text-sm font-normal",
                                 activeResultTab === 'message' ? "border-primary text-primary bg-background" : "border-transparent text-muted-foreground hover:text-foreground"
                             )}
                         >
