@@ -24,6 +24,7 @@ export const zhMongodbMessages = {
   'mongodb.document.saveChanges': '保存更改',
   'mongodb.document.editAction': '编辑文档',
   'mongodb.document.deleteAction': '删除文档',
+  'mongodb.document.selectRow': '选择文档',
   'mongodb.alert.addSuccess': '文档添加成功！',
   'mongodb.alert.updateSuccess': '文档更新成功！',
   'mongodb.alert.deleteSuccess': '文档删除成功！',

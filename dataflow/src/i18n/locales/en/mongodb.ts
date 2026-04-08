@@ -32,6 +32,7 @@ export const enMongodbMessages = {
   'mongodb.document.saveChanges': 'Save Changes',
   'mongodb.document.editAction': 'Edit Document',
   'mongodb.document.deleteAction': 'Delete Document',
+  'mongodb.document.selectRow': 'Select document',
   'mongodb.alert.addSuccess': 'Document added successfully!',
   'mongodb.alert.updateSuccess': 'Document updated successfully!',
   'mongodb.alert.deleteSuccess': 'Document deleted successfully!',

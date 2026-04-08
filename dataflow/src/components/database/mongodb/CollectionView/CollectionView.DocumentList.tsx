@@ -1,19 +1,47 @@
-import { use } from 'react'
-import { FileJson, Edit2, Trash2 } from 'lucide-react'
+import { use, useMemo } from 'react'
+import { FileJson, Edit2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { useCollectionView } from './CollectionViewProvider'
 import { useI18n } from '@/i18n/useI18n'
 import { FindBarContext } from '@/components/database/shared/FindBar.Provider'
+import { buildExistingRowKey } from './useDocumentChangesetManager'
 
-/** List of MongoDB document cards with hover actions. */
+/** List of MongoDB document cards with selection checkboxes and change indicators. */
 export function CollectionViewDocumentList() {
   const { t } = useI18n()
   const { state, actions } = useCollectionView()
   const findBar = use(FindBarContext)
 
-  if (state.documents.length === 0) {
+  const pageOffset = (state.currentPage - 1) * state.pageSize
+
+  const renderedDocs = useMemo(() => {
+    // Pending inserts first — use newRowOrder for stable ordering
+    const inserted = state.newRowOrder
+      .map((rowKey) => {
+        const change = state.changes.get(rowKey)
+        if (!change) return null
+        return { rowKey, doc: change.document, changeType: 'insert' as const, isDeleted: false }
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+
+    // Existing documents
+    const existing = state.documents.map((doc, idx) => {
+      const rowKey = buildExistingRowKey(pageOffset, idx)
+      const change = state.changes.get(rowKey)
+      return {
+        rowKey,
+        doc: change?.document ?? doc,
+        changeType: change?.type ?? null,
+        isDeleted: change?.type === 'delete',
+      }
+    })
+
+    return [...inserted, ...existing]
+  }, [state.changes, state.newRowOrder, state.documents, pageOffset])
+
+  if (state.documents.length === 0 && state.newRowOrder.length === 0) {
     return (
       <div className="text-center py-12">
         <FileJson className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -24,61 +52,71 @@ export function CollectionViewDocumentList() {
 
   return (
     <>
-      {state.documents.map((doc, idx) => {
-        const hasMatch = findBar?.state.total
-          ? findBar.state.matches.some((m) => m.rowIndex === idx)
+      {renderedDocs.map((item, idx) => {
+        // FindBar matching only applies to existing documents (not pending inserts)
+        const existingIdx = state.documents.indexOf(item.doc)
+        const findBarIdx = existingIdx >= 0 ? existingIdx : -1
+        const hasMatch = findBarIdx >= 0 && findBar?.state.total
+          ? findBar.state.matches.some((m) => m.rowIndex === findBarIdx)
           : false
-        const hasCurrentMatch = findBar?.state.total
-          ? findBar.state.matches[findBar.state.currentMatchIndex]?.rowIndex === idx
+        const hasCurrentMatch = findBarIdx >= 0 && findBar?.state.total
+          ? findBar.state.matches[findBar.state.currentMatchIndex]?.rowIndex === findBarIdx
           : false
+
+        const isSelected = state.selectedRowKeys.has(item.rowKey)
+
         return (
-        <div
-          key={idx}
-          data-find-current={hasCurrentMatch ? 'true' : undefined}
-          onClick={(e) => { e.stopPropagation(); actions.setSelectedDocIndex(idx) }}
-          className={cn(
-            'rounded-xl border p-4 group relative transition-all duration-200 cursor-pointer',
-            hasCurrentMatch
-              ? 'bg-blue-100 border-blue-300 shadow-sm '
-              : hasMatch
-                ? 'bg-blue-50/60 border-blue-200'
-                : state.selectedDocIndex === idx
-                  ? 'bg-blue-50 border-blue-100 shadow-sm'
-                  : 'bg-background border-border/50 hover:bg-muted/30 hover:shadow-sm',
-          )}
-        >
-          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={(e) => { e.stopPropagation(); actions.handleEditClick(doc) }}
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-primary"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t('mongodb.document.editAction')}</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={(e) => { e.stopPropagation(); actions.handleDeleteClick(doc._id) }}
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t('mongodb.document.deleteAction')}</TooltipContent>
-            </Tooltip>
+          <div
+            key={item.rowKey}
+            data-find-current={hasCurrentMatch ? 'true' : undefined}
+            className={cn(
+              'rounded-xl border p-4 group relative transition-all duration-200 flex gap-3',
+              item.changeType === 'insert'
+                ? 'bg-blue-50 border-blue-200'
+                : item.isDeleted
+                  ? 'bg-red-50/60 border-red-200 opacity-60'
+                  : item.changeType === 'update'
+                    ? 'bg-green-50/60 border-green-200'
+                    : hasCurrentMatch
+                      ? 'bg-blue-100 border-blue-300 shadow-sm'
+                      : hasMatch
+                        ? 'bg-blue-50/60 border-blue-200'
+                        : 'bg-background border-border/50 hover:bg-muted/30 hover:shadow-sm',
+            )}
+          >
+            <div className="flex-shrink-0 pt-0.5">
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => actions.toggleRowSelection(item.rowKey)}
+                className="h-4 w-4 rounded border-border cursor-pointer accent-primary"
+                aria-label={t('mongodb.document.selectRow')}
+              />
+            </div>
+            <div className="flex-1 min-w-0 relative">
+              <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={(e) => { e.stopPropagation(); actions.handleEditClick(item.rowKey) }}
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t('mongodb.document.editAction')}</TooltipContent>
+                </Tooltip>
+              </div>
+              <pre className={cn(
+                'text-sm overflow-x-auto font-mono text-foreground/80',
+                item.isDeleted && 'line-through',
+              )}>
+                {JSON.stringify(item.doc, null, 2).replace(/^\{\n/, '').replace(/\n\}$/, '')}
+              </pre>
+            </div>
           </div>
-          <pre className="text-sm overflow-x-auto font-mono text-foreground/80">
-            {JSON.stringify(doc, null, 2).replace(/^\{\n/, '').replace(/\n\}$/, '')}
-          </pre>
-        </div>
         )
       })}
     </>
