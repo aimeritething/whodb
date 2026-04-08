@@ -100,7 +100,7 @@ export function DashboardWidget({
     return (
         <div
             className={cn(
-                "bg-accent rounded-lg overflow-clip flex flex-col p-0.5 relative h-full transition-all group",
+                "bg-accent rounded-lg overflow-clip flex flex-col p-1 relative h-full transition-all group",
                 isSelected ? "ring-2 ring-primary" : "",
                 isReadOnly && "pointer-events-auto"
             )}
@@ -111,10 +111,10 @@ export function DashboardWidget({
             onContextMenu={!isReadOnly ? handleContextMenu : undefined}
         >
             {/* Widget Header */}
-            <div className="h-9 flex items-center justify-between px-0.5 shrink-0 relative z-10">
+            <div className="h-9 flex items-center justify-between shrink-0 relative z-10">
                 <div
                     className={cn(
-                        "flex items-center h-8 px-2.5 rounded-lg w-[45%] min-w-0 transition-colors",
+                        "flex items-center h-8 px-2.5 rounded-md w-[45%] min-w-0 transition-colors",
                         isRenaming ? "bg-input" : !isReadOnly && "hover:bg-input cursor-text"
                     )}
                     onDoubleClick={() => {
@@ -137,10 +137,10 @@ export function DashboardWidget({
                                 }
                             }}
                             onMouseDown={(e) => e.stopPropagation()}
-                            className="text-base text-foreground bg-transparent outline-none w-full"
+                            className="text-sm text-foreground bg-transparent outline-none w-full"
                         />
                     ) : (
-                        <span className="text-base text-foreground truncate">{widget.title}</span>
+                        <span className="text-sm text-foreground truncate">{widget.title}</span>
                     )}
                 </div>
 
@@ -169,7 +169,7 @@ export function DashboardWidget({
 
             {/* Widget Content */}
             <div className="flex-1 overflow-hidden relative">
-                <div className="absolute inset-0 p-3 z-10">
+                <div className="absolute inset-0 p-3 pb-6 z-10">
                     <WidgetContent widget={widget} chartRef={chartRef} runtimeState={runtimeState} />
                 </div>
             </div>
