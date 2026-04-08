@@ -108,7 +108,7 @@ export function TableViewDataGrid() {
 
   return (
     <div ref={scrollRef} onScroll={handleScroll} data-scrolled-x={isScrolledX || undefined} data-scrolled-y={isScrolledY || undefined} className="flex-1 overflow-auto">
-      <table className="min-w-full border-collapse text-sm" style={{ tableLayout: 'fixed' }}>
+      <table className="min-w-full border-collapse text-sm">
         <thead className="border-b border-border bg-background">
           <tr>
             <th
@@ -121,7 +121,6 @@ export function TableViewDataGrid() {
             {hiddenColumnCount > 0 && (
               <th
                 className="sticky top-0 z-40 border-b border-border/50 bg-background px-4 py-2 text-center text-xs font-medium text-muted-foreground"
-                style={{ width: 'auto' }}
                 title={t('sql.table.hiddenColumnsTitle', { count: hiddenColumnCount })}
               >
                 <div className="flex items-center justify-center gap-1">
@@ -130,7 +129,7 @@ export function TableViewDataGrid() {
                 </div>
               </th>
             )}
-            <th className="sticky top-0 z-40 border-b border-border/50 bg-background" style={{ width: 'auto' }} />
+            <th className="sticky top-0 z-40 border-b border-border/50 bg-background w-full" />
           </tr>
         </thead>
         <tbody className="bg-background">
@@ -195,7 +194,7 @@ export function TableViewDataGrid() {
                         highlight === 'match' && 'bg-blue-100/60',
                         editable && !isActiveCell && 'cursor-default',
                       )}
-                      style={{ width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` }}
+                      style={{ minWidth: `${width}px` }}
                       onDoubleClick={() => {
                         if (editable) actions.activateCell(row.rowKey, col)
                       }}
@@ -251,8 +250,8 @@ export function TableViewDataGrid() {
                   )
                 })}
 
-                {hiddenColumnCount > 0 && <td className="border-b border-border/50 bg-background" style={{ width: 'auto' }} />}
-                <td className="border-b border-border/50 bg-background" style={{ width: 'auto' }} />
+                {hiddenColumnCount > 0 && <td className="border-b border-border/50 bg-background" />}
+                <td className="border-b border-border/50 bg-background w-full" />
               </tr>
             )
           })}

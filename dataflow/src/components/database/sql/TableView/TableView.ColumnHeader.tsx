@@ -31,7 +31,7 @@ export function TableViewColumnHeader({ column, index }: ColumnHeaderProps) {
 
   return (
     <th
-      style={{ width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` }}
+      style={{ minWidth: `${width}px` }}
       className="px-6 py-2 text-left font-medium text-sm text-muted-foreground whitespace-nowrap group/header relative border-r border-border/50 select-none sticky top-0 bg-background z-40"
     >
       <div className="flex items-center justify-between h-full">
