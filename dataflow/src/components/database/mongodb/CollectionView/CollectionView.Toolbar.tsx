@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Download, Plus, RefreshCw, TerminalSquare, BarChart3 } from 'lucide-react'
+import { Download, Plus, Minus, Undo2, Eye, SendHorizontal, RefreshCw, TerminalSquare, BarChart3 } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { useCollectionView } from './CollectionViewProvider'
 import { DataView } from '@/components/database/shared/DataView'
@@ -54,6 +54,69 @@ export function CollectionViewToolbar({ connectionId, databaseName, collectionNa
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('mongodb.collection.addData')}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={actions.markSelectedForDelete}
+                disabled={state.selectedRowKeys.size === 0}
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('mongodb.actions.markDelete')}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={actions.undoLastChange}
+                disabled={state.undoStack.length === 0}
+              >
+                <Undo2 className="h-4 w-4" />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('mongodb.actions.undo')}</TooltipContent>
+        </Tooltip>
+
+        <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-4" />
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => actions.setShowPreviewModal(true)}
+                disabled={!state.hasPendingChanges}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('mongodb.actions.previewChanges')}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => actions.setShowSubmitModal(true)}
+                disabled={!state.hasPendingChanges}
+              >
+                <SendHorizontal className="h-4 w-4" />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('mongodb.actions.submitChanges')}</TooltipContent>
         </Tooltip>
 
         <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-4" />
