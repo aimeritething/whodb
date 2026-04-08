@@ -149,6 +149,26 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* react-grid-layout: custom resize handle */
+.react-resizable-handle {
+  width: 14px;
+  height: 14px;
+  background-image: none;
+  padding: 0;
+  z-index: 20;
+}
+
+.react-resizable-handle-se::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid oklch(0.556 0 0);
+  border-bottom: 2px solid oklch(0.556 0 0);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

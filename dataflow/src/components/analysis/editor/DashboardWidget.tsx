@@ -1,6 +1,7 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { ChartWidgetDefinition } from "@/stores/analysisDefinitionStore";
+import { useAnalysisDefinitionStore } from "@/stores/analysisDefinitionStore";
 import { useAnalysisRuntimeStore } from "@/stores/analysisRuntimeStore";
 import { cn } from "@/lib/utils";
 import { GripHorizontal, MoreVertical, Trash2, Maximize2, Settings, ImageDown } from "lucide-react";
@@ -31,12 +32,33 @@ export function DashboardWidget({
 }: DashboardWidgetProps) {
     const { t } = useI18n()
     const runtimeState = useAnalysisRuntimeStore(state => state.widgetStatesById[widget.id]);
+    const updateWidget = useAnalysisDefinitionStore(state => state.updateWidget);
     const [contextMenu, setContextMenu] = useState<{
         x: number; y: number;
         side: "top" | "right" | "bottom" | "left";
         align: "start" | "end";
     } | null>(null);
+    const [isRenaming, setIsRenaming] = useState(false);
+    const [renameValue, setRenameValue] = useState(widget.title);
+    const renameInputRef = useRef<HTMLInputElement>(null);
     const chartRef = useRef<NativeEChartsHandle>(null);
+
+    useEffect(() => {
+        if (isRenaming) {
+            renameInputRef.current?.focus();
+            renameInputRef.current?.select();
+        }
+    }, [isRenaming]);
+
+    const commitRename = () => {
+        const trimmed = renameValue.trim();
+        if (trimmed && trimmed !== widget.title) {
+            void updateWidget(widget.id, { title: trimmed });
+        } else {
+            setRenameValue(widget.title);
+        }
+        setIsRenaming(false);
+    };
 
     const handleContextMenu = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -90,8 +112,36 @@ export function DashboardWidget({
         >
             {/* Widget Header */}
             <div className="h-9 flex items-center justify-between px-0.5 shrink-0 relative z-10">
-                <div className="flex items-center h-8 px-2.5 rounded-lg truncate">
-                    <span className="text-xs text-foreground truncate">{widget.title}</span>
+                <div
+                    className={cn(
+                        "flex items-center h-8 px-2.5 rounded-lg w-[45%] min-w-0 transition-colors",
+                        isRenaming ? "bg-input" : !isReadOnly && "hover:bg-input cursor-text"
+                    )}
+                    onDoubleClick={() => {
+                        if (isReadOnly) return;
+                        setRenameValue(widget.title);
+                        setIsRenaming(true);
+                    }}
+                >
+                    {!isReadOnly && isRenaming ? (
+                        <input
+                            ref={renameInputRef}
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onBlur={commitRename}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') commitRename();
+                                if (e.key === 'Escape') {
+                                    setRenameValue(widget.title);
+                                    setIsRenaming(false);
+                                }
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className="text-base text-foreground bg-transparent outline-none w-full"
+                        />
+                    ) : (
+                        <span className="text-base text-foreground truncate">{widget.title}</span>
+                    )}
                 </div>
 
                 {!isReadOnly && (
@@ -130,18 +180,6 @@ export function DashboardWidget({
                 </div>
             )}
 
-            {/* Maximize Button - Bottom Right */}
-            {!isReadOnly && (
-                <div className="flex items-center justify-end p-2 shrink-0 relative z-10">
-                    <button
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onClick={() => onMaximize?.(widget.id)}
-                        className="text-foreground/40 hover:text-foreground transition-colors"
-                    >
-                        <Maximize2 className="w-4 h-4" />
-                    </button>
-                </div>
-            )}
 
             {/* Portal Context Menu — must escape react-grid-layout's CSS transform */}
             {contextMenu && createPortal(
