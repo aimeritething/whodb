@@ -222,6 +222,12 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
             });
         }
 
+        // Refresh sidebar tree when a write operation succeeded (DDL/DML may change schema objects)
+        const hasSuccessfulWrite = results.some((r) => !r.isError && !isReadOperation(connectionType, r.sql));
+        if (hasSuccessfulWrite) {
+            useConnectionStore.getState().triggerSidebarRefresh();
+        }
+
         setIsExecuting(false);
     };
 

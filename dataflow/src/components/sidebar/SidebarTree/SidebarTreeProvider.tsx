@@ -300,6 +300,20 @@ export function SidebarTreeProvider({ children }: { children: React.ReactNode })
     restoreState();
   }, [connections.length, buildChildren, fetchSystemSchemas]);
 
+  // Refresh all expanded connection nodes when sidebarRefreshKey changes (e.g. after DDL in editor)
+  const sidebarRefreshKey = useConnectionStore((s) => s.sidebarRefreshKey);
+  const prevRefreshKey = useRef(sidebarRefreshKey);
+  useEffect(() => {
+    if (sidebarRefreshKey === prevRefreshKey.current) return;
+    prevRefreshKey.current = sidebarRefreshKey;
+    const connectionNodes = connections.map(connectionToNode);
+    for (const node of connectionNodes) {
+      if (expandedItems.has(node.id)) {
+        refreshNode(node);
+      }
+    }
+  }, [sidebarRefreshKey, connections, expandedItems, refreshNode]);
+
   const value: SidebarTreeContextValue = {
     expandedItems,
     treeData,

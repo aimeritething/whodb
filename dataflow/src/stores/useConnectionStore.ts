@@ -66,6 +66,8 @@ interface ConnectionState {
   triggerTableRefresh: () => void;
   collectionRefreshKey: number;
   triggerCollectionRefresh: () => void;
+  sidebarRefreshKey: number;
+  triggerSidebarRefresh: () => void;
   createDatabase: (databaseName: string) => Promise<DDLResult>;
   renameDatabase: (oldName: string, newName: string) => Promise<DDLResult>;
   deleteDatabase: (databaseName: string) => Promise<DDLResult>;
@@ -158,6 +160,9 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
   collectionRefreshKey: 0,
   /** Increment collection refresh key to trigger re-fetch in CollectionViewProvider. */
   triggerCollectionRefresh: () => set((s) => ({ collectionRefreshKey: s.collectionRefreshKey + 1 })),
+  sidebarRefreshKey: 0,
+  /** Increment sidebar refresh key to trigger re-fetch of sidebar tree nodes (e.g. after DDL in editor). */
+  triggerSidebarRefresh: () => set((s) => ({ sidebarRefreshKey: s.sidebarRefreshKey + 1 })),
   systemSchemas: [],
   showSystemObjectsFor: new Set<string>(),
   toggleSystemObjects: (nodeId) => set((state) => {
