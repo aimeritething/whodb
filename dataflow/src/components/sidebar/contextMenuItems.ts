@@ -237,3 +237,21 @@ export function getCollectionMenuItems(callbacks: MenuCallbacks): ContextMenuIte
     refreshItem(onAction, t),
   ];
 }
+
+export function getRedisKeysFolderMenuItems(callbacks: MenuCallbacks): ContextMenuItem[] {
+  const { onAction, t } = callbacks;
+  return [
+    { label: t("sidebar.menu.newKey"), onClick: () => onAction("new_redis_key"), icon: React.createElement(Plus, { className: "h-4 w-4" }) },
+    { separator: true },
+    refreshItem(onAction, t),
+  ];
+}
+
+export function getRedisKeyMenuItems(callbacks: MenuCallbacks): ContextMenuItem[] {
+  const { onAction, t } = callbacks;
+  return [
+    { label: t("sidebar.menu.deleteKey"), onClick: () => onAction("delete_redis_key"), icon: React.createElement(Trash2, { className: "h-4 w-4 text-red-500" }), danger: true },
+    { separator: true },
+    refreshItem(onAction, t),
+  ];
+}
