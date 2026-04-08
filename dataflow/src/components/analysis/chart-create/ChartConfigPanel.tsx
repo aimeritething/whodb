@@ -137,7 +137,7 @@ export function ChartConfigPanel() {
             </div>
 
             {/* 5. Chart Options */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3 mt-1">
                 <Label>{t('analysis.chart.options')}</Label>
                 {(
                     [
@@ -152,15 +152,16 @@ export function ChartConfigPanel() {
                             checked={config.options[key]}
                             onCheckedChange={() => onConfigChange({ options: { ...config.options, [key]: !config.options[key] } })}
                         />
-                        <Label htmlFor={key} className="cursor-pointer">{label}</Label>
+                        <Label htmlFor={key} className="cursor-pointer font-normal">{label}</Label>
                     </div>
                 ))}
             </div>
 
             {/* 6. Sort By */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3 mt-1">
                 <Label>{t('analysis.chart.sortBy')}</Label>
                 <RadioGroup
+                    className="flex flex-col gap-3"
                     value={config.sortBy}
                     onValueChange={(value) => onConfigChange({ sortBy: value as SortTarget })}
                 >
@@ -174,7 +175,7 @@ export function ChartConfigPanel() {
                         <div key={value}>
                             <div className="flex items-center gap-2">
                                 <RadioGroupItem value={value} id={`sort-${value}`} />
-                                <Label htmlFor={`sort-${value}`} className="cursor-pointer">{label}</Label>
+                                <Label htmlFor={`sort-${value}`} className="cursor-pointer font-normal">{label}</Label>
                             </div>
 
                             {/* Sort order sub-options when xAxis or yAxis selected */}
@@ -182,7 +183,7 @@ export function ChartConfigPanel() {
                                 <RadioGroup
                                     value={config.sortOrder}
                                     onValueChange={(v) => onConfigChange({ sortOrder: v as SortOrder })}
-                                    className="ml-6 mt-1.5 flex gap-3"
+                                    className="ml-6 mt-3 flex gap-2"
                                 >
                                     {(
                                         [
@@ -192,7 +193,7 @@ export function ChartConfigPanel() {
                                     ).map(order => (
                                         <div key={order.value} className="flex items-center gap-2">
                                             <RadioGroupItem value={order.value} id={`sort-order-${order.value}`} />
-                                            <Label htmlFor={`sort-order-${order.value}`} className="cursor-pointer">{order.label}</Label>
+                                            <Label htmlFor={`sort-order-${order.value}`} className="cursor-pointer font-normal">{order.label}</Label>
                                         </div>
                                     ))}
                                 </RadioGroup>
