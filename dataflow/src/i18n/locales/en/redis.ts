@@ -51,4 +51,6 @@ export const enRedisMessages = {
   'redis.detail.newRowPlaceholder': 'Enter value…',
   'redis.detail.autoIndex': 'auto',
   'redis.detail.deleteSelected': 'Delete Selected',
+  'redis.detail.confirmDeleteTitle': 'Delete Selected Entries',
+  'redis.detail.confirmDeleteMessage': 'Are you sure you want to delete {count} selected entries? This action cannot be undone.',
 } satisfies MessageShape<typeof zhRedisMessages>

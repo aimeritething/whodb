@@ -24,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { cn } from '@/lib/utils'
 import {
   Loader2, RefreshCw, Plus, Minus, MoreHorizontal,
@@ -147,6 +148,9 @@ export function RedisKeyDetailView({ connectionId, databaseName, keyName }: Redi
 
   // ---- Mutation loading ----
   const [mutating, setMutating] = useState(false)
+
+  // ---- Delete confirmation ----
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // ---- Ref for race-condition prevention ----
   const latestRequestIdRef = useRef(0)
@@ -465,7 +469,7 @@ export function RedisKeyDetailView({ connectionId, databaseName, keyName }: Redi
           <Tooltip>
             <TooltipTrigger asChild>
               <span>
-                <Button variant="ghost" size="icon" onClick={handleDeleteSelected} disabled={selectedRows.size === 0 || mutating}>
+                <Button variant="ghost" size="icon" onClick={() => setShowDeleteConfirm(true)} disabled={selectedRows.size === 0 || mutating}>
                   <Minus className="h-4 w-4" />
                 </Button>
               </span>
@@ -727,6 +731,16 @@ export function RedisKeyDetailView({ connectionId, databaseName, keyName }: Redi
           onPageSizeChange={handlePageSizeChange}
         />
       )}
+
+      {/* ---- Delete confirmation modal ---- */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteSelected}
+        title={t('redis.detail.confirmDeleteTitle')}
+        message={t('redis.detail.confirmDeleteMessage', { count: String(selectedRows.size) })}
+        isDestructive
+      />
     </div>
   )
 }

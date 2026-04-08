@@ -45,4 +45,6 @@ export const zhRedisMessages = {
   'redis.detail.newRowPlaceholder': '输入值…',
   'redis.detail.autoIndex': '自动',
   'redis.detail.deleteSelected': '删除所选',
+  'redis.detail.confirmDeleteTitle': '删除所选条目',
+  'redis.detail.confirmDeleteMessage': '确定要删除所选的 {count} 个条目吗？此操作不可撤销。',
 } as const
