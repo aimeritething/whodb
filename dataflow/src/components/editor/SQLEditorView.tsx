@@ -7,9 +7,12 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MonacoEditor from "./MonacoEditorWrapper";
 import type { editor } from 'monaco-editor';
+import type * as Monaco from 'monaco-editor';
 import { useConnectionStore } from "@/stores/useConnectionStore";
-import { useRawExecuteLazyQuery } from '@graphql';
-import { getEditorLanguage, isReadOperation, supportsSchema } from "@/utils/database-features";
+import { useRawExecuteLazyQuery, useGetStorageUnitsLazyQuery, useGetColumnsBatchLazyQuery } from '@graphql';
+import { getEditorLanguage, isReadOperation, resolveSchemaParam, supportsSchema } from "@/utils/database-features";
+import { registerSQLCompletionProvider } from './sql-completion';
+import type { SQLCompletionData, ColumnInfo } from './sql-completion';
 import { splitRedisCommands, splitSQLStatements } from '@/utils/sql-split';
 import { useTabStore } from "@/stores/useTabStore";
 import { useI18n } from "@/i18n/useI18n";
@@ -45,12 +48,15 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
     const { connections } = useConnectionStore();
     const connectionType = connections.find((c) => c.id === context?.connectionId)?.type ?? 'POSTGRES';
     const [rawExecute] = useRawExecuteLazyQuery({ fetchPolicy: 'no-cache' });
+    const [fetchStorageUnits] = useGetStorageUnitsLazyQuery({ fetchPolicy: 'no-cache' });
+    const [fetchColumnsBatch] = useGetColumnsBatchLazyQuery({ fetchPolicy: 'no-cache' });
     const [activeResultTab, setActiveResultTab] = useState<'result' | 'message'>('result');
     const [query, setQuery] = useState(initialSql || "");
     const [isExecuting, setIsExecuting] = useState(false);
     const [queryResults, setQueryResults] = useState<StatementResult[] | null>(null);
     const [executionTime, setExecutionTime] = useState<number | null>(null);
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+    const [monacoInstance, setMonacoInstance] = useState<typeof Monaco | null>(null);
     const { updateTab } = useTabStore();
     const { fetchDatabases, fetchSchemas } = useConnectionStore();
     const [databases, setDatabases] = useState<string[]>([]);
@@ -75,6 +81,56 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
             }
         }).catch(console.error);
     }, [context?.connectionId, selectedDatabase, connectionType, fetchSchemas]);
+
+    // Register SQL completion provider when schema metadata is available
+    useEffect(() => {
+        if (getEditorLanguage(connectionType) !== 'sql') return;
+        if (!monacoInstance) return;
+
+        const schemaParam = resolveSchemaParam(connectionType, selectedDatabase, selectedSchema);
+        if (!schemaParam) return;
+
+        let disposed = false;
+        let disposable: Monaco.IDisposable | null = null;
+
+        (async () => {
+            const { data: storageData } = await fetchStorageUnits({
+                variables: { schema: schemaParam },
+            });
+            if (disposed || !storageData?.StorageUnit) return;
+
+            const tableNames = storageData.StorageUnit.map((u) => u.Name);
+            if (tableNames.length === 0) return;
+
+            const { data: columnsData } = await fetchColumnsBatch({
+                variables: { schema: schemaParam, storageUnits: tableNames },
+            });
+            if (disposed) return;
+
+            const columns = new Map<string, ColumnInfo[]>();
+            if (columnsData?.ColumnsBatch) {
+                for (const batch of columnsData.ColumnsBatch) {
+                    columns.set(
+                        batch.StorageUnit,
+                        batch.Columns.map((c) => ({
+                            name: c.Name,
+                            type: c.Type,
+                            isPrimary: c.IsPrimary,
+                            isForeignKey: c.IsForeignKey,
+                        })),
+                    );
+                }
+            }
+
+            const completionData: SQLCompletionData = { tables: tableNames, columns };
+            disposable = registerSQLCompletionProvider(monacoInstance, completionData);
+        })();
+
+        return () => {
+            disposed = true;
+            disposable?.dispose();
+        };
+    }, [connectionType, selectedDatabase, selectedSchema, monacoInstance, fetchStorageUnits, fetchColumnsBatch]);
 
     const handleDatabaseChange = (db: string) => {
         setSelectedDatabase(db);
@@ -326,8 +382,9 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                             quickSuggestions: true,
                             wordBasedSuggestions: 'off',
                         }}
-                        onMount={(editorInstance: editor.IStandaloneCodeEditor) => {
+                        onMount={(editorInstance: editor.IStandaloneCodeEditor, monacoInstance: typeof Monaco) => {
                             editorRef.current = editorInstance;
+                            setMonacoInstance(monacoInstance);
                         }}
                     />
                 </div>
