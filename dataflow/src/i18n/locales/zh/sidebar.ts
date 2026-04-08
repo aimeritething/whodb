@@ -15,6 +15,8 @@ export const zhSidebarMessages = {
   'sidebar.menu.deleteTable': '删除数据表',
   'sidebar.menu.exportCollection': '导出集合',
   'sidebar.menu.dropCollection': '删除集合',
+  'sidebar.menu.newKey': '新建键',
+  'sidebar.menu.deleteKey': '删除键',
   'sidebar.menu.refresh': '刷新',
   'sidebar.menu.showSystemObjects': '显示系统对象',
   'sidebar.menu.hideSystemObjects': '隐藏系统对象',

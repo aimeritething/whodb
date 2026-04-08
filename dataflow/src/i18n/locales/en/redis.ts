@@ -32,4 +32,9 @@ export const enRedisMessages = {
   'redis.alert.emptyValueRequired': 'Add at least one value before creating this key.',
   'redis.detail.fetchFailed': 'Failed to fetch key data',
   'redis.detail.empty': 'This key has no data.',
+  'redis.deleteKey.title': 'Delete Key',
+  'redis.deleteKey.warningTitle': 'This action cannot be undone',
+  'redis.deleteKey.warningMessage': 'This will permanently delete key {keyName} and all its data.',
+  'redis.deleteKey.confirmName': 'Type the key name to confirm deletion',
+  'redis.deleteKey.submit': 'Delete Key',
 } satisfies MessageShape<typeof zhRedisMessages>

@@ -26,4 +26,9 @@ export const zhRedisMessages = {
   'redis.alert.emptyValueRequired': '请至少添加一条值后再创建该键。',
   'redis.detail.fetchFailed': '获取键数据失败',
   'redis.detail.empty': '该键无数据。',
+  'redis.deleteKey.title': '删除键',
+  'redis.deleteKey.warningTitle': '此操作不可撤销',
+  'redis.deleteKey.warningMessage': '将永久删除键 {keyName} 及其所有数据。',
+  'redis.deleteKey.confirmName': '输入键名以确认删除',
+  'redis.deleteKey.submit': '删除键',
 } as const
