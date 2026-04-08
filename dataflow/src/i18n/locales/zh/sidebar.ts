@@ -23,7 +23,6 @@ export const zhSidebarMessages = {
   'sidebar.tab.queryWithDatabase': '查询 [{database}]',
   'sidebar.tab.queryWithConnection': '查询 [{connection}]',
   'sidebar.tab.tableWithDatabase': '{table} [{database}]',
-  'sidebar.tab.redisKeys': '{database} 键列表',
   'sidebar.redis.keysFolder': '键',
   'sidebar.tab.redisKeyDetail': '{key} [{database}]',
   'sidebar.tree.tables': 'Tables',

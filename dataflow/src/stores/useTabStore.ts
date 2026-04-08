@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type TabType = 'query' | 'table' | 'collection' | 'redis_keys_list' | 'redis_key_detail';
+export type TabType = 'query' | 'table' | 'collection' | 'redis_key_detail';
 
 export interface Tab {
   id: string;
@@ -41,7 +41,6 @@ export const useTabStore = create<TabState>((set, get) => ({
       if (databaseName && tab.databaseName !== databaseName) return false;
       if (type === 'table') return tab.tableName === identifier;
       if (type === 'collection') return tab.collectionName === identifier;
-      if (type === 'redis_keys_list') return tab.databaseName === databaseName;
       if (type === 'redis_key_detail') return tab.tableName === identifier;
       return false;
     });

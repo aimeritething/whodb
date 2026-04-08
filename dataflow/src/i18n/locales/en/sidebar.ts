@@ -30,7 +30,6 @@ export const enSidebarMessages = {
   'sidebar.tab.queryWithDatabase': 'Query [{database}]',
   'sidebar.tab.queryWithConnection': 'Query [{connection}]',
   'sidebar.tab.tableWithDatabase': '{table} [{database}]',
-  'sidebar.tab.redisKeys': '{database} Keys',
   'sidebar.redis.keysFolder': 'keys',
   'sidebar.tab.redisKeyDetail': '{key} [{database}]',
   'sidebar.tree.tables': 'Tables',
