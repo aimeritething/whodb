@@ -7,10 +7,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 export function useColumnResize(columns: string[] | undefined): {
   columnWidths: Record<string, number>
   resizingColumn: string | null
+  resizedColumns: Set<string>
   handleResizeStart: (e: React.MouseEvent, column: string) => void
 } {
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
   const [resizingColumn, setResizingColumn] = useState<string | null>(null)
+  const [resizedColumns, setResizedColumns] = useState<Set<string>>(new Set())
   const resizingRef = useRef<{ column: string; startX: number; startWidth: number } | null>(null)
 
   // Initialize widths when columns first arrive
@@ -37,6 +39,13 @@ export function useColumnResize(columns: string[] | undefined): {
 
     const handleMouseUp = () => {
       if (resizingRef.current) {
+        const col = resizingRef.current.column
+        setResizedColumns(prev => {
+          if (prev.has(col)) return prev
+          const next = new Set(prev)
+          next.add(col)
+          return next
+        })
         resizingRef.current = null
         setResizingColumn(null)
         document.body.style.cursor = 'default'
@@ -66,5 +75,5 @@ export function useColumnResize(columns: string[] | undefined): {
     document.body.style.cursor = 'col-resize'
   }, [columnWidths])
 
-  return { columnWidths, resizingColumn, handleResizeStart }
+  return { columnWidths, resizingColumn, resizedColumns, handleResizeStart }
 }

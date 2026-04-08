@@ -148,7 +148,7 @@ export function TableViewDataGrid() {
               >
                 <td
                   className={cn(
-                    'sticky left-0 z-30 border-b border-r border-border/50 bg-background px-2 py-2 text-center text-xs font-medium',
+                    'sticky left-0 z-30 border-b border-r border-border/50 bg-background px-2 py-2 text-center text-sm font-normal',
                     row.isInserted && 'bg-blue-100/60',
                     row.isDeleted && 'bg-red-100/60 text-muted-foreground line-through',
                     isSelected && 'bg-primary/10',
@@ -184,7 +184,7 @@ export function TableViewDataGrid() {
                       key={col}
                       data-find-current={highlight === 'current' ? 'true' : undefined}
                       className={cn(
-                        'relative border-b border-r border-border/50 text-sm text-foreground/80 scroll-mt-14',
+                        'relative overflow-hidden border-b border-r border-border/50 text-sm text-foreground/80 scroll-mt-14',
                         isActiveCell ? 'p-0' : 'px-6 py-2',
                         row.isInserted && 'bg-blue-100/60',
                         row.isDeleted && 'bg-red-100/60 line-through text-muted-foreground',
@@ -194,7 +194,7 @@ export function TableViewDataGrid() {
                         highlight === 'match' && 'bg-blue-100/60',
                         editable && !isActiveCell && 'cursor-default',
                       )}
-                      style={{ minWidth: `${width}px` }}
+                      style={{ minWidth: `${width}px`, ...(state.resizedColumns.has(col) && { maxWidth: `${width}px` }) }}
                       onDoubleClick={() => {
                         if (editable) actions.activateCell(row.rowKey, col)
                       }}

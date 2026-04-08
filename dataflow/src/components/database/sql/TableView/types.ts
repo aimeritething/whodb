@@ -112,6 +112,7 @@ export interface TableViewState {
   hasPendingChanges: boolean
   columnWidths: Record<string, number>
   resizingColumn: string | null
+  resizedColumns: Set<string>
   showExportModal: boolean
   isFilterModalOpen: boolean
   alert: Alert | null
