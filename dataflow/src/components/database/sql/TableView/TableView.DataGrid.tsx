@@ -1,4 +1,4 @@
-import { use, useEffect, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { use, useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { Loader2, EyeOff } from 'lucide-react'
 import { useI18n } from '@/i18n/useI18n'
 import { cn } from '@/lib/utils'
@@ -16,6 +16,17 @@ export function TableViewDataGrid() {
   const hiddenColumnCount = state.data?.columns
     ? state.data.columns.length - state.visibleColumns.length
     : 0
+
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [isScrolledX, setIsScrolledX] = useState(false)
+  const [isScrolledY, setIsScrolledY] = useState(false)
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current
+    if (el) {
+      setIsScrolledX(el.scrollLeft > 0)
+      setIsScrolledY(el.scrollTop > 0)
+    }
+  }, [])
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -93,7 +104,7 @@ export function TableViewDataGrid() {
   }
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div ref={scrollRef} onScroll={handleScroll} data-scrolled-x={isScrolledX || undefined} data-scrolled-y={isScrolledY || undefined} className="flex-1 overflow-auto">
       <table className="min-w-full border-collapse text-sm">
         <thead className="border-b border-border bg-background">
           <tr>
@@ -133,7 +144,7 @@ export function TableViewDataGrid() {
               >
                 <td
                   className={cn(
-                    'sticky left-0 z-30 border-b border-r border-border/50 px-2 py-2 text-center text-xs font-medium',
+                    'sticky left-0 z-30 border-b border-r border-border/50 bg-background px-2 py-2 text-center text-xs font-medium',
                     row.isInserted && 'bg-blue-100/60',
                     row.isDeleted && 'bg-red-100/60 text-muted-foreground line-through',
                     isSelected && 'bg-primary/10',

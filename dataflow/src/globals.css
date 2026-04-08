@@ -178,3 +178,25 @@
     @apply bg-background text-foreground text-sm antialiased;
   }
 }
+
+/* Sticky column/row borders: show via pseudo-elements when table is scrolled */
+[data-scrolled-x] th:first-child::after,
+[data-scrolled-x] td:first-child::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+}
+
+[data-scrolled-y] thead th::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: var(--border);
+}
