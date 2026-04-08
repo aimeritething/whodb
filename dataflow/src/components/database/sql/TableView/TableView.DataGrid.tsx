@@ -66,6 +66,8 @@ export function TableViewDataGrid() {
     rowKey: string,
     column: string,
   ) {
+    const isComposing = event.nativeEvent.isComposing || event.keyCode === 229
+
     if (event.key === 'Escape') {
       event.preventDefault()
       actions.deactivateCell()
@@ -79,6 +81,7 @@ export function TableViewDataGrid() {
     }
 
     if (event.key === 'Enter') {
+      if (isComposing) return
       event.preventDefault()
       actions.moveActiveCell(event.shiftKey ? 'up' : 'down')
       return
