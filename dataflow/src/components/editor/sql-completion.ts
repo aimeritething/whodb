@@ -1,5 +1,6 @@
 import type * as Monaco from 'monaco-editor';
 
+/** Column metadata used by the SQL completion provider. */
 export interface ColumnInfo {
   name: string;
   type: string;
@@ -7,6 +8,7 @@ export interface ColumnInfo {
   isForeignKey: boolean;
 }
 
+/** Schema metadata (tables and their columns) passed to the SQL completion provider. */
 export interface SQLCompletionData {
   tables: string[];
   columns: Map<string, ColumnInfo[]>;
@@ -90,6 +92,14 @@ function getReferencedTables(
   return referenced;
 }
 
+/** Format PK/FK badge suffix for a column (e.g. ` [PK, FK]`). */
+function formatColumnBadge(col: ColumnInfo): string {
+  const badges: string[] = [];
+  if (col.isPrimary) badges.push('PK');
+  if (col.isForeignKey) badges.push('FK');
+  return badges.length > 0 ? ` [${badges.join(', ')}]` : '';
+}
+
 /**
  * Register a SQL completion provider with the given metadata.
  * Returns a Disposable to unregister the provider.
@@ -129,15 +139,10 @@ export function registerSQLCompletionProvider(
       if (dotTable) {
         const cols = data.columns.get(dotTable) ?? [];
         for (const col of cols) {
-          const badges: string[] = [];
-          if (col.isPrimary) badges.push('PK');
-          if (col.isForeignKey) badges.push('FK');
-          const badge = badges.length > 0 ? ` [${badges.join(', ')}]` : '';
-
           suggestions.push({
             label: col.name,
             kind: monaco.languages.CompletionItemKind.Field,
-            detail: `${col.type}${badge}`,
+            detail: `${col.type}${formatColumnBadge(col)}`,
             sortText: `1_${col.name}`,
             insertText: col.name,
             range,
@@ -171,15 +176,10 @@ export function registerSQLCompletionProvider(
         for (const tableName of referenced) {
           const cols = data.columns.get(tableName) ?? [];
           for (const col of cols) {
-            const badges: string[] = [];
-            if (col.isPrimary) badges.push('PK');
-            if (col.isForeignKey) badges.push('FK');
-            const badge = badges.length > 0 ? ` [${badges.join(', ')}]` : '';
-
             suggestions.push({
               label: col.name,
               kind: monaco.languages.CompletionItemKind.Field,
-              detail: `${tableName}.${col.type}${badge}`,
+              detail: `${tableName}.${col.type}${formatColumnBadge(col)}`,
               sortText: `1_${col.name}`,
               insertText: col.name,
               range,
