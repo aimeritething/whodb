@@ -1,4 +1,6 @@
-import { Plus, Minus, Download, RefreshCw, Undo2, TerminalSquare } from 'lucide-react'
+import { useState } from 'react'
+import { Plus, Minus, Download, RefreshCw, Undo2, TerminalSquare, BarChart3 } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
 import { useRedisView } from './RedisViewProvider'
 import { DataView } from '@/components/database/shared/DataView'
 import { Button } from '@/components/ui/Button'
@@ -6,6 +8,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/i18n/useI18n'
 import { useTabStore } from '@/stores/useTabStore'
+import { ChartCreateModal } from '@/components/analysis/chart-create'
 
 interface RedisViewToolbarProps {
   connectionId: string
@@ -16,6 +19,7 @@ export function RedisViewToolbar({ connectionId, databaseName }: RedisViewToolba
   const { t } = useI18n()
   const { state, actions } = useRedisView()
   const openTab = useTabStore((s) => s.openTab)
+  const [isChartModalOpen, setIsChartModalOpen] = useState(false)
 
   const handleOpenQuery = () => {
     openTab({
@@ -36,7 +40,7 @@ export function RedisViewToolbar({ connectionId, databaseName }: RedisViewToolba
               <RefreshCw className={cn("h-4 w-4", state.loading && "animate-spin")} />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{t('redis.actions.refresh')}</TooltipContent>
+          <TooltipContent>{t('common.actions.refresh')}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -66,6 +70,17 @@ export function RedisViewToolbar({ connectionId, databaseName }: RedisViewToolba
           </TooltipTrigger>
           <TooltipContent>{t('common.actions.undo')}</TooltipContent>
         </Tooltip>
+
+        <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-4" />
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={() => setIsChartModalOpen(true)}>
+              <BarChart3 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('analysis.chart.create')}</TooltipContent>
+        </Tooltip>
       </div>
       <div className="flex items-center gap-2">
         <DataView.FilterButton onClick={() => actions.setIsFilterModalOpen(true)} />
@@ -75,13 +90,24 @@ export function RedisViewToolbar({ connectionId, databaseName }: RedisViewToolba
           disabled={state.loading || state.filteredKeys.length === 0}
         >
           <Download className="h-4 w-4" />
-          {t('redis.actions.export')}
+          {t('common.actions.export')}
         </Button>
         <Button className="rounded-lg gap-2.5 min-w-[86px]" onClick={handleOpenQuery}>
           <TerminalSquare className="h-4 w-4" />
-          {t('redis.actions.query')}
+          {t('common.actions.query')}
         </Button>
       </div>
+      <ChartCreateModal
+        open={isChartModalOpen}
+        onOpenChange={setIsChartModalOpen}
+        initialData={state.filteredKeys.length > 0 ? {
+          connectionId,
+          databaseName,
+          query: 'KEYS *',
+          columns: ['key', 'type', 'size'],
+          rows: state.filteredKeys,
+        } : undefined}
+      />
     </div>
   )
 }

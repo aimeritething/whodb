@@ -4,12 +4,15 @@ import { CollectionViewDocumentList } from './CollectionView/CollectionView.Docu
 import { CollectionViewToolbar } from './CollectionView/CollectionView.Toolbar'
 import { AddDocumentModal } from './CollectionView/CollectionView.AddDocumentModal'
 import { EditDocumentModal } from './CollectionView/CollectionView.EditDocumentModal'
+import { buildPreviewCommands, summarizeChanges } from './CollectionView/changeset-mongo-preview'
 import { DataView } from '@/components/database/shared/DataView'
 import { FindBar } from '@/components/database/shared/FindBar'
 import { ExportCollectionModal } from './ExportCollectionModal'
 import { FilterCollectionModal } from './FilterCollectionModal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { AlertModal } from '@/components/ui/AlertModal'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { useI18n } from '@/i18n/useI18n'
 
 interface CollectionDetailViewProps {
@@ -32,12 +35,11 @@ function CollectionDetailViewContent({ databaseName, collectionName, connectionI
   const { t } = useI18n()
   const { state, actions } = useCollectionView()
 
+  const previewCommands = buildPreviewCommands(collectionName, state.changes)
+  const summary = summarizeChanges(state.changes)
+
   if (state.loading && !state.documents.length && !state.showAddModal) {
     return <DataView.Loading />
-  }
-
-  if (state.error) {
-    return <DataView.Error message={state.error} />
   }
 
   /** Extract all top-level field names from visible documents for FindBar. */
@@ -55,17 +57,21 @@ function CollectionDetailViewContent({ databaseName, collectionName, connectionI
     <div className="flex flex-col h-full bg-background">
       <CollectionViewToolbar connectionId={connectionId} databaseName={databaseName} collectionName={collectionName} />
 
-      <FindBar.Provider
-        rows={state.documents}
-        columns={docColumns}
-        searchTerm={state.searchTerm}
-        onSearchTermChange={actions.setSearchTerm}
-      >
-        <FindBar.Bar />
-        <div className="flex-1 overflow-auto p-4 space-y-4">
-          <CollectionViewDocumentList />
-        </div>
-      </FindBar.Provider>
+      {state.error ? (
+        <DataView.Error message={state.error} />
+      ) : (
+        <FindBar.Provider
+          rows={state.documents}
+          columns={docColumns}
+          searchTerm={state.searchTerm}
+          onSearchTermChange={actions.setSearchTerm}
+        >
+          <FindBar.Bar />
+          <div className="flex-1 overflow-auto p-4 space-y-4">
+            <CollectionViewDocumentList />
+          </div>
+        </FindBar.Provider>
+      )}
 
       {state.total > 0 && (
         <DataView.Pagination
@@ -89,13 +95,13 @@ function CollectionDetailViewContent({ databaseName, collectionName, connectionI
       />
 
       <EditDocumentModal
-        open={state.editingDoc !== null}
+        open={state.editingRowKey !== null}
         onOpenChange={(open) => {
-          if (!open) actions.setEditingDoc(null)
+          if (!open) actions.cancelEdit()
         }}
         content={state.editContent}
         onContentChange={actions.setEditContent}
-        onSave={actions.handleSave}
+        onSave={actions.handleEditSave}
       />
 
       <ExportCollectionModal
@@ -116,14 +122,42 @@ function CollectionDetailViewContent({ databaseName, collectionName, connectionI
         initialFilter={state.activeFilter}
       />
 
+      <Dialog open={state.showPreviewModal} onOpenChange={actions.setShowPreviewModal}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{t('mongodb.changes.previewTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('mongodb.changes.previewDescription', { count: state.pendingChangeCount })}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh] rounded-md border bg-muted/20">
+            <pre className="whitespace-pre-wrap p-4 font-mono text-xs">
+              {previewCommands.join('\n\n')}
+            </pre>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
       <ConfirmationModal
-        isOpen={state.showDeleteModal}
-        onClose={() => actions.setShowDeleteModal(false)}
-        onConfirm={actions.handleConfirmDelete}
-        title={t('mongodb.collection.deleteDocumentTitle')}
-        message={t('mongodb.collection.deleteDocumentMessage')}
-        confirmText={t('mongodb.document.delete')}
-        isDestructive
+        isOpen={state.showSubmitModal}
+        onClose={() => actions.setShowSubmitModal(false)}
+        onConfirm={actions.submitChanges}
+        title={t('mongodb.changes.submitConfirmTitle', { count: state.pendingChangeCount })}
+        message={t('mongodb.changes.submitConfirmMessage', {
+          updates: summary.updates,
+          inserts: summary.inserts,
+          deletes: summary.deletes,
+        })}
+        confirmText={t('common.actions.confirm')}
+      />
+
+      <ConfirmationModal
+        isOpen={state.showDiscardModal}
+        onClose={() => actions.setShowDiscardModal(false)}
+        onConfirm={actions.confirmDiscardAndContinue}
+        title={t('mongodb.changes.discardTitle')}
+        message={t('mongodb.changes.discardMessage', { count: state.pendingChangeCount })}
+        confirmText={t('common.actions.discard')}
       />
 
       {state.alert && (

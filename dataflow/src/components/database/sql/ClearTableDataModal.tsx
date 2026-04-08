@@ -53,7 +53,7 @@ function ClearTableDataProvider({
     if (result.success) {
       onSuccess?.()
     } else {
-      throw new Error(result.message ?? t('sql.common.unknownError'))
+      throw new Error(result.message ?? t('common.unknownError'))
     }
   }, [databaseName, schema, tableName, mode, clearTableData, onSuccess, t])
 
@@ -95,7 +95,7 @@ function ClearTableDataModeSelector() {
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-sm font-medium text-muted-foreground">
+      <label className="text-sm font-medium text-foreground">
         {t('sql.clearTable.mode')}
       </label>
       <RadioGroup
@@ -105,8 +105,8 @@ function ClearTableDataModeSelector() {
       >
         <label
           className={cn(
-            'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
-            mode === 'truncate' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-muted/50',
+            'flex items-start gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors',
+            mode === 'truncate' ? 'bg-highlight-background border-transparent' : 'bg-background border-input hover:bg-muted/30',
           )}
         >
           <RadioGroupItem value="truncate" className="mt-0.5" />
@@ -119,8 +119,8 @@ function ClearTableDataModeSelector() {
         </label>
         <label
           className={cn(
-            'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
-            mode === 'delete' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-muted/50',
+            'flex items-start gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors',
+            mode === 'delete' ? 'bg-highlight-background border-transparent' : 'bg-background border-input hover:bg-muted/30',
           )}
         >
           <RadioGroupItem value="delete" className="mt-0.5" />

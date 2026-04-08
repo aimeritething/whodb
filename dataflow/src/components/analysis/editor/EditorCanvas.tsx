@@ -52,7 +52,7 @@ export function EditorCanvas({ dashboard, isReadOnly, onEditComponent, onMaximiz
     };
 
     return (
-        <div className="p-4 min-h-[800px]">
+        <div className="p-4 min-h-[800px]" onClick={() => setSelectedWidgetId(null)}>
             <ResponsiveGridLayout
                 className="layout"
                 layouts={layouts}

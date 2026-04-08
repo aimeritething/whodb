@@ -1,12 +1,15 @@
 import React from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { ChartType, SortTarget, SortOrder } from '../chart-utils';
@@ -40,16 +43,28 @@ export function ChartConfigPanel() {
         <div className="flex flex-col gap-4 p-6 overflow-y-auto h-full">
 
             {/* 1. Data Configuration button */}
-            <Button
-                onClick={() => setActiveView('data-config')}
-                className="w-full"
-            >
-                {t('analysis.chart.dataConfiguration')}
-            </Button>
+            <div className="flex flex-col gap-2">
+                <Button
+                    onClick={() => setActiveView('data-config')}
+                    variant={queryData ? 'outline' : 'default'}
+                    className={cn('w-full', queryData && 'border-primary text-primary')}
+                >
+                    {queryData && <Check className="h-4 w-4" />}
+                    {t('analysis.chart.dataConfiguration')}
+                </Button>
+                {queryData && (
+                    <p className="text-xs text-muted-foreground">
+                        {t('analysis.chart.dataStatus', {
+                            columns: queryData.columns.length,
+                            rows: queryData.rows.length,
+                        })}
+                    </p>
+                )}
+            </div>
 
             {/* 2. Chart Type selector */}
-            <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">{t('analysis.chart.type')}</label>
+            <div className="flex flex-col gap-2">
+                <Label>{t('analysis.chart.type')}</Label>
                 <Select
                     value={config.chartType}
                     onValueChange={(value) => onConfigChange({ chartType: value as ChartType })}
@@ -68,11 +83,12 @@ export function ChartConfigPanel() {
             </div>
 
             {/* 3. X-Axis selector */}
-            <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">{t('analysis.chart.xAxis')}</label>
+            <div className="flex flex-col gap-2">
+                <Label>{t('analysis.chart.xAxis')}</Label>
                 <Select
                     value={config.xAxisColumn || undefined}
                     onValueChange={(value) => onConfigChange({ xAxisColumn: value })}
+                    disabled={columns.length === 0}
                 >
                     <SelectTrigger className="w-full">
                         <SelectValue placeholder={t('analysis.chart.selectXAxis')} />
@@ -88,12 +104,19 @@ export function ChartConfigPanel() {
             </div>
 
             {/* 4. Y-Axis multi-select */}
-            <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium">{t('analysis.chart.yAxis')}</label>
+            <div className="flex flex-col gap-2">
+                <Label>{t('analysis.chart.yAxis')}</Label>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-full justify-between font-normal">
-                            <span className={cn(!config.yAxisColumns.length && 'text-muted-foreground')}>
+                        <Button
+                            variant="outline"
+                            className="w-full justify-between font-normal"
+                            disabled={columns.length === 0}
+                        >
+                            <span className={cn(
+                                'truncate',
+                                !config.yAxisColumns.length && 'text-muted-foreground',
+                            )}>
                                 {config.yAxisColumns.length ? config.yAxisColumns.join(', ') : t('analysis.chart.selectYAxis')}
                             </span>
                             <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -114,8 +137,8 @@ export function ChartConfigPanel() {
             </div>
 
             {/* 5. Chart Options */}
-            <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium">{t('analysis.chart.options')}</label>
+            <div className="flex flex-col gap-3 mt-1">
+                <Label>{t('analysis.chart.options')}</Label>
                 {(
                     [
                         { key: 'showLegend', label: t('analysis.chart.options.legend') },
@@ -123,85 +146,61 @@ export function ChartConfigPanel() {
                         { key: 'showDataLabels', label: t('analysis.chart.options.dataLabels') },
                     ] as const
                 ).map(({ key, label }) => (
-                    <button
-                        key={key}
-                        onClick={() => onConfigChange({ options: { ...config.options, [key]: !config.options[key] } })}
-                        className="flex items-center gap-2 text-sm"
-                    >
-                        <span
-                            className={cn(
-                                'w-4 h-4 rounded border flex items-center justify-center shrink-0',
-                                config.options[key]
-                                    ? 'bg-primary border-primary text-primary-foreground'
-                                    : 'border',
-                            )}
-                        >
-                            {config.options[key] && <Check className="w-3 h-3 text-white" />}
-                        </span>
-                        <span>{label}</span>
-                    </button>
+                    <div key={key} className="flex items-center gap-2">
+                        <Checkbox
+                            id={key}
+                            checked={config.options[key]}
+                            onCheckedChange={() => onConfigChange({ options: { ...config.options, [key]: !config.options[key] } })}
+                        />
+                        <Label htmlFor={key} className="cursor-pointer font-normal">{label}</Label>
+                    </div>
                 ))}
             </div>
 
             {/* 6. Sort By */}
-            <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium">{t('analysis.chart.sortBy')}</label>
-                {(
-                    [
-                        { value: 'data', label: t('analysis.chart.sort.dataOrder') },
-                        { value: 'xAxis', label: t('analysis.chart.sort.xAxisValue') },
-                        { value: 'yAxis', label: t('analysis.chart.sort.yAxisValue') },
-                    ] as { value: SortTarget; label: string }[]
-                ).map(({ value, label }) => (
-                    <div key={value}>
-                        <button
-                            onClick={() => onConfigChange({ sortBy: value })}
-                            className="flex items-center gap-2 text-sm"
-                        >
-                            <span
-                                className={cn(
-                                    'w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0',
-                                    config.sortBy === value ? 'border-primary' : 'border',
-                                )}
-                            >
-                                {config.sortBy === value && (
-                                    <span className="w-2 h-2 rounded-full bg-primary" />
-                                )}
-                            </span>
-                            <span>{label}</span>
-                        </button>
-
-                        {/* Sort order sub-options when xAxis or yAxis selected */}
-                        {config.sortBy === value && value !== 'data' && (
-                            <div className="ml-6 mt-1.5 flex gap-3">
-                                {(
-                                    [
-                                        { value: 'asc', label: t('analysis.chart.sort.ascending') },
-                                        { value: 'desc', label: t('analysis.chart.sort.descending') },
-                                    ] as { value: SortOrder; label: string }[]
-                                ).map(order => (
-                                    <button
-                                        key={order.value}
-                                        onClick={() => onConfigChange({ sortOrder: order.value })}
-                                        className="flex items-center gap-1.5 text-sm"
-                                    >
-                                        <span
-                                            className={cn(
-                                                'w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0',
-                                                config.sortOrder === order.value ? 'border-primary' : 'border',
-                                            )}
-                                        >
-                                            {config.sortOrder === order.value && (
-                                                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                            )}
-                                        </span>
-                                        <span>{order.label}</span>
-                                    </button>
-                                ))}
+            <div className="flex flex-col gap-3 mt-1">
+                <Label>{t('analysis.chart.sortBy')}</Label>
+                <RadioGroup
+                    className="flex flex-col gap-3"
+                    value={config.sortBy}
+                    onValueChange={(value) => onConfigChange({ sortBy: value as SortTarget })}
+                >
+                    {(
+                        [
+                            { value: 'data', label: t('analysis.chart.sort.dataOrder') },
+                            { value: 'xAxis', label: t('analysis.chart.sort.xAxisValue') },
+                            { value: 'yAxis', label: t('analysis.chart.sort.yAxisValue') },
+                        ] as { value: SortTarget; label: string }[]
+                    ).map(({ value, label }) => (
+                        <div key={value}>
+                            <div className="flex items-center gap-2">
+                                <RadioGroupItem value={value} id={`sort-${value}`} />
+                                <Label htmlFor={`sort-${value}`} className="cursor-pointer font-normal">{label}</Label>
                             </div>
-                        )}
-                    </div>
-                ))}
+
+                            {/* Sort order sub-options when xAxis or yAxis selected */}
+                            {config.sortBy === value && value !== 'data' && (
+                                <RadioGroup
+                                    value={config.sortOrder}
+                                    onValueChange={(v) => onConfigChange({ sortOrder: v as SortOrder })}
+                                    className="ml-6 mt-3 flex gap-2"
+                                >
+                                    {(
+                                        [
+                                            { value: 'asc', label: t('analysis.chart.sort.ascending') },
+                                            { value: 'desc', label: t('analysis.chart.sort.descending') },
+                                        ] as { value: SortOrder; label: string }[]
+                                    ).map(order => (
+                                        <div key={order.value} className="flex items-center gap-2">
+                                            <RadioGroupItem value={order.value} id={`sort-order-${order.value}`} />
+                                            <Label htmlFor={`sort-order-${order.value}`} className="cursor-pointer font-normal">{order.label}</Label>
+                                        </div>
+                                    ))}
+                                </RadioGroup>
+                            )}
+                        </div>
+                    ))}
+                </RadioGroup>
             </div>
 
         </div>

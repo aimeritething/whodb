@@ -12,13 +12,12 @@ export const zhSqlMessages = {
   'sql.table.deleteRowAction': '删除行',
   'sql.table.errorFetchData': '获取表数据失败',
   'sql.actions.addData': '新增数据',
-  'sql.actions.export': '导出',
-  'sql.actions.refresh': '刷新',
+
   'sql.actions.previewChanges': '预览待提交更改',
   'sql.actions.run': '运行',
   'sql.actions.format': '格式化',
   'sql.actions.submitChanges': '提交更改',
-  'sql.actions.query': '查询',
+
   'sql.changes.deleteSelected': '标记所选行为删除',
   'sql.changes.undo': '撤销上一次更改',
   'sql.changes.previewTitle': '待提交 SQL 预览',
@@ -36,7 +35,7 @@ export const zhSqlMessages = {
   'sql.deleteRow.typeToConfirm': '输入 "{value}" 以确认',
   'sql.deleteRow.typeConfirmation': '输入确认内容',
   'sql.filter.title': '筛选数据表',
-  'sql.filter.apply': '应用筛选',
+  'sql.filter.apply': '应用',
   'sql.filter.addCondition': '添加条件',
   'sql.filter.valuePlaceholder': '值',
   'sql.filter.visibleColumns': '可见列',
@@ -61,7 +60,7 @@ export const zhSqlMessages = {
   'sql.editor.noQueryExecuted': '尚未执行查询。',
   'sql.editor.actionExecuted': '���作已执行',
   'sql.editor.success': '成功',
-  'sql.editor.executionSummary': '共 {total} 条语句，{success} 条成功，{failed} 条���败，耗时 {time}s',
+  'sql.editor.executionSummary': '共 {total} 条语句，{success} 条成功，{failed} 条失败，耗时 {time}s',
   'sql.export.title': '导出数据',
   'sql.export.rowLimit': '行数限制',
   'sql.export.rowLimitPlaceholder': '留空则导出全部行',
@@ -170,5 +169,5 @@ export const zhSqlMessages = {
   'sql.inline.rowAdded': '新行添加成功！',
   'sql.inline.failedToAddRowGeneric': '新增行失败',
   'sql.inline.errorAddingRow': '新增行出错：{error}',
-  'sql.common.unknownError': '未知错误',
+
 } as const

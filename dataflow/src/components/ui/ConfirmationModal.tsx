@@ -68,7 +68,7 @@ export function ConfirmationModal({
             <AlertDialogContent aria-describedby={undefined}>
                 <AlertDialogHeader>
                     <AlertDialogTitle className="flex items-center gap-2">
-                        {isDestructive && <AlertTriangle className="h-5 w-5 text-destructive" />}
+                        {isDestructive && <AlertTriangle className="h-5 w-5 text-foreground" />}
                         {title}
                     </AlertDialogTitle>
                 </AlertDialogHeader>
@@ -80,7 +80,7 @@ export function ConfirmationModal({
 
                     {verificationText && (
                         <div className="flex flex-col gap-2">
-                            <label className="text-sm font-medium text-muted-foreground">
+                            <label className="text-sm font-medium text-foreground">
                                 {verificationLabel ?? t('common.confirmation.typeToConfirm', { value: verificationText })}
                             </label>
                             <Input
@@ -104,7 +104,7 @@ export function ConfirmationModal({
                         {resolvedCancelText}
                     </Button>
                     <Button
-                        variant={isDestructive ? "destructive" : "default"}
+                        variant="default"
                         onClick={handleConfirm}
                         disabled={isConfirmDisabled}
                         className="min-w-[80px]"
