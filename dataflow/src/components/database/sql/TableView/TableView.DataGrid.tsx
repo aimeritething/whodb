@@ -108,7 +108,7 @@ export function TableViewDataGrid() {
 
   return (
     <div ref={scrollRef} onScroll={handleScroll} data-scrolled-x={isScrolledX || undefined} data-scrolled-y={isScrolledY || undefined} className="flex-1 overflow-auto">
-      <table className="min-w-full border-collapse text-sm">
+      <table className="min-w-full border-collapse text-sm" style={{ tableLayout: 'fixed' }}>
         <thead className="border-b border-border bg-background">
           <tr>
             <th
@@ -121,6 +121,7 @@ export function TableViewDataGrid() {
             {hiddenColumnCount > 0 && (
               <th
                 className="sticky top-0 z-40 border-b border-border/50 bg-background px-4 py-2 text-center text-xs font-medium text-muted-foreground"
+                style={{ width: 'auto' }}
                 title={t('sql.table.hiddenColumnsTitle', { count: hiddenColumnCount })}
               >
                 <div className="flex items-center justify-center gap-1">
@@ -129,6 +130,7 @@ export function TableViewDataGrid() {
                 </div>
               </th>
             )}
+            <th className="sticky top-0 z-40 border-b border-border/50 bg-background" style={{ width: 'auto' }} />
           </tr>
         </thead>
         <tbody className="bg-background">
@@ -249,7 +251,8 @@ export function TableViewDataGrid() {
                   )
                 })}
 
-                {hiddenColumnCount > 0 && <td className="border-b border-border/50 bg-background" />}
+                {hiddenColumnCount > 0 && <td className="border-b border-border/50 bg-background" style={{ width: 'auto' }} />}
+                <td className="border-b border-border/50 bg-background" style={{ width: 'auto' }} />
               </tr>
             )
           })}
