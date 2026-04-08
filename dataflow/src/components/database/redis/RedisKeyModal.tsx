@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/Input'
 import {
@@ -21,7 +22,9 @@ import { hasRedisDraftPayload } from './redis-key.utils'
 interface RedisKeyModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (draft: RedisKeyDraft) => Promise<void>
+  connectionId: string
+  databaseName: string
+  onSuccess?: () => void
   initialData?: RedisKeyDraft | null
 }
 
@@ -31,13 +34,20 @@ const REDIS_TYPES: RedisKeyType[] = ['string', 'hash', 'list', 'set', 'zset']
 export function RedisKeyModal({
   open,
   onOpenChange,
-  onSave,
+  connectionId,
+  databaseName,
+  onSuccess,
   initialData,
 }: RedisKeyModalProps) {
+  const handleSuccess = useCallback(() => {
+    onSuccess?.()
+    onOpenChange(false)
+  }, [onSuccess, onOpenChange])
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <RedisKeyProvider open={open} onSave={onSave} initialData={initialData}>
+        <RedisKeyProvider open={open} databaseName={databaseName} onSuccess={handleSuccess} initialData={initialData}>
           <ModalForm.Header />
           <RedisKeyIdentityFields />
           <RedisKeyEditorSwitch />

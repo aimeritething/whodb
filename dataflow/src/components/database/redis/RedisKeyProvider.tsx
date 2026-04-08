@@ -2,6 +2,7 @@ import { createContext, use, useCallback, useEffect, useState, type JSX, type Re
 import { List } from 'lucide-react'
 import { ModalForm, useModalForm } from '@/components/ui/ModalForm'
 import { useI18n } from '@/i18n/useI18n'
+import { useConnectionStore } from '@/stores/useConnectionStore'
 import type {
   RedisHashPairDraft,
   RedisKeyDraft,
@@ -9,7 +10,7 @@ import type {
   RedisListItemDraft,
   RedisZSetItemDraft,
 } from './redis-key.types'
-import { hasRedisDraftPayload } from './redis-key.utils'
+import { buildRedisFields, hasRedisDraftPayload } from './redis-key.utils'
 
 /**
  * Domain context for Redis key create/edit draft state.
@@ -43,7 +44,8 @@ export function useRedisKeyCtx(): RedisKeyCtxValue {
 
 interface RedisKeyProviderProps {
   open: boolean
-  onSave: (draft: RedisKeyDraft) => Promise<void>
+  databaseName: string
+  onSuccess?: () => void
   initialData?: RedisKeyDraft | null
   children: ReactNode
 }
@@ -115,14 +117,16 @@ function ResetOnOpen({ open, children }: { open: boolean; children: ReactNode })
   return children
 }
 
-/** Owns Redis key draft state and delegates save behavior to the caller. */
+/** Owns Redis key draft state and submits via store mutation. */
 export function RedisKeyProvider({
   open,
-  onSave,
+  databaseName,
+  onSuccess,
   initialData,
   children,
 }: RedisKeyProviderProps): JSX.Element {
   const { t } = useI18n()
+  const { createTable } = useConnectionStore()
   const [draft, setDraft] = useState<RedisKeyDraft>(() => normalizeDraft(initialData))
 
   useEffect(() => {
@@ -178,8 +182,14 @@ export function RedisKeyProvider({
     if (draft.mode === 'edit' && draft.type !== 'string') {
       throw new Error(t('redis.alert.unsupportedEditMode'))
     }
-    await onSave(draft)
-  }, [draft, onSave, t])
+    const fields = buildRedisFields(draft)
+    const result = await createTable(databaseName, databaseName, draft.key, fields)
+    if (result.success) {
+      onSuccess?.()
+    } else {
+      throw new Error(result.message ?? t('common.unknownError'))
+    }
+  }, [draft, databaseName, createTable, onSuccess, t])
 
   const isEditMode = draft.mode === 'edit'
   const isStringEdit = isEditMode && draft.type === 'string'
