@@ -36,7 +36,7 @@ interface ChartCreateCtxValue {
     previewOption: ReturnType<typeof buildEChartsOption>
     editorContext: { connectionId: string; databaseName: string; schemaName?: string } | null
     dashboards: DashboardDefinition[]
-    selectedDashboardId: string | null
+    selectedDashboardId: string
     setSelectedDashboardId: (id: string) => void
     setActiveView: (view: ModalView) => void
     setTitle: (title: string) => void
@@ -132,13 +132,8 @@ export function ChartCreateProvider({ editComponent, initialQuery, initialData, 
     const initialSql = editComponent?.query ?? initialData?.query ?? initialQuery ?? ''
     const [sqlQuery, setSqlQueryState] = useState(initialSql)
     const sqlQueryRef = useRef(initialSql)
-    const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(activeDashboardId)
-
-    useEffect(() => {
-        if (!selectedDashboardId || (selectedDashboardId === '__new__' && dashboards.length > 0)) {
-            setSelectedDashboardId(dashboards.length > 0 ? dashboards[0].id : '__new__')
-        }
-    }, [selectedDashboardId, dashboards])
+    const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null)
+    const effectiveDashboardId = selectedDashboardId ?? activeDashboardId ?? dashboards[0]?.id ?? '__new__'
 
     const connection = connections[0]
     const editorContext = initialData
@@ -192,7 +187,6 @@ export function ChartCreateProvider({ editComponent, initialQuery, initialData, 
         && queryData !== null
         && chartConfig.xAxisColumn !== ''
         && chartConfig.yAxisColumns.length > 0
-        && (isEditing || selectedDashboardId !== null)
 
     const previewOption = buildEChartsOption(chartConfig, queryData)
 
@@ -217,8 +211,8 @@ export function ChartCreateProvider({ editComponent, initialQuery, initialData, 
                 layout: editComponent.layout,
                 sortOrder: editComponent.sortOrder,
             })
-        } else if (selectedDashboardId) {
-            targetId = selectedDashboardId
+        } else if (effectiveDashboardId) {
+            targetId = effectiveDashboardId
             let targetWidgets: ChartWidgetDefinition[] = []
             if (targetId === '__new__') {
                 const created = await createDashboard(title.trim())
@@ -255,7 +249,7 @@ export function ChartCreateProvider({ editComponent, initialQuery, initialData, 
             openDashboard(targetId)
             useLayoutStore.getState().setActiveTab('analysis')
         }
-    }, [queryData, title, chartConfig, addWidget, updateWidget, editComponent, selectedDashboardId, dashboards, onClose, initialData, openDashboard])
+    }, [queryData, title, chartConfig, addWidget, updateWidget, editComponent, effectiveDashboardId, dashboards, onClose, initialData, openDashboard])
 
     return (
         <ChartCreateCtx value={{
@@ -269,7 +263,7 @@ export function ChartCreateProvider({ editComponent, initialQuery, initialData, 
             previewOption,
             editorContext,
             dashboards,
-            selectedDashboardId,
+            selectedDashboardId: effectiveDashboardId,
             setSelectedDashboardId,
             setActiveView,
             setTitle,

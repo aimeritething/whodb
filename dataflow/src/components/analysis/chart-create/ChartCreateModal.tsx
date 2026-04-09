@@ -84,7 +84,7 @@ function ChartConfigView() {
                         />
                         {!isEditing && (
                             <Select
-                                value={selectedDashboardId ?? undefined}
+                                value={selectedDashboardId}
                                 onValueChange={setSelectedDashboardId}
                             >
                                 <SelectTrigger className="w-[180px] shrink-0">
