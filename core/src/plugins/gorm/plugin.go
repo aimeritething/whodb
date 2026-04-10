@@ -33,6 +33,99 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// IsMultiStatement returns true if query contains more than one SQL statement,
+// ignoring semicolons inside single-line comments (--), block comments (/* */),
+// and single/double-quoted strings. Used by plugins whose default driver protocol
+// does not support multiple commands per query (e.g., PostgreSQL extended protocol,
+// MySQL without MultiStatements).
+func IsMultiStatement(query string) bool {
+	i := 0
+	for i < len(query) {
+		ch := query[i]
+
+		// Line comment: skip to end of line
+		if ch == '-' && i+1 < len(query) && query[i+1] == '-' {
+			for i < len(query) && query[i] != '\n' {
+				i++
+			}
+			continue
+		}
+		// Block comment: skip to closing */
+		if ch == '/' && i+1 < len(query) && query[i+1] == '*' {
+			i += 2
+			for i+1 < len(query) && !(query[i] == '*' && query[i+1] == '/') {
+				i++
+			}
+			if i+1 < len(query) {
+				i += 2
+			}
+			continue
+		}
+		// Quoted string/identifier: skip to matching close quote
+		if ch == '\'' || ch == '"' {
+			quote := ch
+			i++
+			for i < len(query) {
+				if query[i] == '\\' && i+1 < len(query) {
+					i += 2
+					continue
+				}
+				if query[i] == quote {
+					i++
+					// SQL-standard doubled-quote escape
+					if i < len(query) && query[i] == quote {
+						i++
+						continue
+					}
+					break
+				}
+				i++
+			}
+			continue
+		}
+		if ch == ';' {
+			if hasStatementAfter(query[i+1:]) {
+				return true
+			}
+		}
+		i++
+	}
+	return false
+}
+
+// hasStatementAfter reports whether the tail contains meaningful SQL content
+// beyond the separator — i.e., anything that isn't whitespace, a comment, or
+// another empty separator. Used by IsMultiStatement to distinguish a trailing
+// semicolon (and any comment after it) from a real second statement.
+func hasStatementAfter(tail string) bool {
+	i := 0
+	for i < len(tail) {
+		ch := tail[i]
+		if ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == ';' {
+			i++
+			continue
+		}
+		if ch == '-' && i+1 < len(tail) && tail[i+1] == '-' {
+			for i < len(tail) && tail[i] != '\n' {
+				i++
+			}
+			continue
+		}
+		if ch == '/' && i+1 < len(tail) && tail[i+1] == '*' {
+			i += 2
+			for i+1 < len(tail) && !(tail[i] == '*' && tail[i+1] == '/') {
+				i++
+			}
+			if i+1 < len(tail) {
+				i += 2
+			}
+			continue
+		}
+		return true
+	}
+	return false
+}
+
 type GormPlugin struct {
 	engine.Plugin
 	GormPluginFunctions
@@ -590,14 +683,45 @@ func (p *GormPlugin) ExecuteRawSQL(config *engine.PluginConfig, openMultiStateme
 			if err != nil {
 				return nil, err
 			}
-			_, err = sqlDB.Exec(query)
+
+			conn, err := sqlDB.Conn(context.Background())
 			if err != nil {
 				return nil, err
 			}
-			return &engine.GetRowsResult{
-				Columns: []engine.Column{},
-				Rows:    [][]string{},
-			}, nil
+			defer conn.Close()
+
+			rows, err := conn.QueryContext(context.Background(), query)
+			if err != nil {
+				// Clean up any aborted transaction left on this conn.
+				_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
+				return nil, err
+			}
+			defer rows.Close()
+
+			// Walk every result set; keep the LAST one that has columns.
+			// DDL/DML statements without RETURNING produce a result set with
+			// zero columns in simple protocol — skip those.
+			var lastResult *engine.GetRowsResult
+			for {
+				result, convErr := p.ConvertRawToRows(rows)
+				if convErr != nil {
+					return nil, convErr
+				}
+				if len(result.Columns) > 0 {
+					lastResult = result
+				}
+				if !rows.NextResultSet() {
+					break
+				}
+			}
+
+			if lastResult == nil {
+				return &engine.GetRowsResult{
+					Columns: []engine.Column{},
+					Rows:    [][]string{},
+				}, nil
+			}
+			return lastResult, nil
 		}
 
 		sqlDB, err := db.DB()

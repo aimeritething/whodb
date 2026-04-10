@@ -142,6 +142,11 @@ func (p *MySQLPlugin) GetTableNameAndAttributes(rows *sql.Rows) (string, []engin
 }
 
 func (p *MySQLPlugin) RawExecute(config *engine.PluginConfig, query string, params ...any) (*engine.GetRowsResult, error) {
+	if config != nil && !config.MultiStatement && gorm_plugin.IsMultiStatement(query) {
+		cfgCopy := *config
+		cfgCopy.MultiStatement = true
+		config = &cfgCopy
+	}
 	return p.ExecuteRawSQL(config, func(cfg *engine.PluginConfig) (*gorm.DB, error) {
 		return p.openDB(cfg, true)
 	}, query, params...)

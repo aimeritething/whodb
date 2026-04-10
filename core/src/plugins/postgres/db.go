@@ -59,9 +59,12 @@ func (p *PostgresPlugin) openDB(config *engine.PluginConfig, multiStatement bool
 	pgxConfig.Database = connectionInput.Database
 	pgxConfig.ConnectTimeout = time.Duration(connectionInput.ConnectionTimeout) * time.Second
 
-	// Use simpler protocol for multi-statement SQL scripts
+	// Use simple query protocol for multi-statement SQL scripts. This allows
+	// both Exec and Query paths to send multiple commands in a single query
+	// and receive multiple result sets via sql.Rows.NextResultSet(). Results
+	// are returned as text (a property of simple protocol).
 	if multiStatement {
-		pgxConfig.DefaultQueryExecMode = pgx.QueryExecModeExec
+		pgxConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 	}
 
 	// Configure SSL/TLS
