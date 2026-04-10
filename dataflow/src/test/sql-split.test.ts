@@ -167,4 +167,11 @@ describe('splitSQLStatements', () => {
       'BEGIN;\nSELECT 2;\nROLLBACK;',
     ]);
   });
+
+  it('merges BEGIN with extra internal whitespace', () => {
+    const sql = 'BEGIN  TRANSACTION; SELECT 1; COMMIT;';
+    expect(splitSQLStatements(sql)).toEqual([
+      'BEGIN  TRANSACTION;\nSELECT 1;\nCOMMIT;',
+    ]);
+  });
 });

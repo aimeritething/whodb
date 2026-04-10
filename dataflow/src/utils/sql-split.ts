@@ -99,14 +99,15 @@ export function splitSQLStatements(sql: string): string[] {
 
       if (!trimmed) continue;
 
+      const normalized = trimmed.replace(/\s+/g, ' ').toUpperCase();
       if (inTransaction) {
         transactionBlock += trimmed + ';\n';
-        if (TRANSACTION_END.has(trimmed.toUpperCase())) {
+        if (TRANSACTION_END.has(normalized)) {
           statements.push(transactionBlock.trim());
           transactionBlock = '';
           inTransaction = false;
         }
-      } else if (TRANSACTION_START.has(trimmed.toUpperCase())) {
+      } else if (TRANSACTION_START.has(normalized)) {
         inTransaction = true;
         transactionBlock = trimmed + ';\n';
       } else {
