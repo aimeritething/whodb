@@ -101,4 +101,70 @@ describe('splitSQLStatements', () => {
       '/* unclosed comment ; SELECT 2',
     ]);
   });
+
+  it('merges BEGIN...COMMIT into a single statement', () => {
+    const sql = 'BEGIN; INSERT INTO t VALUES (1); COMMIT;';
+    expect(splitSQLStatements(sql)).toEqual([
+      'BEGIN;\nINSERT INTO t VALUES (1);\nCOMMIT;',
+    ]);
+  });
+
+  it('merges BEGIN...ROLLBACK into a single statement', () => {
+    const sql = 'BEGIN; INSERT INTO t VALUES (1); ROLLBACK;';
+    expect(splitSQLStatements(sql)).toEqual([
+      'BEGIN;\nINSERT INTO t VALUES (1);\nROLLBACK;',
+    ]);
+  });
+
+  it('merges case-insensitive BEGIN TRANSACTION...COMMIT', () => {
+    const sql = 'begin transaction; SELECT 1; commit;';
+    expect(splitSQLStatements(sql)).toEqual([
+      'begin transaction;\nSELECT 1;\ncommit;',
+    ]);
+  });
+
+  it('merges START TRANSACTION...COMMIT', () => {
+    const sql = 'START TRANSACTION; UPDATE t SET x=1; COMMIT;';
+    expect(splitSQLStatements(sql)).toEqual([
+      'START TRANSACTION;\nUPDATE t SET x=1;\nCOMMIT;',
+    ]);
+  });
+
+  it('handles statements before and after a transaction block', () => {
+    const sql = 'SELECT 1; BEGIN; INSERT INTO t VALUES (1); COMMIT; SELECT 2;';
+    expect(splitSQLStatements(sql)).toEqual([
+      'SELECT 1',
+      'BEGIN;\nINSERT INTO t VALUES (1);\nCOMMIT;',
+      'SELECT 2',
+    ]);
+  });
+
+  it('handles unclosed transaction block (no COMMIT)', () => {
+    const sql = 'BEGIN; INSERT INTO t VALUES (1);';
+    expect(splitSQLStatements(sql)).toEqual([
+      'BEGIN;\nINSERT INTO t VALUES (1);',
+    ]);
+  });
+
+  it('handles BEGIN WORK...END WORK', () => {
+    const sql = 'BEGIN WORK; SELECT 1; END WORK;';
+    expect(splitSQLStatements(sql)).toEqual([
+      'BEGIN WORK;\nSELECT 1;\nEND WORK;',
+    ]);
+  });
+
+  it('handles ABORT as transaction end', () => {
+    const sql = 'BEGIN; SELECT 1; ABORT;';
+    expect(splitSQLStatements(sql)).toEqual([
+      'BEGIN;\nSELECT 1;\nABORT;',
+    ]);
+  });
+
+  it('handles two consecutive transaction blocks', () => {
+    const sql = 'BEGIN; SELECT 1; COMMIT; BEGIN; SELECT 2; ROLLBACK;';
+    expect(splitSQLStatements(sql)).toEqual([
+      'BEGIN;\nSELECT 1;\nCOMMIT;',
+      'BEGIN;\nSELECT 2;\nROLLBACK;',
+    ]);
+  });
 });

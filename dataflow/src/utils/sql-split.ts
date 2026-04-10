@@ -6,6 +6,19 @@ export function splitRedisCommands(input: string): string[] {
   return input.split('\n').map((line) => line.trim()).filter(Boolean);
 }
 
+/** Set of keywords (uppercase) that start a transaction block. */
+const TRANSACTION_START = new Set([
+  'BEGIN', 'BEGIN WORK', 'BEGIN TRANSACTION', 'START TRANSACTION',
+]);
+
+/** Set of keywords (uppercase) that end a transaction block. */
+const TRANSACTION_END = new Set([
+  'COMMIT', 'COMMIT WORK', 'COMMIT TRANSACTION',
+  'ROLLBACK', 'ROLLBACK WORK', 'ROLLBACK TRANSACTION',
+  'END', 'END WORK', 'END TRANSACTION',
+  'ABORT', 'ABORT WORK', 'ABORT TRANSACTION',
+]);
+
 /**
  * Splits a SQL string into individual statements on semicolons,
  * respecting single-quoted strings, double-quoted identifiers,
@@ -18,6 +31,8 @@ export function splitSQLStatements(sql: string): string[] {
   const statements: string[] = [];
   let current = '';
   let i = 0;
+  let inTransaction = false;
+  let transactionBlock = '';
 
   while (i < sql.length) {
     const ch = sql[i];
@@ -79,9 +94,24 @@ export function splitSQLStatements(sql: string): string[] {
     // Semicolon delimiter: flush current statement
     if (ch === ';') {
       const trimmed = current.trim();
-      if (trimmed) statements.push(trimmed);
       current = '';
       i++;
+
+      if (!trimmed) continue;
+
+      if (inTransaction) {
+        transactionBlock += trimmed + ';\n';
+        if (TRANSACTION_END.has(trimmed.toUpperCase())) {
+          statements.push(transactionBlock.trim());
+          transactionBlock = '';
+          inTransaction = false;
+        }
+      } else if (TRANSACTION_START.has(trimmed.toUpperCase())) {
+        inTransaction = true;
+        transactionBlock = trimmed + ';\n';
+      } else {
+        statements.push(trimmed);
+      }
       continue;
     }
 
@@ -90,7 +120,16 @@ export function splitSQLStatements(sql: string): string[] {
   }
 
   const trimmed = current.trim();
-  if (trimmed) statements.push(trimmed);
+  if (trimmed) {
+    if (inTransaction) {
+      transactionBlock += trimmed;
+      statements.push(transactionBlock.trim());
+    } else {
+      statements.push(trimmed);
+    }
+  } else if (inTransaction && transactionBlock.trim()) {
+    statements.push(transactionBlock.trim());
+  }
 
   return statements;
 }
