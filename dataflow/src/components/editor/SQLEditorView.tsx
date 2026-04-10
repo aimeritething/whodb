@@ -13,7 +13,7 @@ import { useRawExecuteLazyQuery, useGetStorageUnitsLazyQuery, useGetColumnsBatch
 import { getEditorLanguage, getUnsupportedRedisCommand, isReadOperation, resolveSchemaParam, supportsSchema } from "@/utils/database-features";
 import { registerSQLCompletionProvider } from './sql-completion';
 import type { SQLCompletionData, ColumnInfo } from './sql-completion';
-import { splitRedisCommands, splitSQLStatements } from '@/utils/sql-split';
+import { splitRedisCommands, splitSQLStatements, isStandaloneTransactionStatement } from '@/utils/sql-split';
 import { useTabStore } from "@/stores/useTabStore";
 import { useI18n } from "@/i18n/useI18n";
 
@@ -173,6 +173,12 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                     results.push({ columns: [], rows: [], info: t(unsupportedKey as import('@/i18n/messages').MessageKey), isError: true, sql });
                     break;
                 }
+            }
+
+            // Block standalone transaction statements with a warning
+            if (connectionType.toUpperCase() !== 'REDIS' && isStandaloneTransactionStatement(sql)) {
+                results.push({ columns: [], rows: [], info: t('sql.editor.transactionWarning'), isError: true, sql });
+                continue;
             }
 
             try {
