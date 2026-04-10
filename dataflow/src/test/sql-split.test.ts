@@ -174,6 +174,46 @@ describe('splitSQLStatements', () => {
       'BEGIN  TRANSACTION;\nSELECT 1;\nCOMMIT;',
     ]);
   });
+
+  it('merges transaction block when BEGIN is preceded by line comments', () => {
+    const sql = `-- Mock Data Generator
+-- PostgreSQL — run as a single script
+
+BEGIN;
+
+CREATE TABLE t (id int);
+INSERT INTO t VALUES (1);
+
+COMMIT;`;
+    const result = splitSQLStatements(sql);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toContain('BEGIN');
+    expect(result[0]).toContain('CREATE TABLE');
+    expect(result[0]).toContain('INSERT INTO');
+    expect(result[0]).toContain('COMMIT');
+  });
+
+  it('merges transaction block when BEGIN is preceded by block comment', () => {
+    const sql = '/* header */ BEGIN; SELECT 1; COMMIT;';
+    const result = splitSQLStatements(sql);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toContain('BEGIN');
+    expect(result[0]).toContain('COMMIT');
+  });
+
+  it('merges transaction block with inline comment after COMMIT keyword', () => {
+    const sql = 'BEGIN; SELECT 1; COMMIT -- done\n;';
+    const result = splitSQLStatements(sql);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toContain('BEGIN');
+    expect(result[0]).toContain('COMMIT');
+  });
+
+  it('merges transaction block with inline comment between statements', () => {
+    const sql = 'BEGIN; -- start\nSELECT 1; COMMIT;';
+    const result = splitSQLStatements(sql);
+    expect(result).toHaveLength(1);
+  });
 });
 
 describe('isStandaloneTransactionStatement', () => {
@@ -215,5 +255,17 @@ describe('isStandaloneTransactionStatement', () => {
 
   it('returns false for BEGIN with trailing semicolon', () => {
     expect(isStandaloneTransactionStatement('BEGIN;')).toBe(false);
+  });
+
+  it('detects BEGIN preceded by a line comment', () => {
+    expect(isStandaloneTransactionStatement('-- start transaction\nBEGIN')).toBe(true);
+  });
+
+  it('detects COMMIT followed by a line comment', () => {
+    expect(isStandaloneTransactionStatement('COMMIT -- done')).toBe(true);
+  });
+
+  it('detects BEGIN preceded by a block comment', () => {
+    expect(isStandaloneTransactionStatement('/* header */ BEGIN')).toBe(true);
   });
 });

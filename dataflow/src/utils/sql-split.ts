@@ -28,12 +28,23 @@ const TRANSACTION_BLOCKED_STANDALONE = new Set([
 ]);
 
 /**
+ * Strips SQL comments (-- line and block) and normalizes whitespace/case
+ * for transaction keyword matching. The original text is preserved elsewhere
+ * — this is only used for equality checks against keyword sets.
+ */
+function normalizeForKeywordMatch(sql: string): string {
+  const noLineComments = sql.replace(/--[^\n]*/g, ' ');
+  const noBlockComments = noLineComments.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  return noBlockComments.trim().replace(/\s+/g, ' ').toUpperCase();
+}
+
+/**
  * Returns true if the statement is a standalone transaction control keyword
  * that should NOT be sent to the backend individually.
  * ROLLBACK variants are excluded — they are harmless and useful for recovery.
  */
 export function isStandaloneTransactionStatement(sql: string): boolean {
-  return TRANSACTION_BLOCKED_STANDALONE.has(sql.trim().replace(/\s+/g, ' ').toUpperCase());
+  return TRANSACTION_BLOCKED_STANDALONE.has(normalizeForKeywordMatch(sql));
 }
 
 /**
@@ -116,7 +127,7 @@ export function splitSQLStatements(sql: string): string[] {
 
       if (!trimmed) continue;
 
-      const normalized = trimmed.replace(/\s+/g, ' ').toUpperCase();
+      const normalized = normalizeForKeywordMatch(trimmed);
       if (inTransaction) {
         transactionBlock += trimmed + ';\n';
         if (TRANSACTION_END.has(normalized)) {
