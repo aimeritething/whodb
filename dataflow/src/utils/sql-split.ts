@@ -19,6 +19,23 @@ const TRANSACTION_END = new Set([
   'ABORT', 'ABORT WORK', 'ABORT TRANSACTION',
 ]);
 
+/** Keywords that should be blocked when sent as standalone statements (excludes ROLLBACK variants). */
+const TRANSACTION_BLOCKED_STANDALONE = new Set([
+  ...TRANSACTION_START,
+  'COMMIT', 'COMMIT WORK', 'COMMIT TRANSACTION',
+  'END', 'END WORK', 'END TRANSACTION',
+  'ABORT', 'ABORT WORK', 'ABORT TRANSACTION',
+]);
+
+/**
+ * Returns true if the statement is a standalone transaction control keyword
+ * that should NOT be sent to the backend individually.
+ * ROLLBACK variants are excluded — they are harmless and useful for recovery.
+ */
+export function isStandaloneTransactionStatement(sql: string): boolean {
+  return TRANSACTION_BLOCKED_STANDALONE.has(sql.trim().replace(/\s+/g, ' ').toUpperCase());
+}
+
 /**
  * Splits a SQL string into individual statements on semicolons,
  * respecting single-quoted strings, double-quoted identifiers,

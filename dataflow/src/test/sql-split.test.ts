@@ -1,4 +1,4 @@
-import { splitRedisCommands, splitSQLStatements } from '@/utils/sql-split';
+import { splitRedisCommands, splitSQLStatements, isStandaloneTransactionStatement } from '@/utils/sql-split';
 
 describe('splitRedisCommands', () => {
   it('splits commands by newline', () => {
@@ -173,5 +173,47 @@ describe('splitSQLStatements', () => {
     expect(splitSQLStatements(sql)).toEqual([
       'BEGIN  TRANSACTION;\nSELECT 1;\nCOMMIT;',
     ]);
+  });
+});
+
+describe('isStandaloneTransactionStatement', () => {
+  it('detects BEGIN', () => {
+    expect(isStandaloneTransactionStatement('BEGIN')).toBe(true);
+  });
+
+  it('detects begin transaction (case insensitive)', () => {
+    expect(isStandaloneTransactionStatement('begin transaction')).toBe(true);
+  });
+
+  it('detects COMMIT', () => {
+    expect(isStandaloneTransactionStatement('COMMIT')).toBe(true);
+  });
+
+  it('returns false for ROLLBACK (allowed through)', () => {
+    expect(isStandaloneTransactionStatement('ROLLBACK')).toBe(false);
+  });
+
+  it('returns false for ROLLBACK WORK (allowed through)', () => {
+    expect(isStandaloneTransactionStatement('ROLLBACK WORK')).toBe(false);
+  });
+
+  it('returns false for ROLLBACK TRANSACTION (allowed through)', () => {
+    expect(isStandaloneTransactionStatement('ROLLBACK TRANSACTION')).toBe(false);
+  });
+
+  it('returns false for regular statements', () => {
+    expect(isStandaloneTransactionStatement('SELECT 1')).toBe(false);
+  });
+
+  it('returns false for BEGIN inside a larger statement', () => {
+    expect(isStandaloneTransactionStatement('BEGIN; INSERT INTO t VALUES (1); COMMIT;')).toBe(false);
+  });
+
+  it('trims whitespace', () => {
+    expect(isStandaloneTransactionStatement('  BEGIN  ')).toBe(true);
+  });
+
+  it('returns false for BEGIN with trailing semicolon', () => {
+    expect(isStandaloneTransactionStatement('BEGIN;')).toBe(false);
   });
 });
