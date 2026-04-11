@@ -5,7 +5,7 @@ import { CollectionViewToolbar } from './CollectionView/CollectionView.Toolbar'
 import { AddDocumentModal } from './CollectionView/CollectionView.AddDocumentModal'
 import { EditDocumentModal } from './CollectionView/CollectionView.EditDocumentModal'
 import { buildPreviewCommands, summarizeChanges } from './CollectionView/changeset-mongo-preview'
-import { DataView } from '@/components/database/shared/DataView'
+import { DataBrowser } from '@/components/database/shared/DataBrowser'
 import { FindBar } from '@/components/database/shared/FindBar'
 import { ExportCollectionModal } from './ExportCollectionModal'
 import { FilterCollectionModal } from './FilterCollectionModal'
@@ -39,7 +39,11 @@ function CollectionDetailViewContent({ databaseName, collectionName, connectionI
   const summary = summarizeChanges(state.changes)
 
   if (state.loading && !state.documents.length && !state.showAddModal) {
-    return <DataView.Loading />
+    return (
+      <DataBrowser.Frame className="bg-background">
+        <DataBrowser.Loading />
+      </DataBrowser.Frame>
+    )
   }
 
   /** Extract all top-level field names from visible documents for FindBar. */
@@ -54,27 +58,29 @@ function CollectionDetailViewContent({ databaseName, collectionName, connectionI
   }, [state.documents])
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <DataBrowser.Frame className="bg-background">
       <CollectionViewToolbar connectionId={connectionId} databaseName={databaseName} collectionName={collectionName} />
 
-      {state.error ? (
-        <DataView.Error message={state.error} />
-      ) : (
-        <FindBar.Provider
-          rows={state.documents}
-          columns={docColumns}
-          searchTerm={state.searchTerm}
-          onSearchTermChange={actions.setSearchTerm}
-        >
-          <FindBar.Bar />
-          <div className="flex-1 overflow-auto p-4 space-y-4">
-            <CollectionViewDocumentList />
-          </div>
-        </FindBar.Provider>
-      )}
+      <DataBrowser.Main>
+        {state.error ? (
+          <DataBrowser.Error message={state.error} />
+        ) : (
+          <FindBar.Provider
+            rows={state.documents}
+            columns={docColumns}
+            searchTerm={state.searchTerm}
+            onSearchTermChange={actions.setSearchTerm}
+          >
+            <FindBar.Bar />
+            <div className="flex-1 overflow-auto p-4 space-y-4">
+              <CollectionViewDocumentList />
+            </div>
+          </FindBar.Provider>
+        )}
+      </DataBrowser.Main>
 
       {state.total > 0 && (
-        <DataView.Pagination
+        <DataBrowser.Pagination
           currentPage={state.currentPage}
           totalPages={state.totalPages}
           pageSize={state.pageSize}
@@ -167,6 +173,6 @@ function CollectionDetailViewContent({ databaseName, collectionName, connectionI
           {...state.alert}
         />
       )}
-    </div>
+    </DataBrowser.Frame>
   )
 }

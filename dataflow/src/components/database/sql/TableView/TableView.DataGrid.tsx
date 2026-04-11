@@ -1,10 +1,11 @@
-import { use, useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { use, useEffect, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { Loader2, EyeOff } from 'lucide-react'
 import { useI18n } from '@/i18n/useI18n'
 import { cn } from '@/lib/utils'
 import { useTableView } from './TableViewProvider'
 import { TableViewColumnHeader } from './TableView.ColumnHeader'
 import { FindBarContext } from '@/components/database/shared/FindBar.Provider'
+import { TabularBrowser } from '@/components/database/shared/TabularBrowser'
 
 /** Renders the SQL table data grid with row-number selection, cell editing, and pending-change states. */
 export function TableViewDataGrid() {
@@ -16,17 +17,6 @@ export function TableViewDataGrid() {
   const hiddenColumnCount = state.data?.columns
     ? state.data.columns.length - state.visibleColumns.length
     : 0
-
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [isScrolledX, setIsScrolledX] = useState(false)
-  const [isScrolledY, setIsScrolledY] = useState(false)
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current
-    if (el) {
-      setIsScrolledX(el.scrollLeft > 0)
-      setIsScrolledY(el.scrollTop > 0)
-    }
-  }, [])
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -107,14 +97,11 @@ export function TableViewDataGrid() {
   }
 
   return (
-    <div ref={scrollRef} onScroll={handleScroll} data-scrolled-x={isScrolledX || undefined} data-scrolled-y={isScrolledY || undefined} className="flex-1 overflow-auto">
+    <TabularBrowser.ScrollFrame>
       <table className="min-w-full border-collapse text-sm">
         <thead className="border-b border-border bg-background">
           <tr>
-            <th
-              className="sticky top-0 left-0 z-50 border-b border-r border-border/50 bg-background px-2 py-2 text-center text-xs font-semibold text-muted-foreground"
-              style={{ width: 64, minWidth: 64, maxWidth: 64 }}
-            > </th>
+            <TabularBrowser.RowNumberHeaderCell />
             {visibleColumns.map((col, idx) => (
               <TableViewColumnHeader key={col} column={col} index={idx} />
             ))}
@@ -146,20 +133,19 @@ export function TableViewDataGrid() {
                   !row.isInserted && !row.isDeleted && 'hover:bg-muted/50',
                 )}
               >
-                <td
+                <TabularBrowser.RowNumberCell
                   className={cn(
-                    'sticky left-0 z-30 border-b border-r border-border/50 bg-background px-2 py-2 text-center text-sm font-normal',
+                    'text-sm font-normal',
                     row.isInserted && 'bg-blue-100/60',
                     row.isDeleted && 'bg-red-100/60 text-muted-foreground line-through',
                     isSelected && 'bg-primary/10',
                   )}
-                  style={{ width: 64, minWidth: 64, maxWidth: 64 }}
                   onClick={() => {
                     if (state.canEdit) actions.toggleRowSelection(row.rowKey)
                   }}
                 >
                   {row.rowNumber ?? ''}
-                </td>
+                </TabularBrowser.RowNumberCell>
 
                 {visibleColumns.map((col) => {
                   const width = state.columnWidths[col] || 120
@@ -180,24 +166,25 @@ export function TableViewDataGrid() {
                   const displayValue = row.values[col]
 
                   return (
-                    <td
+                    <TabularBrowser.DataCell
                       key={col}
-                      data-find-current={highlight === 'current' ? 'true' : undefined}
+                      column={col}
+                      width={width}
+                      isResized={state.resizedColumns.has(col)}
+                      isResizing={state.resizingColumn === col}
+                      highlight={highlight}
+                      active={isActiveCell}
+                      interactive={editable}
                       className={cn(
-                        'relative overflow-hidden border-b border-r border-border/50 text-sm text-foreground/80 scroll-mt-14',
-                        isActiveCell ? 'p-0' : 'px-6 py-2',
                         row.isInserted && 'bg-blue-100/60',
                         row.isDeleted && 'bg-red-100/60 line-through text-muted-foreground',
                         changed && 'bg-green-100/60',
                         isSelected && !row.isInserted && !row.isDeleted && !changed && 'bg-primary/10',
-                        highlight === 'current' && 'bg-blue-200',
-                        highlight === 'match' && 'bg-blue-100/60',
-                        editable && !isActiveCell && 'cursor-default',
                       )}
-                      style={{ minWidth: `${width}px`, ...(state.resizedColumns.has(col) && { maxWidth: `${width}px` }) }}
                       onDoubleClick={() => {
                         if (editable) actions.activateCell(row.rowKey, col)
                       }}
+                      onResizeStart={actions.handleResizeStart}
                     >
                       {isActiveCell ? (
                         <input
@@ -230,23 +217,7 @@ export function TableViewDataGrid() {
                           )}
                         </span>
                       )}
-                      <div
-                        data-resize-col={col}
-                        className={cn(
-                          'absolute right-0 top-0 -bottom-px w-1 cursor-col-resize z-20 data-[resize-active]:bg-primary/50',
-                          state.resizingColumn === col && 'bg-primary/50',
-                        )}
-                        onMouseEnter={() => {
-                          if (state.resizingColumn) return
-                          document.querySelectorAll<HTMLElement>(`[data-resize-col="${col}"]`).forEach(el => { el.dataset.resizeActive = '' })
-                        }}
-                        onMouseLeave={() => {
-                          if (state.resizingColumn) return
-                          document.querySelectorAll<HTMLElement>(`[data-resize-col="${col}"]`).forEach(el => { delete el.dataset.resizeActive })
-                        }}
-                        onMouseDown={(e) => actions.handleResizeStart(e, col)}
-                      />
-                    </td>
+                    </TabularBrowser.DataCell>
                   )
                 })}
 
@@ -257,6 +228,6 @@ export function TableViewDataGrid() {
           })}
         </tbody>
       </table>
-    </div>
+    </TabularBrowser.ScrollFrame>
   )
 }
