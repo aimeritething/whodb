@@ -1,4 +1,4 @@
-import { createContext, use, useCallback, useEffect, useState, type ReactNode } from 'react'
+import { createContext, use, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useConnectionStore } from '@/stores/useConnectionStore'
 import {
   useGetStorageUnitRowsLazyQuery,
@@ -11,7 +11,6 @@ import type { Alert } from '@/components/database/shared/types'
 import type { FlatMongoFilter } from '@/components/database/mongodb/filter-collection.types'
 import { useDocumentChangesetManager } from './useDocumentChangesetManager'
 import { useI18n } from '@/i18n/useI18n'
-import { usePendingGuard } from '@/components/database/shared/usePendingGuard'
 
 const CollectionViewCtx = createContext<CollectionViewContextValue | null>(null)
 
@@ -83,11 +82,37 @@ export function CollectionViewProvider({ connectionId, databaseName, collectionN
     showAlert,
   })
 
-  const { runWithGuard, confirmDiscardAndContinue } = usePendingGuard({
-    hasPendingChanges: changesetState.hasPendingChanges,
-    discardChanges: changesetActions.discardChanges,
-    setShowDiscardModal: changesetActions.setShowDiscardModal,
-  })
+  // ---- Discard guard ----
+  const pendingReloadActionRef = useRef<null | (() => void)>(null)
+
+  const runWithDiscardGuard = useCallback((action: () => void) => {
+    if (!changesetState.hasPendingChanges) {
+      action()
+      return
+    }
+    pendingReloadActionRef.current = action
+    changesetActions.setShowDiscardModal(true)
+  }, [changesetActions, changesetState.hasPendingChanges])
+
+  const confirmDiscardAndContinue = useCallback(() => {
+    changesetActions.discardChanges()
+    changesetActions.setShowDiscardModal(false)
+    pendingReloadActionRef.current?.()
+    pendingReloadActionRef.current = null
+  }, [changesetActions])
+
+  // ---- beforeunload guard ----
+  useEffect(() => {
+    if (!changesetState.hasPendingChanges) return
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [changesetState.hasPendingChanges])
 
   // ---- Extract available fields from documents ----
   useEffect(() => {
@@ -104,11 +129,11 @@ export function CollectionViewProvider({ connectionId, databaseName, collectionN
 
   // ---- Guarded search term setter (resets to page 1) ----
   const setSearchTermGuarded = useCallback((term: string) => {
-    runWithGuard(() => {
+    runWithDiscardGuard(() => {
       setSearchTerm(term)
       setCurrentPage(1)
     })
-  }, [runWithGuard])
+  }, [runWithDiscardGuard])
 
   // ---- Main data fetch ----
   useEffect(() => {
@@ -213,18 +238,18 @@ export function CollectionViewProvider({ connectionId, databaseName, collectionN
 
   // ---- Page change ----
   const handlePageChange = useCallback((page: number) => {
-    runWithGuard(() => setCurrentPage(page))
-  }, [runWithGuard])
+    runWithDiscardGuard(() => setCurrentPage(page))
+  }, [runWithDiscardGuard])
 
   // ---- Page size change ----
   const handlePageSizeChange = useCallback((size: number) => {
-    runWithGuard(() => { setPageSize(size); setCurrentPage(1) })
-  }, [runWithGuard])
+    runWithDiscardGuard(() => { setPageSize(size); setCurrentPage(1) })
+  }, [runWithDiscardGuard])
 
   // ---- Filter apply ----
   const handleFilterApply = useCallback((filter: FlatMongoFilter) => {
-    runWithGuard(() => { setActiveFilter(filter); setCurrentPage(1) })
-  }, [runWithGuard])
+    runWithDiscardGuard(() => { setActiveFilter(filter); setCurrentPage(1) })
+  }, [runWithDiscardGuard])
 
   // ---- Derived values ----
   const totalPages = Math.ceil(total / pageSize)
@@ -247,7 +272,7 @@ export function CollectionViewProvider({ connectionId, databaseName, collectionN
   }
 
   const actions: CollectionViewContextValue['actions'] = {
-    refresh: () => runWithGuard(refresh),
+    refresh: () => runWithDiscardGuard(refresh),
     handlePageChange,
     handlePageSizeChange,
     setSearchTerm: setSearchTermGuarded,

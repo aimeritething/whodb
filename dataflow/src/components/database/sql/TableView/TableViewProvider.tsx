@@ -4,7 +4,6 @@ import { useDataQuery } from './useDataQuery'
 import { useColumnResize } from './useColumnResize'
 import type { TableViewContextValue, TableViewState, TableViewActions, FilterCondition } from './types'
 import type { Alert } from '@/components/database/shared/types'
-import { usePendingGuard } from '@/components/database/shared/usePendingGuard'
 
 const TableViewCtx = createContext<TableViewContextValue | null>(null)
 
@@ -108,11 +107,24 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
     showAlert,
   })
 
-  const { runWithGuard, confirmDiscardAndContinue } = usePendingGuard({
-    hasPendingChanges: changesetState.hasPendingChanges,
-    discardChanges: changesetActions.discardChanges,
-    setShowDiscardModal: changesetActions.setShowDiscardModal,
-  })
+  const pendingReloadActionRef = useRef<null | (() => void)>(null)
+
+  const runWithDiscardGuard = useCallback((action: () => void) => {
+    if (!changesetState.hasPendingChanges) {
+      action()
+      return
+    }
+
+    pendingReloadActionRef.current = action
+    changesetActions.setShowDiscardModal(true)
+  }, [changesetActions, changesetState.hasPendingChanges])
+
+  const confirmDiscardAndContinue = useCallback(() => {
+    changesetActions.discardChanges()
+    changesetActions.setShowDiscardModal(false)
+    pendingReloadActionRef.current?.()
+    pendingReloadActionRef.current = null
+  }, [changesetActions])
 
   // ---- Table switch: reset state ----
   useEffect(() => {
@@ -129,55 +141,67 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
     }
   }, [changesetActions, connectionId, databaseName, schema, tableName])
 
+  useEffect(() => {
+    if (!changesetState.hasPendingChanges) return
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [changesetState.hasPendingChanges])
+
   // ---- Search submit (reset to page 1) ----
   const handleSearchSubmit = useCallback(() => {
-    runWithGuard(() => {
+    runWithDiscardGuard(() => {
       setCurrentPage(1)
       queryActions.handleSubmitRequest(0)
     })
-  }, [queryActions.handleSubmitRequest, runWithGuard])
+  }, [queryActions.handleSubmitRequest, runWithDiscardGuard])
 
   // ---- Sorting ----
   const handleSort = useCallback((column: string, direction: 'asc' | 'desc') => {
-    runWithGuard(() => {
+    runWithDiscardGuard(() => {
       setSortColumn(column)
       setSortDirection(direction)
       setActiveColumnMenu(null)
     })
-  }, [runWithGuard])
+  }, [runWithDiscardGuard])
 
   const clearSort = useCallback(() => {
-    runWithGuard(() => {
+    runWithDiscardGuard(() => {
       setSortColumn(null)
       setSortDirection(null)
       setActiveColumnMenu(null)
     })
-  }, [runWithGuard])
+  }, [runWithDiscardGuard])
 
   // ---- Page change ----
   const handlePageChange = useCallback((page: number) => {
-    runWithGuard(() => {
+    runWithDiscardGuard(() => {
       setCurrentPage(page)
     })
-  }, [runWithGuard])
+  }, [runWithDiscardGuard])
 
   // ---- Page size change ----
   const handlePageSizeChange = useCallback((size: number) => {
-    runWithGuard(() => {
+    runWithDiscardGuard(() => {
       setPageSize(size)
       setCurrentPage(1)
     })
-  }, [runWithGuard])
+  }, [runWithDiscardGuard])
 
   // ---- Filter apply ----
   const handleFilterApply = useCallback((cols: string[], conditions: FilterCondition[]) => {
-    runWithGuard(() => {
+    runWithDiscardGuard(() => {
       setVisibleColumns(cols)
       setFilterConditions(conditions)
       setCurrentPage(1)
       queryActions.refresh()
     })
-  }, [queryActions.refresh, runWithGuard])
+  }, [queryActions.refresh, runWithDiscardGuard])
 
   const state: TableViewState = {
     ...queryState,
@@ -199,7 +223,7 @@ export function TableViewProvider({ connectionId, databaseName, tableName, schem
   }
 
   const actions: TableViewActions = {
-    refresh: () => runWithGuard(queryActions.refresh),
+    refresh: () => runWithDiscardGuard(queryActions.refresh),
     handleSubmitRequest: queryActions.handleSubmitRequest,
     handlePageChange,
     handlePageSizeChange,

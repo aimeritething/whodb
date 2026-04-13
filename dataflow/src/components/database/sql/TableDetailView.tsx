@@ -2,7 +2,7 @@ import { TableViewProvider, useTableView } from './TableView/TableViewProvider'
 import { TableViewDataGrid } from './TableView/TableView.DataGrid'
 import { TableViewToolbar } from './TableView/TableView.Toolbar'
 import { buildPreviewSql, summarizeChanges } from './TableView/changeset-sql-preview'
-import { DataBrowser } from '@/components/database/shared/DataBrowser'
+import { DataView } from '@/components/database/shared/DataView'
 import { FindBar } from '@/components/database/shared/FindBar'
 import { FilterTableModal } from './FilterTableModal'
 import { ExportDataModal } from './ExportDataModal'
@@ -35,25 +35,23 @@ function TableDetailViewContent({ connectionId, databaseName, tableName, schema 
   const summary = summarizeChanges(state.changes)
 
   return (
-    <DataBrowser.Frame>
+    <div className="flex h-full flex-col">
       <TableViewToolbar connectionId={connectionId} databaseName={databaseName} tableName={tableName} schema={schema} />
 
-      <DataBrowser.Main>
-        {state.error ? (
-          <DataBrowser.Error message={state.error} onRetry={() => actions.handleSubmitRequest()} />
-        ) : (
-          <FindBar.Provider
-            rows={state.renderedRows.map((row) => row.values)}
-            columns={state.visibleColumns}
-          >
-            <FindBar.Bar />
-            <TableViewDataGrid />
-          </FindBar.Provider>
-        )}
-      </DataBrowser.Main>
+      {state.error ? (
+        <DataView.Error message={state.error} onRetry={() => actions.handleSubmitRequest()} />
+      ) : (
+        <FindBar.Provider
+          rows={state.renderedRows.map((row) => row.values)}
+          columns={state.visibleColumns}
+        >
+          <FindBar.Bar />
+          <TableViewDataGrid />
+        </FindBar.Provider>
+      )}
 
       {state.total > 0 && (
-        <DataBrowser.Pagination
+        <DataView.Pagination
           currentPage={state.currentPage}
           totalPages={state.totalPages}
           pageSize={state.pageSize}
@@ -131,6 +129,6 @@ function TableDetailViewContent({ connectionId, databaseName, tableName, schema 
           {...state.alert}
         />
       )}
-    </DataBrowser.Frame>
+    </div>
   )
 }
