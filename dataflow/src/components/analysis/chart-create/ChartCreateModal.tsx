@@ -171,6 +171,7 @@ function DataConfigView() {
                     initialSql={sqlQuery}
                     onSqlChange={setSqlQuery}
                     onQueryResults={handleQueryResults}
+                    showChartCreate={false}
                 />
             </div>
         </>
