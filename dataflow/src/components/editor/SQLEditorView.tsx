@@ -48,6 +48,8 @@ interface StatementResult {
     info: string;
     isError?: boolean;
     sql: string;
+    database?: string;
+    schema?: string;
 }
 
 /** SQL editor with integrated database/schema selectors and query execution. */
@@ -169,6 +171,8 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
 
         setIsExecuting(true);
         setQueryResults(null);
+        const executionDatabase = selectedDatabase || context?.databaseName;
+        const executionSchema = selectedSchema || context?.schemaName;
         const startTime = Date.now();
         const results: StatementResult[] = [];
 
@@ -179,7 +183,7 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
             if (upperType === 'REDIS') {
                 const unsupportedKey = getUnsupportedRedisCommand(sql);
                 if (unsupportedKey) {
-                    results.push({ columns: [], rows: [], info: t(unsupportedKey as import('@/i18n/messages').MessageKey), isError: true, sql });
+                    results.push({ columns: [], rows: [], info: t(unsupportedKey as import('@/i18n/messages').MessageKey), isError: true, sql, database: executionDatabase, schema: executionSchema });
                     break;
                 }
             }
@@ -192,13 +196,15 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                     info: t('mongodb.editor.unsupportedStatement', { statement: sql }),
                     isError: true,
                     sql,
+                    database: executionDatabase,
+                    schema: executionSchema,
                 });
                 continue;
             }
 
             // Block standalone transaction statements with a warning
             if (upperType !== 'REDIS' && upperType !== 'MONGODB' && isStandaloneTransactionStatement(sql)) {
-                results.push({ columns: [], rows: [], info: t('sql.editor.transactionWarning'), isError: true, sql });
+                results.push({ columns: [], rows: [], info: t('sql.editor.transactionWarning'), isError: true, sql, database: executionDatabase, schema: executionSchema });
                 continue;
             }
 
@@ -215,6 +221,8 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                         info: error.message,
                         isError: true,
                         sql,
+                        database: executionDatabase,
+                        schema: executionSchema,
                     });
                     break;
                 }
@@ -227,9 +235,9 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                         const rows = raw.Rows.map((row) =>
                             Object.fromEntries(columns.map((col, i) => [col, row[i]]))
                         );
-                        results.push({ columns, rows, info: t('sql.editor.rows', { count: raw.TotalCount }), sql });
+                        results.push({ columns, rows, info: t('sql.editor.rows', { count: raw.TotalCount }), sql, database: executionDatabase, schema: executionSchema });
                     } else {
-                        results.push({ columns: [], rows: [], info: t('sql.editor.actionExecuted'), sql });
+                        results.push({ columns: [], rows: [], info: t('sql.editor.actionExecuted'), sql, database: executionDatabase, schema: executionSchema });
                     }
                 }
             } catch (err: any) {
@@ -239,6 +247,8 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
                     info: err.message,
                     isError: true,
                     sql,
+                    database: executionDatabase,
+                    schema: executionSchema,
                 });
             }
         }
@@ -253,8 +263,8 @@ export function SQLEditorView({ tabId, context, initialSql, onSqlChange, onQuery
         const lastRead = [...results].reverse().find((r) => !r.isError && r.rows.length > 0);
         if (lastRead) {
             onQueryResults?.(lastRead.columns, lastRead.rows, {
-                database: selectedDatabase || context?.databaseName,
-                schema: selectedSchema || context?.schemaName,
+                database: lastRead.database ?? executionDatabase,
+                schema: lastRead.schema ?? executionSchema,
             });
         }
 
