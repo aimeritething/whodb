@@ -154,7 +154,7 @@ cd whodb
 </Step>
 <Step title="Build the Frontend">
 ```bash
-cd frontend
+cd dataflow
 pnpm install
 pnpm run build
 cd ..
@@ -174,7 +174,7 @@ go build -o whodb .
 </Steps>
 
 <Info>
-The built binary will embed the frontend assets, creating a single executable file
+The built binary will embed the DataFlow frontend assets, creating a single executable file
 </Info>
 
 ### Development Mode
@@ -187,12 +187,12 @@ cd core
 go run .
 ```
 ```bash Frontend
-cd frontend
-pnpm start
+cd dataflow
+pnpm dev
 ```
 </CodeGroup>
 
-Run both commands in separate terminals. The frontend will be available at `http://localhost:5173` and will proxy API requests to the backend.
+Run both commands in separate terminals. The DataFlow dev server will be available at `http://localhost:5173` and will proxy API requests to the backend.
 
 ## Configuration Options
 
