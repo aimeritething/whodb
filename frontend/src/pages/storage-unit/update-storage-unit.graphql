@@ -1,5 +1,0 @@
-mutation UpdateStorageUnit($schema: String!, $storageUnit:String!, $values: [RecordInput!]!, $updatedColumns: [String!]!) {
-  UpdateStorageUnit(schema: $schema, storageUnit: $storageUnit, values: $values, updatedColumns: $updatedColumns) {
-    Status
-  }
-}

@@ -1,3 +1,0 @@
-query GetDatabase($type: String!) {
-    Database(type: $type)
-}

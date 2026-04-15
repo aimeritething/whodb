@@ -1,5 +1,0 @@
-mutation GenerateChatTitle($input: GenerateChatTitleInput!) {
-  GenerateChatTitle(input: $input) {
-    Title
-  }
-}

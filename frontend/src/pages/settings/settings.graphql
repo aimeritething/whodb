@@ -1,8 +1,0 @@
-query SettingsConfig {
-    SettingsConfig {
-        MetricsEnabled
-        CloudProvidersEnabled
-        DisableCredentialForm
-        MaxPageSize
-    }
-}

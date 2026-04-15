@@ -1,5 +1,0 @@
-mutation Login($credentials: LoginCredentials!) {
-  Login(credentials: $credentials) {
-    Status
-  }
-}
