@@ -1,21 +1,20 @@
 # Ignore everything by default
 *
 
-# Core Dockerfile needs: frontend/, core/, ee-stub/
+# Core Dockerfile needs: dataflow/ and core/
 # CLI Dockerfile needs: core/, cli/, ee-stub/
-!frontend/
+!dataflow/
 !core/
 !cli/
 !ee/
 !ee-stub/
-!dataflow/
 
 # Exclude test/dev artifacts within allowed directories
 **/node_modules
-frontend/coverage
-frontend/.nyc_output
-frontend/.pnpm-store
-frontend/e2e
+dataflow/build
+dataflow/docs/superpowers
+dataflow/public/monaco-editor
+dataflow/.env
 core/tmp
 cli/build
 cli/.gocache

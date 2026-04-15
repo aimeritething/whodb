@@ -94,9 +94,9 @@ git clone https://github.com/clidey/whodb.git
 cd whodb
 
 # Build frontend
-cd frontend && pnpm install && pnpm run build && cd ..
+cd dataflow && pnpm install && pnpm run build && cd ..
 
-# Build backend (embeds frontend assets)
+# Build backend (embeds DataFlow assets)
 cd core && go build -o whodb . && ./whodb
 ```
 
@@ -108,11 +108,11 @@ Run the backend and frontend separately with hot-reload:
 # Terminal 1 - Backend
 cd core && go run .
 
-# Terminal 2 - Frontend
-cd frontend && pnpm start
+# Terminal 2 - DataFlow
+cd dataflow && pnpm dev
 ```
 
-The frontend dev server runs at `http://localhost:5173` and proxies API requests to the backend.
+The DataFlow dev server runs at `http://localhost:5173` and proxies API requests to the backend.
 
 ## Configuration
 
@@ -172,11 +172,10 @@ core/                   # Go backend
   graph/*.resolvers.go  # GraphQL resolvers
   Dockerfile            # Multi-stage production build
 
-frontend/               # React/TypeScript frontend
-  src/pages/            # Feature pages (auth, chat, data, graph, query)
-  src/components/       # Reusable UI components
-  src/graphql/          # GraphQL operation definitions
-  src/store/            # Redux state management
+dataflow/               # React/TypeScript frontend
+  src/main.tsx          # Entry point
+  src/stores/           # Zustand state management
+  src/components/       # Database, editor, analysis, and layout UI
 
 dev/                    # Docker Compose for test databases, E2E scripts
 docs/                   # Documentation and assets
@@ -186,7 +185,7 @@ docs/                   # Documentation and assets
 
 **Backend:** Go, GraphQL (gqlgen), Chi router, GORM
 
-**Frontend:** React 18, TypeScript, Redux Toolkit, Apollo Client, Vite, Tailwind CSS, CodeMirror, React Flow
+**Frontend:** React 19, TypeScript, Zustand, Apollo Client, Vite, Tailwind CSS 4, Monaco Editor, ECharts, react-grid-layout
 
 ## Documentation
 

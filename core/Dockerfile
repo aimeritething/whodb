@@ -15,15 +15,16 @@
 FROM node:25.6.0-alpine3.23 AS build-stage
 RUN npm i -g pnpm@10.29.3
 WORKDIR /app
-COPY ./frontend/package.json ./frontend/pnpm-lock.yaml ./
-# Skip test framework browser downloads - not needed for production builds
+COPY ./dataflow/package.json ./dataflow/pnpm-lock.yaml ./
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 RUN pnpm install
-COPY ./frontend/ ./
+COPY ./dataflow/ ./
 
 ARG VERSION=dev
 ENV VITE_APP_VERSION=${VERSION}
-RUN pnpm run build
+ARG WHODB_AES_KEY
+RUN if [ -n "$WHODB_AES_KEY" ]; then echo "VITE_WHODB_AES_KEY=$WHODB_AES_KEY" >> .env; fi && \
+    pnpm run build
 ARG TARGETARCH
 ARG PLATFORM=docker
 
