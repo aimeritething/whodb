@@ -1,8 +1,0 @@
-en_US:
-  title: Graph
-  searchPlaceholder: Search Tables
-  searchAriaLabel: Search Tables
-  noItems: No Items
-  noNodesTitle: No Nodes Selected
-  noNodesDescription: Select {storageUnit} on the left to add them to the graph.
-  createButton: Create {storageUnit}

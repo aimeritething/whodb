@@ -1,5 +1,0 @@
-mutation DeleteRow($schema: String!, $storageUnit:String!, $values: [RecordInput!]!) {
-  DeleteRow(schema: $schema, storageUnit: $storageUnit, values: $values) {
-    Status
-  }
-}

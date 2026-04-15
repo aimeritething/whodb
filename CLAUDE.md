@@ -1,6 +1,6 @@
 # WhoDB Development Guide
 
-WhoDB is a database management tool with a Go backend (`/core`) and two React frontends: the original management UI (`/frontend`) and the DataFlow analysis platform (`/dataflow`).
+WhoDB is a database management tool with a Go backend (`/core`) and a React frontend (`/dataflow`).
 
 ## Non-Negotiable Rules
 
@@ -10,7 +10,7 @@ WhoDB is a database management tool with a Go backend (`/core`) and two React fr
 4. **Plugin architecture** - Never use `switch dbType` or `if dbType ==` in shared code. All database-specific logic goes in plugins. See `.claude/docs/plugin-architecture.md`
 5. **Documentation requirements** - All exported Go functions/types need doc comments. All exported TypeScript functions/components need JSDoc. See `.claude/docs/documentation.md`
 7. **Localization requirements** - All user-facing strings must use `t()` with YAML keys. No fallback strings. No hardcoded UI text. See `.claude/docs/localization.md`
-8. **Verify before completing** - After finishing any task, verify: (1) type checks pass (`pnpm run typecheck` for frontend, `go build` for backend), (2) no linting errors, (3) all added code is actually used (no dead code). See `.claude/docs/verification.md`
+8. **Verify before completing** - After finishing any task, verify: (1) `cd dataflow && pnpm run typecheck && pnpm run build`, (2) `cd core && go build ./...`, (3) no linting errors, (4) all added code is actually used (no dead code). See `.claude/docs/verification.md`
 9. **Fallback clarification** - Do not include fallback logic UNLESS you were asked to. If you think the project could benefit from fallback logic, first ask and clarify
 10. **Show proof** - When making a claim about how something outside of our codebase works, for example a 3rd party library or function, always provide official documentation or the actual code to back that up. Check online if you have to.
 11. **No defensive code** - Do not program defensively. If there is an edge or use case that you think needs to be handled, first ask.
@@ -28,11 +28,6 @@ core/                   # CE backend (Go)
   graph/schema.graphqls # GraphQL schema
   graph/*.resolvers.go  # GraphQL resolvers
 
-frontend/               # Original management UI (React/TypeScript)
-  src/index.tsx        # Entry point
-  src/store/           # Redux Toolkit state
-  src/generated/       # GraphQL codegen output (@graphql alias)
-
 dataflow/               # DataFlow analysis platform (React 19/TypeScript/Vite)
   src/main.tsx         # Entry point
   src/stores/          # Zustand state (auth, connection, tab, analysis)
@@ -48,15 +43,16 @@ Additional docs: `.claude/docs/testing.md` (testing).
 ## Testing
 
 See `.claude/docs/testing.md` for comprehensive testing documentation including:
-- Frontend Playwright E2E tests
+- DataFlow type/build/test checks
 - Docker container setup for test databases
 - Go backend unit and integration tests
 
 Quick reference:
 ```bash
-# Frontend Playwright E2E
-cd frontend && pnpm e2e:ce:headless         # Headless (all databases)
-cd frontend && pnpm e2e:ce                  # Interactive (headed)
+# DataFlow checks
+cd dataflow && pnpm run typecheck
+cd dataflow && pnpm run build
+cd dataflow && pnpm run test
 
 # Backend Go tests
 bash dev/run-backend-tests.sh all           # Unit + integration
@@ -72,15 +68,6 @@ bash dev/run-backend-tests.sh all           # Unit + integration
 - Never log sensitive data (passwords, API keys, tokens, connection strings)
 - `env` package is for pure env var declarations only (no `log` import). Functions that parse env vars and need `log` for error reporting go in `envconfig`
 - Delete build binaries after testing (`go build` artifacts)
-
-## When Working on Frontend — Original UI (`/frontend`)
-
-- Use PNPM, not NPM. Use pnpx, not npx
-- Define GraphQL operations in `.graphql` files, then run `pnpm run generate`
-- Import generated hooks from `@graphql` alias - never use inline `gql` strings
-- CE features in `frontend/src/`
-- State management: Redux Toolkit (`frontend/src/store/`)
-- **Keyboard shortcuts** are centralized in `frontend/src/utils/shortcuts.ts`. Never hardcode shortcut keys inline — use `SHORTCUTS.*` for definitions, `matchesShortcut()` for event handling, and `SHORTCUTS.*.displayKeys` for UI display. Platform-variant shortcuts (nav numbers) use `resolveShortcut()`
 
 ## When Working on Frontend — DataFlow (`/dataflow`)
 
@@ -103,8 +90,7 @@ See `.claude/docs/commands.md` for full reference.
 
 ```bash
 # Backend: cd core && go run .
-# Frontend (Original UI): cd frontend && pnpm start
-# Frontend (DataFlow): cd dataflow && pnpm dev
+# Frontend: cd dataflow && pnpm dev
 ```
 
 ## Development Principles

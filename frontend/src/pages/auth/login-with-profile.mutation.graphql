@@ -1,5 +1,0 @@
-mutation LoginWithProfile($profile: LoginProfileInput!) {
-  LoginWithProfile(profile: $profile) {
-    Status
-  }
-}

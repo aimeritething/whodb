@@ -1,7 +1,0 @@
-mutation ImportTableFile($input: ImportFileInput!) {
-  ImportTableFile(input: $input) {
-    Status
-    Message
-    Detail
-  }
-}

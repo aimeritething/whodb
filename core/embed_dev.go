@@ -20,6 +20,6 @@ package main
 
 import "embed"
 
-// In dev mode, frontend is served separately (e.g., via pnpm start).
+// In dev mode, DataFlow is served separately (for example: `cd dataflow && pnpm dev`).
 // This provides an empty embed.FS so compilation succeeds without build/.
 var staticFiles embed.FS

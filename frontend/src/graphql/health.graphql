@@ -1,6 +1,0 @@
-query GetHealth {
-  Health {
-    Server
-    Database
-  }
-}

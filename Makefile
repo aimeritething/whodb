@@ -16,18 +16,18 @@ help: ## Display this help.
 ##@ Build
 
 .PHONY: build
-build: ## Build frontend.
-	cd frontend && pnpm run build
+build: ## Build DataFlow frontend.
+	cd dataflow && pnpm run build
 
 .PHONY: run
-run: ## Run dev service from host.
-	cd frontend && pnpm run start
+run: ## Run DataFlow dev server from host.
+	cd dataflow && VITE_WHODB_AES_KEY=$(WHODB_AES_KEY) pnpm run dev
 
 ##@ Docker
 
 .PHONY: docker-build
 docker-build: ## Build docker image.
-	docker buildx build -f core/Dockerfile --platform linux/amd64 -t $(IMG) .
+	docker buildx build -f core/Dockerfile --platform linux/amd64 --build-arg WHODB_AES_KEY=$(WHODB_AES_KEY) -t $(IMG) .
 
 .PHONY: docker-push
 docker-push: ## Push docker image.
@@ -35,12 +35,4 @@ docker-push: ## Push docker image.
 
 .PHONY: docker-build-push
 docker-build-push: ## Build and push docker image.
-	docker buildx build -f core/Dockerfile --platform linux/amd64 -t $(IMG) --push .
-
-.PHONY: docker-build-dataflow
-docker-build-dataflow: ## Build docker image with DataFlow frontend.
-	docker buildx build -f core/Dockerfile.dataflow --platform linux/amd64 --build-arg WHODB_AES_KEY=$(WHODB_AES_KEY) -t $(IMG) .
-
-.PHONY: docker-build-push-dataflow
-docker-build-push-dataflow: ## Build and push docker image with DataFlow frontend.
-	docker buildx build -f core/Dockerfile.dataflow --platform linux/amd64 --build-arg WHODB_AES_KEY=$(WHODB_AES_KEY) -t $(IMG) --push .
+	docker buildx build -f core/Dockerfile --platform linux/amd64 --build-arg WHODB_AES_KEY=$(WHODB_AES_KEY) -t $(IMG) --push .

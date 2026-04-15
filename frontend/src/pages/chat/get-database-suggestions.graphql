@@ -1,6 +1,0 @@
-query GetDatabaseQuerySuggestions($schema: String!) {
-  DatabaseQuerySuggestions(schema: $schema) {
-    description
-    category
-  }
-}
