@@ -29,9 +29,9 @@ import (
 )
 
 func fileServer(r chi.Router, staticFiles embed.FS) {
-	// Support assets embedded under different roots (server: "build", desktop: "frontend/dist").
-	// Prefer a root that actually contains index.html. If not found (e.g., during build-time), proceed without fatal.
-	candidates := []string{"build", "frontend/dist", "dist", "."}
+	// Support assets embedded under common build roots.
+	// Prefer a root that actually contains index.html. If not found, continue in API-only mode.
+	candidates := []string{"build", "dist", "."}
 	var staticFS fs.FS
 	var err error
 	found := false
@@ -52,8 +52,7 @@ func fileServer(r chi.Router, staticFiles embed.FS) {
 		}
 	}
 	if !found {
-		// In dev mode (no embedded frontend), skip file serving - frontend is served separately
-		log.Warn("No embedded frontend assets found - running in API-only mode (use pnpm start for frontend)")
+		log.Warn("No embedded web assets found - running in API-only mode (start DataFlow separately in dev)")
 		return
 	}
 
