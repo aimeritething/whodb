@@ -121,6 +121,68 @@ func TestHashTokenIsStable(t *testing.T) {
 	}
 }
 
+func TestServiceMaybeDeletesExpiredSessionsOnInterval(t *testing.T) {
+	service := newSessionServiceForTest(t, "12345678901234567890123456789012", time.Hour)
+	service.cleanupInterval = time.Hour
+
+	expired := &AuthSession{
+		ID:                    "expired-session",
+		TokenHash:             "expired-token",
+		Source:                "sealos",
+		Namespace:             "ns-demo",
+		ResourceName:          "my-db",
+		DBType:                "Postgres",
+		Host:                  "db.ns.svc",
+		Port:                  "5432",
+		DatabaseName:          "postgres",
+		CredentialsNonce:      []byte("nonce"),
+		CredentialsCiphertext: []byte("ciphertext"),
+		ExpiresAt:             time.Now().UTC().Add(-time.Hour),
+		CreatedAt:             time.Now().UTC().Add(-2 * time.Hour),
+		LastSeenAt:            time.Now().UTC().Add(-2 * time.Hour),
+	}
+	if err := service.repo.Create(context.Background(), expired); err != nil {
+		t.Fatalf("insert expired session: %v", err)
+	}
+
+	if err := service.maybeDeleteExpiredSessions(context.Background(), time.Now().UTC()); err != nil {
+		t.Fatalf("first cleanup should succeed: %v", err)
+	}
+
+	if _, err := service.repo.GetByTokenHash(context.Background(), expired.TokenHash); err == nil {
+		t.Fatalf("expected expired session to be deleted")
+	}
+
+	service.lastCleanupAt = time.Now().UTC()
+	freshExpired := &AuthSession{
+		ID:                    "fresh-expired-session",
+		TokenHash:             "fresh-expired-token",
+		Source:                "sealos",
+		Namespace:             "ns-demo",
+		ResourceName:          "my-db",
+		DBType:                "Postgres",
+		Host:                  "db.ns.svc",
+		Port:                  "5432",
+		DatabaseName:          "postgres",
+		CredentialsNonce:      []byte("nonce"),
+		CredentialsCiphertext: []byte("ciphertext"),
+		ExpiresAt:             time.Now().UTC().Add(-time.Minute),
+		CreatedAt:             time.Now().UTC().Add(-2 * time.Hour),
+		LastSeenAt:            time.Now().UTC().Add(-2 * time.Hour),
+	}
+	if err := service.repo.Create(context.Background(), freshExpired); err != nil {
+		t.Fatalf("insert second expired session: %v", err)
+	}
+
+	if err := service.maybeDeleteExpiredSessions(context.Background(), time.Now().UTC()); err != nil {
+		t.Fatalf("second cleanup should succeed: %v", err)
+	}
+
+	if _, err := service.repo.GetByTokenHash(context.Background(), freshExpired.TokenHash); err != nil {
+		t.Fatalf("expected cleanup interval to skip deletion, got %v", err)
+	}
+}
+
 func newSessionServiceForTest(t *testing.T, key string, ttl time.Duration) *Service {
 	t.Helper()
 

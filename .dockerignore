@@ -4,10 +4,15 @@
 # Core Dockerfile needs: dataflow/ and core/
 # CLI Dockerfile needs: core/, cli/, ee-stub/
 !dataflow/
+!dataflow/**
 !core/
+!core/**
 !cli/
+!cli/**
 !ee/
+!ee/**
 !ee-stub/
+!ee-stub/**
 
 # Exclude test/dev artifacts within allowed directories
 **/node_modules

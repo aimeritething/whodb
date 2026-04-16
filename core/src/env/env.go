@@ -205,7 +205,7 @@ func GetSessionTTL() string {
 
 // GetSealosBootstrapEnabled returns true when the Sealos bootstrap flow is enabled.
 func GetSealosBootstrapEnabled() bool {
-	return os.Getenv("WHODB_SEALOS_BOOTSTRAP_ENABLED") == "true"
+	return strings.TrimSpace(os.Getenv("WHODB_SEALOS_BOOTSTRAP_ENABLED")) != "false"
 }
 
 func getMaxPageSize() int {

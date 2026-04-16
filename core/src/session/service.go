@@ -28,9 +28,12 @@ var (
 
 // Service manages server-owned auth sessions.
 type Service struct {
-	repo *Repository
-	key  []byte
-	ttl  time.Duration
+	repo            *Repository
+	key             []byte
+	ttl             time.Duration
+	cleanupInterval time.Duration
+	lastCleanupAt   time.Time
+	cleanupMu       sync.Mutex
 }
 
 // DefaultServiceFactory creates the shared auth session service.
@@ -60,9 +63,10 @@ func NewService(db *gorm.DB, encryptionKey string, ttl time.Duration) (*Service,
 	}
 
 	return &Service{
-		repo: repo,
-		key:  key,
-		ttl:  ttl,
+		repo:            repo,
+		key:             key,
+		ttl:             ttl,
+		cleanupInterval: time.Hour,
 	}, nil
 }
 
@@ -119,6 +123,8 @@ func ResetDefaultService() {
 
 // Create stores encrypted credentials and returns the created session plus raw token.
 func (s *Service) Create(ctx context.Context, params CreateParams) (*AuthSession, string, error) {
+	_ = s.maybeDeleteExpiredSessions(ctx, time.Now().UTC())
+
 	token, err := generateOpaqueToken()
 	if err != nil {
 		return nil, "", fmt.Errorf("generate token: %w", err)
@@ -158,6 +164,8 @@ func (s *Service) Create(ctx context.Context, params CreateParams) (*AuthSession
 
 // ResolveToken loads and decrypts a session token.
 func (s *Service) ResolveToken(ctx context.Context, token string) (*engine.Credentials, *AuthSession, error) {
+	_ = s.maybeDeleteExpiredSessions(ctx, time.Now().UTC())
+
 	record, err := s.repo.GetByTokenHash(ctx, HashToken(token))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -193,4 +201,20 @@ func (s *Service) Revoke(ctx context.Context, id string) error {
 
 func uuidString() string {
 	return fmt.Sprintf("%d", time.Now().UTC().UnixNano())
+}
+
+func (s *Service) maybeDeleteExpiredSessions(ctx context.Context, now time.Time) error {
+	s.cleanupMu.Lock()
+	defer s.cleanupMu.Unlock()
+
+	if s.cleanupInterval > 0 && !s.lastCleanupAt.IsZero() && now.Sub(s.lastCleanupAt) < s.cleanupInterval {
+		return nil
+	}
+
+	if err := s.repo.DeleteExpired(ctx, now); err != nil {
+		return err
+	}
+
+	s.lastCleanupAt = now
+	return nil
 }

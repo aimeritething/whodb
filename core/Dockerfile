@@ -23,7 +23,7 @@ COPY ./dataflow/ ./
 ARG VERSION=dev
 ENV VITE_APP_VERSION=${VERSION}
 RUN pnpm run build
-ARG TARGETARCH
+ARG TARGETARCH=amd64
 ARG PLATFORM=docker
 
 FROM golang:1.26-alpine3.23 AS backend-stage
@@ -45,7 +45,7 @@ COPY --from=build-stage /app/build/ ./build/
 
 # Build backend with version and environment
 ARG VERSION
-ARG TARGETARCH
+ARG TARGETARCH=amd64
 ARG PLATFORM
 RUN CGO_CFLAGS="-Os -ffunction-sections -fdata-sections -fno-asynchronous-unwind-tables -fno-unwind-tables -flto -fvisibility=hidden" \
 	CGO_LDFLAGS="-Wl,--gc-sections -Wl,--as-needed -flto" \
@@ -55,7 +55,7 @@ RUN CGO_CFLAGS="-Os -ffunction-sections -fdata-sections -fno-asynchronous-unwind
 
 # Pre-download BAML native library for the target architecture (musl for Alpine)
 # Extract BAML version from go.mod to stay in sync
-ARG TARGETARCH
+ARG TARGETARCH=amd64
 RUN BAML_VERSION=$(grep 'github.com/boundaryml/baml ' go.mod | awk '{print $2}' | sed 's/^v//') && \
     if [ "$TARGETARCH" = "amd64" ]; then \
         BAML_ARCH="x86_64"; \

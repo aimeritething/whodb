@@ -30,3 +30,26 @@ func TestGetOllamaEndpointRespectsOverrides(t *testing.T) {
 		t.Fatalf("expected custom ollama endpoint to be honored, got %s", endpoint)
 	}
 }
+
+func TestGetSealosBootstrapEnabledDefaultsToTrue(t *testing.T) {
+	t.Run("default enabled", func(t *testing.T) {
+		t.Setenv("WHODB_SEALOS_BOOTSTRAP_ENABLED", "")
+		if !GetSealosBootstrapEnabled() {
+			t.Fatalf("expected sealos bootstrap to default to enabled")
+		}
+	})
+
+	t.Run("explicit false disables", func(t *testing.T) {
+		t.Setenv("WHODB_SEALOS_BOOTSTRAP_ENABLED", "false")
+		if GetSealosBootstrapEnabled() {
+			t.Fatalf("expected explicit false to disable sealos bootstrap")
+		}
+	})
+
+	t.Run("explicit true enables", func(t *testing.T) {
+		t.Setenv("WHODB_SEALOS_BOOTSTRAP_ENABLED", "true")
+		if !GetSealosBootstrapEnabled() {
+			t.Fatalf("expected explicit true to enable sealos bootstrap")
+		}
+	})
+}
