@@ -164,15 +164,7 @@ func (r *resolver) ResolveBootstrap(ctx context.Context, input BootstrapInput) (
 		}
 	}
 
-	secret, err := r.clientset.CoreV1().Secrets(namespace).Get(ctx, SecretName(resourceName), metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("read secret: %w", err)
-	}
-	if secret.Data == nil {
-		return nil, errors.New("secret is empty")
-	}
-
-	resolvedData, err := r.resolveConnectionData(ctx, spec, namespace, resourceName, secret.Data)
+	resolvedData, err := r.resolveConnectionData(ctx, spec, namespace, resourceName)
 	if err != nil {
 		return nil, err
 	}
@@ -326,14 +318,21 @@ func (r *resolver) resolveConnectionData(
 	spec dbTypeSpec,
 	namespace string,
 	resourceName string,
-	secretData map[string][]byte,
 ) (*connectionData, error) {
 	switch spec.EngineType {
 	case string(engine.DatabaseType_Redis):
-		return r.resolveRedisConnectionData(ctx, namespace, resourceName, secretData)
+		return r.resolveRedisConnectionData(ctx, namespace, resourceName)
 	case string(engine.DatabaseType_ClickHouse):
-		return r.resolveClickHouseConnectionData(ctx, namespace, secretData)
+		secretData, err := r.readConnCredentialSecret(ctx, namespace, resourceName)
+		if err != nil {
+			return nil, err
+		}
+		return r.resolveClickHouseConnectionData(namespace, secretData)
 	default:
+		secretData, err := r.readConnCredentialSecret(ctx, namespace, resourceName)
+		if err != nil {
+			return nil, err
+		}
 		return &connectionData{
 			username: decodeSecretField(secretData[spec.UsernameKey]),
 			password: decodeSecretField(secretData[spec.PasswordKey]),
@@ -343,11 +342,21 @@ func (r *resolver) resolveConnectionData(
 	}
 }
 
+func (r *resolver) readConnCredentialSecret(ctx context.Context, namespace, resourceName string) (map[string][]byte, error) {
+	secret, err := r.clientset.CoreV1().Secrets(namespace).Get(ctx, SecretName(resourceName), metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("read secret: %w", err)
+	}
+	if secret.Data == nil {
+		return nil, errors.New("secret is empty")
+	}
+	return secret.Data, nil
+}
+
 func (r *resolver) resolveRedisConnectionData(
 	ctx context.Context,
 	namespace string,
 	resourceName string,
-	secretData map[string][]byte,
 ) (*connectionData, error) {
 	secretName := resourceName + "-redis-account-default"
 	accountSecret, err := r.clientset.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
@@ -369,7 +378,6 @@ func (r *resolver) resolveRedisConnectionData(
 }
 
 func (r *resolver) resolveClickHouseConnectionData(
-	ctx context.Context,
 	namespace string,
 	secretData map[string][]byte,
 ) (*connectionData, error) {

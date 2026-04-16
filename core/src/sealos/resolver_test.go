@@ -68,13 +68,6 @@ func TestResolveBootstrapForRedisUsesAccountSecretAndService(t *testing.T) {
 	clientset := fake.NewSimpleClientset(
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-stacks-conn-credential",
-				Namespace: "ns-admin",
-			},
-			Data: map[string][]byte{},
-		},
-		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-stacks-redis-account-default",
 				Namespace: "ns-admin",
 			},
