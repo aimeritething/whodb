@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/clidey/whodb/core/src/engine"
 	"github.com/clidey/whodb/core/src/env"
 	yaml "go.yaml.in/yaml/v3"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd/api"
@@ -170,20 +172,21 @@ func (r *resolver) ResolveBootstrap(ctx context.Context, input BootstrapInput) (
 		return nil, errors.New("secret is empty")
 	}
 
-	username := decodeSecretField(secret.Data[spec.UsernameKey])
-	password := decodeSecretField(secret.Data[spec.PasswordKey])
-	host := NormalizeSecretHost(decodeSecretField(secret.Data[spec.HostKey]), namespace)
-	port := decodeSecretField(secret.Data[spec.PortKey])
-
-	if username == "" || password == "" || host == "" || port == "" {
-		return nil, errors.New("secret missing required fields")
+	resolvedData, err := r.resolveConnectionData(ctx, spec, namespace, resourceName, secret.Data)
+	if err != nil {
+		return nil, err
 	}
 
-	if requestedHost := strings.TrimSpace(input.Host); requestedHost != "" && requestedHost != host {
-		return nil, fmt.Errorf("host mismatch: requested %q resolved %q", requestedHost, host)
+	normalized, err := normalizeResolvedCredentials(spec, resolvedData.username, resolvedData.password, resolvedData.host, resolvedData.port)
+	if err != nil {
+		return nil, err
 	}
-	if requestedPort := strings.TrimSpace(input.Port); requestedPort != "" && requestedPort != port {
-		return nil, fmt.Errorf("port mismatch: requested %q resolved %q", requestedPort, port)
+
+	if requestedHost := strings.TrimSpace(input.Host); requestedHost != "" && requestedHost != normalized.host {
+		return nil, fmt.Errorf("host mismatch: requested %q resolved %q", requestedHost, normalized.host)
+	}
+	if requestedPort := strings.TrimSpace(input.Port); requestedPort != "" && requestedPort != normalized.port {
+		return nil, fmt.Errorf("port mismatch: requested %q resolved %q", requestedPort, normalized.port)
 	}
 
 	databaseName := strings.TrimSpace(input.DatabaseName)
@@ -193,21 +196,21 @@ func (r *resolver) ResolveBootstrap(ctx context.Context, input BootstrapInput) (
 
 	credentials := &engine.Credentials{
 		Type:     spec.EngineType,
-		Hostname: host,
-		Username: username,
-		Password: password,
+		Hostname: normalized.host,
+		Username: normalized.username,
+		Password: normalized.password,
 		Database: databaseName,
 	}
-	if port != "" {
-		credentials.Advanced = []engine.Record{{Key: "Port", Value: port}}
+	if normalized.port != "" {
+		credentials.Advanced = []engine.Record{{Key: "Port", Value: normalized.port}}
 	}
 
 	return &ResolvedBootstrap{
 		Namespace:    namespace,
 		ResourceName: resourceName,
 		DBType:       spec.EngineType,
-		Host:         host,
-		Port:         port,
+		Host:         normalized.host,
+		Port:         normalized.port,
 		DatabaseName: databaseName,
 		K8sUsername:  currentUserName(r.kubeconfig),
 		Credentials:  credentials,
@@ -221,6 +224,8 @@ type dbTypeSpec struct {
 	HostKey         string
 	PortKey         string
 	DefaultDatabase string
+	AllowEmptyAuth  bool
+	DefaultUsername string
 }
 
 var dbTypeSpecs = map[string]dbTypeSpec{
@@ -255,19 +260,182 @@ var dbTypeSpecs = map[string]dbTypeSpec{
 		HostKey:         "host",
 		PortKey:         "port",
 		DefaultDatabase: "",
+		AllowEmptyAuth:  true,
 	},
 	"clickhouse": {
 		EngineType:      string(engine.DatabaseType_ClickHouse),
 		UsernameKey:     "username",
-		PasswordKey:     "password",
+		PasswordKey:     "admin-password",
 		HostKey:         "host",
 		PortKey:         "port",
 		DefaultDatabase: "default",
+		AllowEmptyAuth:  true,
+		DefaultUsername: "default",
 	},
 }
 
 func decodeSecretField(value []byte) string {
 	return strings.TrimSpace(string(value))
+}
+
+type normalizedCredentials struct {
+	username string
+	password string
+	host     string
+	port     string
+}
+
+func normalizeResolvedCredentials(spec dbTypeSpec, username, password, host, port string) (*normalizedCredentials, error) {
+	if host == "" || port == "" {
+		return nil, errors.New("secret missing required fields")
+	}
+
+	if spec.AllowEmptyAuth {
+		if username == "" && spec.DefaultUsername != "" {
+			username = spec.DefaultUsername
+		}
+		return &normalizedCredentials{
+			username: username,
+			password: password,
+			host:     host,
+			port:     port,
+		}, nil
+	}
+
+	if username == "" || password == "" {
+		return nil, errors.New("secret missing required fields")
+	}
+
+	return &normalizedCredentials{
+		username: username,
+		password: password,
+		host:     host,
+		port:     port,
+	}, nil
+}
+
+type connectionData struct {
+	username string
+	password string
+	host     string
+	port     string
+}
+
+func (r *resolver) resolveConnectionData(
+	ctx context.Context,
+	spec dbTypeSpec,
+	namespace string,
+	resourceName string,
+	secretData map[string][]byte,
+) (*connectionData, error) {
+	switch spec.EngineType {
+	case string(engine.DatabaseType_Redis):
+		return r.resolveRedisConnectionData(ctx, namespace, resourceName, secretData)
+	case string(engine.DatabaseType_ClickHouse):
+		return r.resolveClickHouseConnectionData(ctx, namespace, secretData)
+	default:
+		return &connectionData{
+			username: decodeSecretField(secretData[spec.UsernameKey]),
+			password: decodeSecretField(secretData[spec.PasswordKey]),
+			host:     NormalizeSecretHost(decodeSecretField(secretData[spec.HostKey]), namespace),
+			port:     decodeSecretField(secretData[spec.PortKey]),
+		}, nil
+	}
+}
+
+func (r *resolver) resolveRedisConnectionData(
+	ctx context.Context,
+	namespace string,
+	resourceName string,
+	secretData map[string][]byte,
+) (*connectionData, error) {
+	secretName := resourceName + "-redis-account-default"
+	accountSecret, err := r.clientset.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("read redis account secret: %w", err)
+	}
+
+	service, port, err := r.findServiceByPort(ctx, namespace, resourceName, 6379)
+	if err != nil {
+		return nil, err
+	}
+
+	return &connectionData{
+		username: decodeSecretField(accountSecret.Data["username"]),
+		password: decodeSecretField(accountSecret.Data["password"]),
+		host:     NormalizeSecretHost(service.Name, namespace),
+		port:     strconv.Itoa(port),
+	}, nil
+}
+
+func (r *resolver) resolveClickHouseConnectionData(
+	ctx context.Context,
+	namespace string,
+	secretData map[string][]byte,
+) (*connectionData, error) {
+	username := decodeSecretField(secretData["username"])
+	password := decodeSecretField(secretData["admin-password"])
+	tcpEndpoint := decodeSecretField(secretData["tcpEndpoint"])
+	if tcpEndpoint == "" {
+		tcpEndpoint = decodeSecretField(secretData["endpoint"])
+	}
+
+	host, port, err := parseEndpoint(tcpEndpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	if port == "" {
+		port = "9000"
+	}
+
+	return &connectionData{
+		username: username,
+		password: password,
+		host:     NormalizeSecretHost(host, namespace),
+		port:     port,
+	}, nil
+}
+
+func (r *resolver) findServiceByPort(ctx context.Context, namespace, resourceName string, expectedPort int32) (*corev1.Service, int, error) {
+	services, err := r.clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: "app.kubernetes.io/instance=" + resourceName,
+	})
+	if err != nil {
+		return nil, 0, fmt.Errorf("list services: %w", err)
+	}
+
+	for _, service := range services.Items {
+		if service.Spec.ClusterIP == "None" {
+			continue
+		}
+		for _, port := range service.Spec.Ports {
+			if port.Port == expectedPort {
+				return &service, int(port.Port), nil
+			}
+		}
+	}
+
+	return nil, 0, errors.New("secret missing required fields")
+}
+
+func parseEndpoint(endpoint string) (string, string, error) {
+	endpoint = strings.TrimSpace(endpoint)
+	if endpoint == "" {
+		return "", "", errors.New("secret missing required fields")
+	}
+
+	if strings.Contains(endpoint, "://") {
+		parts := strings.SplitN(endpoint, "://", 2)
+		endpoint = parts[1]
+	}
+
+	host, port, ok := strings.Cut(endpoint, ":")
+	if !ok {
+		return endpoint, "", nil
+	}
+
+	return host, port, nil
 }
 
 func currentUserName(raw string) string {
