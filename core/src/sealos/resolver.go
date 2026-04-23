@@ -257,7 +257,7 @@ var dbTypeSpecs = map[string]dbTypeSpec{
 	"clickhouse": {
 		EngineType:      string(engine.DatabaseType_ClickHouse),
 		UsernameKey:     "username",
-		PasswordKey:     "admin-password",
+		PasswordKey:     "password",
 		HostKey:         "host",
 		PortKey:         "port",
 		DefaultDatabase: "default",
@@ -268,6 +268,15 @@ var dbTypeSpecs = map[string]dbTypeSpec{
 
 func decodeSecretField(value []byte) string {
 	return strings.TrimSpace(string(value))
+}
+
+func genericResolveFromSecret(spec dbTypeSpec, secretData map[string][]byte, namespace string) *connectionData {
+	return &connectionData{
+		username: decodeSecretField(secretData[spec.UsernameKey]),
+		password: decodeSecretField(secretData[spec.PasswordKey]),
+		host:     NormalizeSecretHost(decodeSecretField(secretData[spec.HostKey]), namespace),
+		port:     decodeSecretField(secretData[spec.PortKey]),
+	}
 }
 
 type normalizedCredentials struct {
@@ -327,18 +336,13 @@ func (r *resolver) resolveConnectionData(
 		if err != nil {
 			return nil, err
 		}
-		return r.resolveClickHouseConnectionData(namespace, secretData)
+		return r.resolveClickHouseConnectionData(spec, namespace, secretData)
 	default:
 		secretData, err := r.readConnCredentialSecret(ctx, namespace, resourceName)
 		if err != nil {
 			return nil, err
 		}
-		return &connectionData{
-			username: decodeSecretField(secretData[spec.UsernameKey]),
-			password: decodeSecretField(secretData[spec.PasswordKey]),
-			host:     NormalizeSecretHost(decodeSecretField(secretData[spec.HostKey]), namespace),
-			port:     decodeSecretField(secretData[spec.PortKey]),
-		}, nil
+		return genericResolveFromSecret(spec, secretData, namespace), nil
 	}
 }
 
@@ -378,9 +382,14 @@ func (r *resolver) resolveRedisConnectionData(
 }
 
 func (r *resolver) resolveClickHouseConnectionData(
+	spec dbTypeSpec,
 	namespace string,
 	secretData map[string][]byte,
 ) (*connectionData, error) {
+	if _, ok := secretData["admin-password"]; !ok {
+		return genericResolveFromSecret(spec, secretData, namespace), nil
+	}
+
 	username := decodeSecretField(secretData["username"])
 	password := decodeSecretField(secretData["admin-password"])
 	tcpEndpoint := decodeSecretField(secretData["tcpEndpoint"])

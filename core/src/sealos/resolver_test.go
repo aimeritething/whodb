@@ -148,6 +148,42 @@ func TestResolveBootstrapForClickHouseUsesAdminPasswordAndTcpEndpoint(t *testing
 	}
 }
 
+func TestResolveBootstrapForClickHouseFallsBackToGenericFields(t *testing.T) {
+	clientset := fake.NewSimpleClientset(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-house-conn-credential",
+				Namespace: "ns-admin",
+			},
+			Data: map[string][]byte{
+				"username": []byte("admin"),
+				"password": []byte("house-password"),
+				"host":     []byte("test-house-clickhouse"),
+				"port":     []byte("9000"),
+			},
+		},
+	)
+
+	resolver := &resolver{
+		kubeconfig: testKubeconfig("ns-admin"),
+		clientset:  clientset,
+	}
+
+	result, err := resolver.ResolveBootstrap(context.Background(), BootstrapInput{
+		DBType:       "clickhouse",
+		ResourceName: "test-house",
+	})
+	if err != nil {
+		t.Fatalf("expected clickhouse generic fallback to succeed, got %v", err)
+	}
+	if result.Host != "test-house-clickhouse.ns-admin.svc" || result.Port != "9000" {
+		t.Fatalf("expected clickhouse host/port from generic fields, got %q:%q", result.Host, result.Port)
+	}
+	if result.Credentials.Username != "admin" || result.Credentials.Password != "house-password" {
+		t.Fatalf("expected clickhouse auth from generic fields, got %#v", result.Credentials)
+	}
+}
+
 func testKubeconfig(namespace string) string {
 	if namespace == "" {
 		return `apiVersion: v1
