@@ -1,0 +1,70 @@
+name: PR Docker Build
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-docker-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+env:
+  DOCKERFILE: core/Dockerfile
+  LOCAL_IMAGE: dataflow-pr
+
+jobs:
+  docker:
+    name: Build Docker Image (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate image tag
+        id: meta
+        run: |
+          set -euo pipefail
+          SHORT_SHA="$(echo "${{ github.event.pull_request.head.sha }}" | cut -c1-7)"
+          PR_TAG="pr-${{ github.event.pull_request.number }}-${SHORT_SHA}"
+          echo "short_sha=${SHORT_SHA}" >> "${GITHUB_OUTPUT}"
+          echo "pr_tag=${PR_TAG}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ env.DOCKERFILE }}
+          push: false
+          load: true
+          platforms: linux/${{ matrix.arch }}
+          tags: ${{ env.LOCAL_IMAGE }}:${{ steps.meta.outputs.pr_tag }}-${{ matrix.arch }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.pr_tag }}
+            TARGETARCH=${{ matrix.arch }}
+            PLATFORM=pr
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }}
+            org.opencontainers.image.version=${{ steps.meta.outputs.pr_tag }}
+            org.opencontainers.image.architecture=${{ matrix.arch }}
+            runnumber=${{ github.run_id }}

@@ -1,0 +1,197 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOCKERFILE: core/Dockerfile
+  GHCR_IMAGE: ghcr.io/${{ github.repository }}/dataflow
+
+jobs:
+  meta:
+    name: Release Metadata
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      is_release: ${{ steps.meta.outputs.is_release }}
+      short_sha: ${{ steps.meta.outputs.short_sha }}
+      tag_name: ${{ steps.meta.outputs.tag_name }}
+      tag_with_sha: ${{ steps.meta.outputs.tag_with_sha }}
+      version: ${{ steps.meta.outputs.version }}
+
+    steps:
+      - name: Compute image tags
+        id: meta
+        run: |
+          set -euo pipefail
+          SHORT_SHA="$(echo "${GITHUB_SHA}" | cut -c1-7)"
+
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG_NAME="${GITHUB_REF_NAME}"
+            VERSION="${TAG_NAME}"
+            TAG_WITH_SHA="${TAG_NAME}-${SHORT_SHA}"
+            IS_RELEASE="true"
+          else
+            TAG_NAME="main"
+            VERSION="main-${SHORT_SHA}"
+            TAG_WITH_SHA="${VERSION}"
+            IS_RELEASE="false"
+          fi
+
+          echo "is_release=${IS_RELEASE}" >> "${GITHUB_OUTPUT}"
+          echo "short_sha=${SHORT_SHA}" >> "${GITHUB_OUTPUT}"
+          echo "tag_name=${TAG_NAME}" >> "${GITHUB_OUTPUT}"
+          echo "tag_with_sha=${TAG_WITH_SHA}" >> "${GITHUB_OUTPUT}"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+
+  docker-build:
+    name: Build and Push Docker Image (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    needs: meta
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ env.DOCKERFILE }}
+          push: true
+          platforms: linux/${{ matrix.arch }}
+          tags: |
+            ${{ env.GHCR_IMAGE }}:${{ needs.meta.outputs.tag_name }}-${{ matrix.arch }}
+            ${{ env.GHCR_IMAGE }}:${{ needs.meta.outputs.tag_with_sha }}-${{ matrix.arch }}
+          build-args: |
+            VERSION=${{ needs.meta.outputs.version }}
+            TARGETARCH=${{ matrix.arch }}
+            PLATFORM=ghcr
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ needs.meta.outputs.version }}
+            org.opencontainers.image.architecture=${{ matrix.arch }}
+            runnumber=${{ github.run_id }}
+          cache-from: type=gha,scope=dataflow-docker-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=dataflow-docker-${{ matrix.arch }}
+
+  docker-manifest:
+    name: Publish Docker Manifests
+    runs-on: ubuntu-latest
+    needs:
+      - meta
+      - docker-build
+    permissions:
+      packages: write
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create multi-arch manifests
+        run: |
+          set -euo pipefail
+          TAG_NAME="${{ needs.meta.outputs.tag_name }}"
+          TAG_WITH_SHA="${{ needs.meta.outputs.tag_with_sha }}"
+
+          docker buildx imagetools create \
+            -t "${GHCR_IMAGE}:${TAG_NAME}" \
+            "${GHCR_IMAGE}:${TAG_NAME}-amd64" \
+            "${GHCR_IMAGE}:${TAG_NAME}-arm64"
+
+          docker buildx imagetools create \
+            -t "${GHCR_IMAGE}:${TAG_WITH_SHA}" \
+            "${GHCR_IMAGE}:${TAG_WITH_SHA}-amd64" \
+            "${GHCR_IMAGE}:${TAG_WITH_SHA}-arm64"
+
+      - name: Update latest tag
+        if: ${{ needs.meta.outputs.is_release == 'true' }}
+        run: |
+          set -euo pipefail
+          TAG_NAME="${{ needs.meta.outputs.tag_name }}"
+
+          docker buildx imagetools create \
+            -t "${GHCR_IMAGE}:latest" \
+            "${GHCR_IMAGE}:${TAG_NAME}-amd64" \
+            "${GHCR_IMAGE}:${TAG_NAME}-arm64"
+
+      - name: Inspect multi-arch manifests
+        run: |
+          set -euo pipefail
+          TAG_NAME="${{ needs.meta.outputs.tag_name }}"
+          TAG_WITH_SHA="${{ needs.meta.outputs.tag_with_sha }}"
+
+          docker buildx imagetools inspect "${GHCR_IMAGE}:${TAG_NAME}"
+          docker buildx imagetools inspect "${GHCR_IMAGE}:${TAG_WITH_SHA}"
+
+          if [ "${{ needs.meta.outputs.is_release }}" = "true" ]; then
+            docker buildx imagetools inspect "${GHCR_IMAGE}:latest"
+          fi
+
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs:
+      - meta
+      - docker-manifest
+    if: ${{ needs.meta.outputs.is_release == 'true' }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.meta.outputs.version }}
+          name: ${{ needs.meta.outputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            Docker images:
+            - `${{ env.GHCR_IMAGE }}:${{ needs.meta.outputs.version }}`
+            - `${{ env.GHCR_IMAGE }}:${{ needs.meta.outputs.tag_with_sha }}`
+            - `${{ env.GHCR_IMAGE }}:latest`
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

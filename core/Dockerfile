@@ -23,8 +23,6 @@ COPY ./dataflow/ ./
 ARG VERSION=dev
 ENV VITE_APP_VERSION=${VERSION}
 RUN pnpm run build
-ARG TARGETARCH=amd64
-ARG PLATFORM=docker
 
 FROM golang:1.26-alpine3.23 AS backend-stage
 RUN apk add --no-cache \
@@ -45,9 +43,10 @@ COPY --from=build-stage /app/build/ ./build/
 
 # Build backend with version and environment
 ARG VERSION
-ARG TARGETARCH=amd64
+ARG TARGETARCH
 ARG PLATFORM
-RUN CGO_CFLAGS="-Os -ffunction-sections -fdata-sections -fno-asynchronous-unwind-tables -fno-unwind-tables -flto -fvisibility=hidden" \
+RUN if [ -z "${TARGETARCH}" ] || [ -z "${PLATFORM}" ]; then echo "TARGETARCH and PLATFORM build args are required" >&2; exit 1; fi && \
+	CGO_CFLAGS="-Os -ffunction-sections -fdata-sections -fno-asynchronous-unwind-tables -fno-unwind-tables -flto -fvisibility=hidden" \
 	CGO_LDFLAGS="-Wl,--gc-sections -Wl,--as-needed -flto" \
 	CGO_ENABLED=1 GOOS=linux GOARCH=${TARGETARCH} go build -tags prod -trimpath \
 	-ldflags="-s -w -X github.com/clidey/whodb/core/src/env.ApplicationVersion=${VERSION} -X github.com/clidey/whodb/core/src/env.ApplicationEnvironment=${PLATFORM}-${TARGETARCH}" \
@@ -55,8 +54,9 @@ RUN CGO_CFLAGS="-Os -ffunction-sections -fdata-sections -fno-asynchronous-unwind
 
 # Pre-download BAML native library for the target architecture (musl for Alpine)
 # Extract BAML version from go.mod to stay in sync
-ARG TARGETARCH=amd64
-RUN BAML_VERSION=$(grep 'github.com/boundaryml/baml ' go.mod | awk '{print $2}' | sed 's/^v//') && \
+ARG TARGETARCH
+RUN if [ -z "$TARGETARCH" ]; then echo "TARGETARCH build arg is required" >&2; exit 1; fi && \
+    BAML_VERSION=$(grep 'github.com/boundaryml/baml ' go.mod | awk '{print $2}' | sed 's/^v//') && \
     if [ "$TARGETARCH" = "amd64" ]; then \
         BAML_ARCH="x86_64"; \
     elif [ "$TARGETARCH" = "arm64" ]; then \
