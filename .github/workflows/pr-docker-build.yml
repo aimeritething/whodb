@@ -22,8 +22,16 @@ env:
 
 jobs:
   docker:
-    name: Build Docker Image
-    runs-on: ubuntu-latest
+    name: Build Docker Image (${{ matrix.arch }})
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runs-on: ubuntu-24.04
+          - arch: arm64
+            runs-on: ubuntu-24.04-arm
 
     steps:
       - name: Checkout code
@@ -48,8 +56,8 @@ jobs:
           file: ${{ env.DOCKERFILE }}
           push: false
           load: true
-          platforms: linux/amd64
-          tags: ${{ env.LOCAL_IMAGE }}:${{ steps.meta.outputs.pr_tag }}
+          platforms: linux/${{ matrix.arch }}
+          tags: ${{ env.LOCAL_IMAGE }}:${{ steps.meta.outputs.pr_tag }}-${{ matrix.arch }}
           build-args: |
             VERSION=${{ steps.meta.outputs.pr_tag }}
             PLATFORM=pr
@@ -57,4 +65,5 @@ jobs:
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }}
             org.opencontainers.image.version=${{ steps.meta.outputs.pr_tag }}
+            org.opencontainers.image.architecture=${{ matrix.arch }}
             runnumber=${{ github.run_id }}
