@@ -1,6 +1,8 @@
 SERVICE_NAME = whodb
 DOCKER_USERNAME ?=
 IMAGE_TAG ?= latest
+TARGETARCH ?= amd64
+PLATFORM ?= docker
 IMG ?= $(DOCKER_USERNAME)/$(SERVICE_NAME):$(IMAGE_TAG)
 
 .PHONY: all
@@ -26,7 +28,7 @@ run: ## Run DataFlow dev server from host.
 
 .PHONY: docker-build
 docker-build: ## Build docker image.
-	docker buildx build -f core/Dockerfile --platform linux/amd64 -t $(IMG) .
+	docker buildx build -f core/Dockerfile --platform linux/$(TARGETARCH) --build-arg VERSION=$(IMAGE_TAG) --build-arg TARGETARCH=$(TARGETARCH) --build-arg PLATFORM=$(PLATFORM) -t $(IMG) .
 
 .PHONY: docker-push
 docker-push: ## Push docker image.
@@ -34,4 +36,4 @@ docker-push: ## Push docker image.
 
 .PHONY: docker-build-push
 docker-build-push: ## Build and push docker image.
-	docker buildx build -f core/Dockerfile --platform linux/amd64 -t $(IMG) --push .
+	docker buildx build -f core/Dockerfile --platform linux/$(TARGETARCH) --build-arg VERSION=$(IMAGE_TAG) --build-arg TARGETARCH=$(TARGETARCH) --build-arg PLATFORM=$(PLATFORM) -t $(IMG) --push .

@@ -58,7 +58,7 @@ jobs:
 
   docker-build:
     name: Build and Push Docker Image (${{ matrix.arch }})
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: ${{ matrix.runner }}
     needs: meta
     permissions:
       contents: read
@@ -68,9 +68,9 @@ jobs:
       matrix:
         include:
           - arch: amd64
-            runs-on: ubuntu-24.04
+            runner: ubuntu-24.04
           - arch: arm64
-            runs-on: ubuntu-24.04-arm
+            runner: ubuntu-24.04-arm
 
     steps:
       - name: Checkout code
@@ -98,6 +98,7 @@ jobs:
             ${{ env.GHCR_IMAGE }}:${{ needs.meta.outputs.tag_with_sha }}-${{ matrix.arch }}
           build-args: |
             VERSION=${{ needs.meta.outputs.version }}
+            TARGETARCH=${{ matrix.arch }}
             PLATFORM=ghcr
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
@@ -154,6 +155,19 @@ jobs:
             -t "${GHCR_IMAGE}:latest" \
             "${GHCR_IMAGE}:${TAG_NAME}-amd64" \
             "${GHCR_IMAGE}:${TAG_NAME}-arm64"
+
+      - name: Inspect multi-arch manifests
+        run: |
+          set -euo pipefail
+          TAG_NAME="${{ needs.meta.outputs.tag_name }}"
+          TAG_WITH_SHA="${{ needs.meta.outputs.tag_with_sha }}"
+
+          docker buildx imagetools inspect "${GHCR_IMAGE}:${TAG_NAME}"
+          docker buildx imagetools inspect "${GHCR_IMAGE}:${TAG_WITH_SHA}"
+
+          if [ "${{ needs.meta.outputs.is_release }}" = "true" ]; then
+            docker buildx imagetools inspect "${GHCR_IMAGE}:latest"
+          fi
 
   release:
     name: Publish GitHub Release
