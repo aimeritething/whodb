@@ -18,11 +18,13 @@ on:
 
 env:
   DOCKERFILE: core/Dockerfile
-  LOCAL_IMAGE: dataflow-pr
+  LOCAL_RUNTIME_IMAGE: dataflow-pr-runtime
+  LOCAL_SEALOS_IMAGE: dataflow-cluster-pr
+  LOCAL_REGISTRY: 127.0.0.1:5000/dataflow-pr
 
 jobs:
   docker:
-    name: Build Docker Image (${{ matrix.arch }})
+    name: Build Docker and Sealos Image (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -57,7 +59,7 @@ jobs:
           push: false
           load: true
           platforms: linux/${{ matrix.arch }}
-          tags: ${{ env.LOCAL_IMAGE }}:${{ steps.meta.outputs.pr_tag }}-${{ matrix.arch }}
+          tags: ${{ env.LOCAL_RUNTIME_IMAGE }}:${{ steps.meta.outputs.pr_tag }}-${{ matrix.arch }}
           build-args: |
             VERSION=${{ steps.meta.outputs.pr_tag }}
             TARGETARCH=${{ matrix.arch }}
@@ -68,3 +70,70 @@ jobs:
             org.opencontainers.image.version=${{ steps.meta.outputs.pr_tag }}
             org.opencontainers.image.architecture=${{ matrix.arch }}
             runnumber=${{ github.run_id }}
+          cache-from: type=gha,scope=dataflow-pr-runtime-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=dataflow-pr-runtime-${{ matrix.arch }}
+
+      - name: Start temporary local registry
+        run: |
+          set -euo pipefail
+          docker rm -f dataflow-pr-registry >/dev/null 2>&1 || true
+          docker run -d -p 5000:5000 --name dataflow-pr-registry registry:2
+
+      - name: Push runtime image to temporary local registry
+        run: |
+          set -euo pipefail
+          RUNTIME_TAG="${{ steps.meta.outputs.pr_tag }}"
+          RUNTIME_LOCAL_IMAGE="${LOCAL_RUNTIME_IMAGE}:${RUNTIME_TAG}-${{ matrix.arch }}"
+          REGISTRY_IMAGE="${LOCAL_REGISTRY}/runtime:${RUNTIME_TAG}"
+          docker tag "${RUNTIME_LOCAL_IMAGE}" "${REGISTRY_IMAGE}"
+          docker push "${REGISTRY_IMAGE}"
+
+      - name: Install cache images tools
+        run: sudo bash ./.github/scripts/install.sh
+
+      - name: Cache images for sealos
+        working-directory: deploy
+        run: |
+          set -euo pipefail
+          RUNTIME_TAG="${{ steps.meta.outputs.pr_tag }}"
+          sed -i "/^image:/,/^[^[:space:]]/ s#^\([[:space:]]*repository:[[:space:]]*\).*#\1${LOCAL_REGISTRY}/runtime#" charts/dataflow/values.yaml
+          sed -i "/^image:/,/^[^[:space:]]/ s#^\([[:space:]]*tag:[[:space:]]*\).*#\1${RUNTIME_TAG}#" charts/dataflow/values.yaml
+          sudo sealos registry save --registry-dir=registry_${{ matrix.arch }} --arch ${{ matrix.arch }} .
+
+      - name: Build sealos image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./deploy
+          file: ./deploy/Kubefile
+          push: false
+          load: true
+          platforms: linux/${{ matrix.arch }}
+          tags: ${{ env.LOCAL_SEALOS_IMAGE }}:${{ steps.meta.outputs.pr_tag }}-${{ matrix.arch }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }}
+            org.opencontainers.image.version=${{ steps.meta.outputs.pr_tag }}
+            org.opencontainers.image.architecture=${{ matrix.arch }}
+            runnumber=${{ github.run_id }}
+          cache-from: type=gha,scope=dataflow-pr-sealos-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=dataflow-pr-sealos-${{ matrix.arch }}
+
+      - name: Save sealos image tar
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          TAR_NAME="dataflow-cluster-pr-${{ github.event.pull_request.number }}-${{ steps.meta.outputs.short_sha }}-${{ matrix.arch }}.tar"
+          docker save "${LOCAL_SEALOS_IMAGE}:${{ steps.meta.outputs.pr_tag }}-${{ matrix.arch }}" -o "artifacts/${TAR_NAME}"
+          gzip -f "artifacts/${TAR_NAME}"
+
+      - name: Upload sealos image tar
+        uses: actions/upload-artifact@v4
+        with:
+          name: dataflow-cluster-pr-${{ github.event.pull_request.number }}-${{ steps.meta.outputs.short_sha }}-${{ matrix.arch }}
+          path: artifacts/*.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Cleanup temporary local registry
+        if: always()
+        run: docker rm -f dataflow-pr-registry >/dev/null 2>&1 || true

@@ -88,7 +88,7 @@ Open `http://localhost:8080` after the container starts.
 
 Sealos packaging files live under [`deploy/`](./deploy).
 
-- PR workflow: [`/.github/workflows/pr-sealos-image.yml`](./.github/workflows/pr-sealos-image.yml)
+- PR workflow: [`/.github/workflows/pr-docker-build.yml`](./.github/workflows/pr-docker-build.yml)
 - Release workflow: [`/.github/workflows/release.yaml`](./.github/workflows/release.yaml)
 - Packaging details: [`deploy/README.md`](./deploy/README.md)
 - User override template: [`deploy/charts/dataflow/dataflow-values.yaml`](./deploy/charts/dataflow/dataflow-values.yaml)

@@ -11,11 +11,11 @@ This directory contains the Sealos cluster-image packaging for DataFlow.
 
 ## CI Flows
 
-- PR workflow: `.github/workflows/pr-sealos-image.yml`
-  - builds an `amd64` runtime image locally
+- PR workflow: `.github/workflows/pr-docker-build.yml`
+  - builds runtime images on both `amd64` and `arm64`
   - pushes it into a temporary local registry
   - runs `sealos registry save`
-  - exports an `amd64` Sealos image tar artifact
+  - exports Sealos image tar artifacts for both architectures
 - Release workflow: `.github/workflows/release.yaml`
   - publishes multi-arch runtime images
   - packages multi-arch Sealos cluster images
