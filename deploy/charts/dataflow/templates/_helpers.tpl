@@ -81,26 +81,7 @@ Create the name of the service account to use
 {{- end }}
 
 {{- define "dataflow.metadataPostgresCredentialSecretName" -}}
-{{- $metadata := default (dict) .Values.metadata -}}
-{{- $native := default (dict) $metadata.native -}}
-{{- $secretName := (default "" $native.credentialSecretName) | trim -}}
-{{- if $secretName -}}
-{{- $secretName -}}
-{{- else -}}
 {{- printf "%s-conn-credential" (include "dataflow.metadataPostgresClusterName" .) -}}
-{{- end -}}
-{{- end }}
-
-{{- define "dataflow.metadataPostgresVersion" -}}
-{{- $metadata := default (dict) .Values.metadata -}}
-{{- $native := default (dict) $metadata.native -}}
-{{- default "postgresql-14.8.0" $native.version -}}
-{{- end }}
-
-{{- define "dataflow.metadataPostgresTerminationPolicy" -}}
-{{- $metadata := default (dict) .Values.metadata -}}
-{{- $native := default (dict) $metadata.native -}}
-{{- default "Delete" $native.terminationPolicy -}}
 {{- end }}
 
 {{- define "dataflow.secretName" -}}

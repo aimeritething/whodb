@@ -6,6 +6,7 @@ This directory contains the Sealos cluster-image packaging for DataFlow.
 
 - `Kubefile`: cluster image build recipe
 - `install.sh`: install entrypoint executed by the cluster image
+- `charts/dataflow/dataflow-values.yaml`: default user override template
 - `charts/dataflow`: Helm chart used by the installer
 
 ## CI Flows
@@ -26,3 +27,13 @@ This directory contains the Sealos cluster-image packaging for DataFlow.
 2. Update `charts/dataflow/values.yaml` with that image repository and tag.
 3. Run `sealos registry save --registry-dir=registry_<arch> --arch <arch> .` in `deploy/`.
 4. Build `Kubefile` to produce the final cluster image.
+
+## User Overrides
+
+During install, `install.sh` ensures the user override file exists at:
+
+- `/root/.sealos/cloud/values/apps/dataflow/dataflow-values.yaml`
+
+When the file does not exist yet, it is initialized from:
+
+- `deploy/charts/dataflow/dataflow-values.yaml`

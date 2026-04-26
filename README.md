@@ -91,6 +91,7 @@ Sealos packaging files live under [`deploy/`](./deploy).
 - PR workflow: [`/.github/workflows/pr-sealos-image.yml`](./.github/workflows/pr-sealos-image.yml)
 - Release workflow: [`/.github/workflows/release.yaml`](./.github/workflows/release.yaml)
 - Packaging details: [`deploy/README.md`](./deploy/README.md)
+- User override template: [`deploy/charts/dataflow/dataflow-values.yaml`](./deploy/charts/dataflow/dataflow-values.yaml)
 
 ## Project Structure
 

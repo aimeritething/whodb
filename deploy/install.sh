@@ -28,7 +28,9 @@ RELEASE_NAME="${RELEASE_NAME:-dataflow}"
 NAMESPACE="${NAMESPACE:-dataflow-system}"
 HELM_OPTS="${HELM_OPTS:-}"
 HELM_TIMEOUT="${HELM_TIMEOUT:-20m}"
-ENABLE_APP="${ENABLE_APP:-true}"
+DEFAULT_VALUES_FILE="./charts/dataflow/dataflow-values.yaml"
+USER_VALUES_DIR="/root/.sealos/cloud/values/apps/dataflow"
+USER_VALUES_FILE="${USER_VALUES_DIR}/dataflow-values.yaml"
 
 get_sealos_config() {
   local key=$1
@@ -86,6 +88,18 @@ find_existing_dataflow_secret() {
   return 1
 }
 
+ensure_user_values_file() {
+  mkdir -p "${USER_VALUES_DIR}"
+
+  if [ ! -f "${USER_VALUES_FILE}" ]; then
+    cp "${DEFAULT_VALUES_FILE}" "${USER_VALUES_FILE}"
+    info "Generated default user values at ${USER_VALUES_FILE}"
+    return 0
+  fi
+
+  info "Using user values from ${USER_VALUES_FILE}"
+}
+
 sealos_cloud_domain="$(get_sealos_config cloudDomain || true)"
 [ -n "${sealos_cloud_domain}" ] || error "Failed to read sealos-config.data.cloudDomain"
 
@@ -109,23 +123,13 @@ if [ -z "${session_key}" ]; then
 fi
 
 info "Session key source: ${session_key_source}"
+ensure_user_values_file
+
 
 helm_set_args=(
   --set-string "cloudDomain=${sealos_cloud_domain}"
   --set-string "session.encryptionKey=${session_key}"
 )
-
-if [ "${ENABLE_APP}" = "true" ]; then
-  helm_set_args+=(--set "app.enabled=true")
-fi
-
-node_count="$(kubectl get nodes --no-headers 2>/dev/null | wc -l | tr -d ' ')"
-if [ "${node_count}" = "1" ]; then
-  warn "Single-node cluster detected, force metadata postgres replicas to 1."
-  helm_set_args+=(
-    --set "metadata.native.replicas=1"
-  )
-fi
 
 helm_opts_arr=()
 if [ -n "${HELM_OPTS}" ]; then
@@ -133,16 +137,10 @@ if [ -n "${HELM_OPTS}" ]; then
   helm_opts_arr=(${HELM_OPTS})
 fi
 
-VALUES_FILE="/root/.sealos/cloud/values/apps/dataflow/dataflow-values.yaml"
-if [ -f "${VALUES_FILE}" ]; then
-  info "Using additional Helm values from ${VALUES_FILE}"
-  helm_set_args+=(-f "${VALUES_FILE}")
-else
-  warn "Values file ${VALUES_FILE} not found, proceeding without it"
-fi
-
 info "Installing chart charts/dataflow into namespace ${NAMESPACE}"
 helm upgrade -i "${RELEASE_NAME}" -n "${NAMESPACE}" --create-namespace charts/dataflow \
+  -f "${DEFAULT_VALUES_FILE}" \
+  -f "${USER_VALUES_FILE}" \
   "${helm_set_args[@]}" \
   "${helm_opts_arr[@]}" \
   --wait \
