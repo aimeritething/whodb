@@ -1,21 +1,22 @@
 {{- if .Values.app.enabled }}
-{{- $host := include "dataflow.ingressHost" . -}}
+{{- $host := include "dataflow.appHost" . -}}
 apiVersion: app.sealos.io/v1
 kind: App
 metadata:
-  name: {{ include "dataflow.fullname" . }}
-  namespace: app-system
-spec:
-  type: iframe
   name: {{ .Values.app.name }}
-  displayType: normal
-  icon: {{ printf "https://%s%s" $host .Values.app.iconPath | quote }}
+  annotations:
+    app.sealos.io/representative-meta.forced-icon-style: fill
+  namespace: {{ .Values.app.namespace }}
+  labels:
+    {{- include "dataflow.labels" . | nindent 4 }}
+spec:
+  name: {{ .Values.app.name }}
+  type: {{ .Values.app.type }}
+  displayType: {{ .Values.app.displayType }}
+  icon: {{ printf "%s://%s%s" .Values.app.urlScheme $host .Values.app.iconPath | quote }}
   data:
-    desc: {{ .Values.app.description | quote }}
-    url: {{ printf "https://%s" $host | quote }}
+    desc: {{ .Values.app.data.desc | quote }}
+    url: {{ printf "%s://%s" .Values.app.urlScheme $host | quote }}
   i18n:
-    zh:
-      name: {{ .Values.app.displayName | quote }}
-    zh-Hans:
-      name: {{ .Values.app.displayName | quote }}
+    {{- toYaml .Values.app.i18n | nindent 4 }}
 {{- end }}

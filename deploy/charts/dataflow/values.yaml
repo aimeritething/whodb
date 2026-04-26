@@ -72,10 +72,22 @@ ingress:
 
 app:
   enabled: false
+  namespace: app-system
   name: dataflow
-  displayName: DataFlow
-  description: Sealos-native database workspace
+  type: iframe
+  displayType: normal
+  urlScheme: https
   iconPath: /favicon.ico
+  hostOverride: ''
+  data:
+    desc: Sealos-native database workspace
+  i18n:
+    en:
+      name: DataFlow
+    zh:
+      name: 数据库工作台
+    zh-Hans:
+      name: 数据库工作台
 
 resources: {}
 

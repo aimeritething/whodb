@@ -100,3 +100,11 @@ Create the name of the service account to use
 {{- printf "%s.%s" (default "dataflow" .Values.ingress.hostPrefix) $cloudDomain -}}
 {{- end -}}
 {{- end }}
+
+{{- define "dataflow.appHost" -}}
+{{- if .Values.app.hostOverride -}}
+{{- .Values.app.hostOverride -}}
+{{- else -}}
+{{- include "dataflow.ingressHost" . -}}
+{{- end -}}
+{{- end }}
