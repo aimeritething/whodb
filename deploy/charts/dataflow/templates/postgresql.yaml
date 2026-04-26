@@ -1,0 +1,94 @@
+{{- if eq (include "dataflow.metadataPostgresNativeEnabled" .) "true" }}
+{{- $clusterName := include "dataflow.metadataPostgresClusterName" . }}
+{{- $metadata := default (dict) .Values.metadata }}
+{{- $native := default (dict) $metadata.native }}
+{{- $version := "postgresql-14.8.0" }}
+{{- $resourcesDefault := dict "limits" (dict "cpu" "1000m" "memory" "1024Mi") "requests" (dict "cpu" "10m" "memory" "50Mi") }}
+{{- $resources := default $resourcesDefault $native.resources }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    sealos-db-provider-cr: {{ $clusterName }}
+    app.kubernetes.io/instance: {{ $clusterName }}
+    app.kubernetes.io/managed-by: kbcli
+  name: {{ $clusterName }}
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    sealos-db-provider-cr: {{ $clusterName }}
+    app.kubernetes.io/instance: {{ $clusterName }}
+    app.kubernetes.io/managed-by: kbcli
+  name: {{ $clusterName }}
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups:
+      - '*'
+    resources:
+      - '*'
+    verbs:
+      - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    sealos-db-provider-cr: {{ $clusterName }}
+    app.kubernetes.io/instance: {{ $clusterName }}
+    app.kubernetes.io/managed-by: kbcli
+  name: {{ $clusterName }}
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $clusterName }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $clusterName }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: Cluster
+metadata:
+  labels:
+    clusterdefinition.kubeblocks.io/name: postgresql
+    clusterversion.kubeblocks.io/name: {{ $version }}
+  name: {{ $clusterName }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  affinity:
+    nodeLabels: {}
+    podAntiAffinity: Preferred
+    tenancy: SharedNode
+    topologyKeys:
+      - kubernetes.io/hostname
+  backup:
+    cronExpression: "0 7 * * *"
+    enabled: true
+    method: pg-basebackup
+    pitrEnabled: true
+    retentionPeriod: "7d"
+  clusterDefinitionRef: postgresql
+  clusterVersionRef: {{ $version }}
+  componentSpecs:
+    - componentDefRef: postgresql
+      monitor: true
+      name: postgresql
+      replicas: {{ default 2 $native.replicas }}
+      resources: {{ toYaml $resources | nindent 8 }}
+      serviceAccountName: {{ $clusterName }}
+      switchPolicy:
+        type: Noop
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ default "3Gi" $native.storage }}
+  terminationPolicy: Delete
+{{- end }}

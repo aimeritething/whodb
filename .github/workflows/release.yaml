@@ -16,7 +16,8 @@ concurrency:
 
 env:
   DOCKERFILE: core/Dockerfile
-  GHCR_IMAGE: ghcr.io/${{ github.repository }}/dataflow
+  GHCR_RUNTIME_IMAGE: ghcr.io/${{ github.repository }}/dataflow
+  GHCR_SEALOS_IMAGE: ghcr.io/${{ github.repository }}/dataflow-cluster
 
 jobs:
   meta:
@@ -94,8 +95,8 @@ jobs:
           push: true
           platforms: linux/${{ matrix.arch }}
           tags: |
-            ${{ env.GHCR_IMAGE }}:${{ needs.meta.outputs.tag_name }}-${{ matrix.arch }}
-            ${{ env.GHCR_IMAGE }}:${{ needs.meta.outputs.tag_with_sha }}-${{ matrix.arch }}
+            ${{ env.GHCR_RUNTIME_IMAGE }}:${{ needs.meta.outputs.tag_name }}-${{ matrix.arch }}
+            ${{ env.GHCR_RUNTIME_IMAGE }}:${{ needs.meta.outputs.tag_with_sha }}-${{ matrix.arch }}
           build-args: |
             VERSION=${{ needs.meta.outputs.version }}
             TARGETARCH=${{ matrix.arch }}
@@ -136,14 +137,14 @@ jobs:
           TAG_WITH_SHA="${{ needs.meta.outputs.tag_with_sha }}"
 
           docker buildx imagetools create \
-            -t "${GHCR_IMAGE}:${TAG_NAME}" \
-            "${GHCR_IMAGE}:${TAG_NAME}-amd64" \
-            "${GHCR_IMAGE}:${TAG_NAME}-arm64"
+            -t "${GHCR_RUNTIME_IMAGE}:${TAG_NAME}" \
+            "${GHCR_RUNTIME_IMAGE}:${TAG_NAME}-amd64" \
+            "${GHCR_RUNTIME_IMAGE}:${TAG_NAME}-arm64"
 
           docker buildx imagetools create \
-            -t "${GHCR_IMAGE}:${TAG_WITH_SHA}" \
-            "${GHCR_IMAGE}:${TAG_WITH_SHA}-amd64" \
-            "${GHCR_IMAGE}:${TAG_WITH_SHA}-arm64"
+            -t "${GHCR_RUNTIME_IMAGE}:${TAG_WITH_SHA}" \
+            "${GHCR_RUNTIME_IMAGE}:${TAG_WITH_SHA}-amd64" \
+            "${GHCR_RUNTIME_IMAGE}:${TAG_WITH_SHA}-arm64"
 
       - name: Update latest tag
         if: ${{ needs.meta.outputs.is_release == 'true' }}
@@ -152,9 +153,9 @@ jobs:
           TAG_NAME="${{ needs.meta.outputs.tag_name }}"
 
           docker buildx imagetools create \
-            -t "${GHCR_IMAGE}:latest" \
-            "${GHCR_IMAGE}:${TAG_NAME}-amd64" \
-            "${GHCR_IMAGE}:${TAG_NAME}-arm64"
+            -t "${GHCR_RUNTIME_IMAGE}:latest" \
+            "${GHCR_RUNTIME_IMAGE}:${TAG_NAME}-amd64" \
+            "${GHCR_RUNTIME_IMAGE}:${TAG_NAME}-arm64"
 
       - name: Inspect multi-arch manifests
         run: |
@@ -162,11 +163,154 @@ jobs:
           TAG_NAME="${{ needs.meta.outputs.tag_name }}"
           TAG_WITH_SHA="${{ needs.meta.outputs.tag_with_sha }}"
 
-          docker buildx imagetools inspect "${GHCR_IMAGE}:${TAG_NAME}"
-          docker buildx imagetools inspect "${GHCR_IMAGE}:${TAG_WITH_SHA}"
+          docker buildx imagetools inspect "${GHCR_RUNTIME_IMAGE}:${TAG_NAME}"
+          docker buildx imagetools inspect "${GHCR_RUNTIME_IMAGE}:${TAG_WITH_SHA}"
 
           if [ "${{ needs.meta.outputs.is_release }}" = "true" ]; then
-            docker buildx imagetools inspect "${GHCR_IMAGE}:latest"
+            docker buildx imagetools inspect "${GHCR_RUNTIME_IMAGE}:latest"
+          fi
+
+  sealos-build:
+    name: Build and Push Sealos Image (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    needs:
+      - meta
+      - docker-manifest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install cache images tools
+        run: sudo bash ./.github/scripts/install.sh
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache images for sealos
+        working-directory: deploy
+        run: |
+          set -euo pipefail
+          TAG_WITH_SHA="${{ needs.meta.outputs.tag_with_sha }}"
+          sudo sealos login -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}" ghcr.io
+          sed -i "/^image:/,/^[^[:space:]]/ s#^\([[:space:]]*repository:[[:space:]]*\).*#\1${GHCR_RUNTIME_IMAGE}#" charts/dataflow/values.yaml
+          sed -i "/^image:/,/^[^[:space:]]/ s#^\([[:space:]]*tag:[[:space:]]*\).*#\1${TAG_WITH_SHA}#" charts/dataflow/values.yaml
+          sudo sealos registry save --registry-dir=registry_${{ matrix.arch }} --arch ${{ matrix.arch }} .
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push sealos image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./deploy
+          file: ./deploy/Kubefile
+          push: true
+          platforms: linux/${{ matrix.arch }}
+          tags: |
+            ${{ env.GHCR_SEALOS_IMAGE }}:${{ needs.meta.outputs.tag_name }}-${{ matrix.arch }}
+            ${{ env.GHCR_SEALOS_IMAGE }}:${{ needs.meta.outputs.tag_with_sha }}-${{ matrix.arch }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ needs.meta.outputs.version }}
+            org.opencontainers.image.architecture=${{ matrix.arch }}
+            runnumber=${{ github.run_id }}
+          cache-from: type=gha,scope=dataflow-sealos-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=dataflow-sealos-${{ matrix.arch }}
+
+      - name: Save sealos image package
+        if: ${{ needs.meta.outputs.is_release == 'true' }}
+        run: |
+          set -euo pipefail
+          TAG_NAME="${{ needs.meta.outputs.tag_name }}"
+          TAG_WITH_SHA="${{ needs.meta.outputs.tag_with_sha }}"
+          docker pull "${GHCR_SEALOS_IMAGE}:${TAG_WITH_SHA}-${{ matrix.arch }}"
+          mkdir -p release-assets
+          docker save "${GHCR_SEALOS_IMAGE}:${TAG_WITH_SHA}-${{ matrix.arch }}" | gzip > "release-assets/dataflow-cluster-${TAG_NAME}-${{ matrix.arch }}.tar.gz"
+
+      - name: Upload sealos image package
+        if: ${{ needs.meta.outputs.is_release == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sealos-image-${{ needs.meta.outputs.tag_name }}-${{ matrix.arch }}
+          path: release-assets/dataflow-cluster-${{ needs.meta.outputs.tag_name }}-${{ matrix.arch }}.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+  sealos-manifest:
+    name: Publish Sealos Manifests
+    runs-on: ubuntu-latest
+    needs:
+      - meta
+      - sealos-build
+    permissions:
+      packages: write
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create multi-arch manifests
+        run: |
+          set -euo pipefail
+          TAG_NAME="${{ needs.meta.outputs.tag_name }}"
+          TAG_WITH_SHA="${{ needs.meta.outputs.tag_with_sha }}"
+
+          docker buildx imagetools create \
+            -t "${GHCR_SEALOS_IMAGE}:${TAG_NAME}" \
+            "${GHCR_SEALOS_IMAGE}:${TAG_NAME}-amd64" \
+            "${GHCR_SEALOS_IMAGE}:${TAG_NAME}-arm64"
+
+          docker buildx imagetools create \
+            -t "${GHCR_SEALOS_IMAGE}:${TAG_WITH_SHA}" \
+            "${GHCR_SEALOS_IMAGE}:${TAG_WITH_SHA}-amd64" \
+            "${GHCR_SEALOS_IMAGE}:${TAG_WITH_SHA}-arm64"
+
+      - name: Update latest tag
+        if: ${{ needs.meta.outputs.is_release == 'true' }}
+        run: |
+          set -euo pipefail
+          TAG_NAME="${{ needs.meta.outputs.tag_name }}"
+
+          docker buildx imagetools create \
+            -t "${GHCR_SEALOS_IMAGE}:latest" \
+            "${GHCR_SEALOS_IMAGE}:${TAG_NAME}-amd64" \
+            "${GHCR_SEALOS_IMAGE}:${TAG_NAME}-arm64"
+
+      - name: Inspect multi-arch manifests
+        run: |
+          set -euo pipefail
+          TAG_NAME="${{ needs.meta.outputs.tag_name }}"
+          TAG_WITH_SHA="${{ needs.meta.outputs.tag_with_sha }}"
+
+          docker buildx imagetools inspect "${GHCR_SEALOS_IMAGE}:${TAG_NAME}"
+          docker buildx imagetools inspect "${GHCR_SEALOS_IMAGE}:${TAG_WITH_SHA}"
+
+          if [ "${{ needs.meta.outputs.is_release }}" = "true" ]; then
+            docker buildx imagetools inspect "${GHCR_SEALOS_IMAGE}:latest"
           fi
 
   release:
@@ -175,11 +319,20 @@ jobs:
     needs:
       - meta
       - docker-manifest
+      - sealos-build
+      - sealos-manifest
     if: ${{ needs.meta.outputs.is_release == 'true' }}
     permissions:
       contents: write
 
     steps:
+      - name: Download sealos packages
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          pattern: sealos-image-${{ needs.meta.outputs.tag_name }}-*
+          merge-multiple: true
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -189,9 +342,17 @@ jobs:
           prerelease: false
           generate_release_notes: true
           body: |
-            Docker images:
-            - `${{ env.GHCR_IMAGE }}:${{ needs.meta.outputs.version }}`
-            - `${{ env.GHCR_IMAGE }}:${{ needs.meta.outputs.tag_with_sha }}`
-            - `${{ env.GHCR_IMAGE }}:latest`
+            Runtime images:
+            - `${{ env.GHCR_RUNTIME_IMAGE }}:${{ needs.meta.outputs.version }}`
+            - `${{ env.GHCR_RUNTIME_IMAGE }}:${{ needs.meta.outputs.tag_with_sha }}`
+            - `${{ env.GHCR_RUNTIME_IMAGE }}:latest`
+
+            Sealos cluster images:
+            - `${{ env.GHCR_SEALOS_IMAGE }}:${{ needs.meta.outputs.version }}`
+            - `${{ env.GHCR_SEALOS_IMAGE }}:${{ needs.meta.outputs.tag_with_sha }}`
+            - `${{ env.GHCR_SEALOS_IMAGE }}:latest`
+          files: |
+            release-assets/dataflow-cluster-${{ needs.meta.outputs.version }}-amd64.tar.gz
+            release-assets/dataflow-cluster-${{ needs.meta.outputs.version }}-arm64.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,80 @@
+replicaCount: 1
+
+deploymentStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+session:
+  ttl: 24h
+  bootstrapEnabled: true
+
+secret:
+  create: true
+  existingSecret: ''
+
+metadata:
+  dsn: ''
+  sessionDsn: ''
+
+  native:
+    enabled: true
+    clusterName: ''
+    replicas: 1
+    storage: 3Gi
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+      requests:
+        cpu: 10m
+        memory: 50Mi
+
+extraEnvs: []
+
+ingress:
+  enabled: true
+  className: nginx
+  hostPrefix: dataflow
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '3600'
+
+app:
+  enabled: true
+  namespace: app-system
+  name: dataflow
+  type: iframe
+  displayType: normal
+  urlScheme: https
+  iconPath: /favicon.ico
+  hostOverride: ''
+  data:
+    desc: Sealos-native database workspace
+  i18n:
+    en:
+      name: DataFlow
+    zh:
+      name: 数据库工作台
+    zh-Hans:
+      name: 数据库工作台
+
+resources: {}
+
+startupProbe:
+  periodSeconds: 5
+  failureThreshold: 24
+  timeoutSeconds: 3
+
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

@@ -1,0 +1,22 @@
+{{- if .Values.app.enabled }}
+{{- $host := include "dataflow.appHost" . -}}
+apiVersion: app.sealos.io/v1
+kind: App
+metadata:
+  name: {{ .Values.app.name }}
+  annotations:
+    app.sealos.io/representative-meta.forced-icon-style: fill
+  namespace: {{ .Values.app.namespace }}
+  labels:
+    {{- include "dataflow.labels" . | nindent 4 }}
+spec:
+  name: {{ .Values.app.name }}
+  type: {{ .Values.app.type }}
+  displayType: {{ .Values.app.displayType }}
+  icon: {{ printf "%s://%s%s" .Values.app.urlScheme $host .Values.app.iconPath | quote }}
+  data:
+    desc: {{ .Values.app.data.desc | quote }}
+    url: {{ printf "%s://%s" .Values.app.urlScheme $host | quote }}
+  i18n:
+    {{- toYaml .Values.app.i18n | nindent 4 }}
+{{- end }}
