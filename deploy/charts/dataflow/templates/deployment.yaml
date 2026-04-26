@@ -1,4 +1,5 @@
 {{- $nativeEnabled := eq (include "dataflow.metadataPostgresNativeEnabled" .) "true" -}}
+{{- $runtimeSecretName := include "dataflow.secretName" . -}}
 {{- if and (not $nativeEnabled) (not .Values.secret.existingSecret) (not .Values.metadata.dsn) -}}
 {{- fail "metadata.dsn is required when metadata.native.enabled=false and secret.existingSecret is empty" -}}
 {{- end }}
@@ -51,10 +52,13 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          envFrom:
-            - secretRef:
-                name: {{ include "dataflow.secretName" . }}
           env:
+            - name: PORT
+              value: {{ printf "%v" .Values.service.port | quote }}
+            - name: WHODB_LOG_LEVEL
+              value: {{ .Values.runtime.logLevel | quote }}
+            - name: WHODB_LOG_FORMAT
+              value: {{ .Values.runtime.logFormat | quote }}
             {{- if $nativeEnabled }}
             - name: WHODB_PG_HOST
               valueFrom:
@@ -78,9 +82,33 @@ spec:
                   key: password
             - name: WHODB_METADATA_DSN
               value: "host=$(WHODB_PG_HOST) user=$(WHODB_PG_USER) password=$(WHODB_PG_PASSWORD) dbname=postgres port=$(WHODB_PG_PORT) sslmode=disable"
+            {{- if .Values.metadata.sessionDsn }}
+            - name: WHODB_SESSION_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $runtimeSecretName }}
+                  key: WHODB_SESSION_DSN
+            {{- else }}
+            - name: WHODB_SESSION_DSN
+              value: "host=$(WHODB_PG_HOST) user=$(WHODB_PG_USER) password=$(WHODB_PG_PASSWORD) dbname=postgres port=$(WHODB_PG_PORT) sslmode=disable"
             {{- end }}
-            - name: PORT
-              value: {{ printf "%v" .Values.service.port | quote }}
+            {{- else }}
+            - name: WHODB_METADATA_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $runtimeSecretName }}
+                  key: WHODB_METADATA_DSN
+            - name: WHODB_SESSION_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $runtimeSecretName }}
+                  key: {{ if .Values.metadata.sessionDsn }}WHODB_SESSION_DSN{{ else }}WHODB_METADATA_DSN{{ end }}
+            {{- end }}
+            - name: WHODB_SESSION_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $runtimeSecretName }}
+                  key: WHODB_SESSION_ENCRYPTION_KEY
             - name: WHODB_SESSION_TTL
               value: {{ .Values.session.ttl | quote }}
             - name: WHODB_SEALOS_BOOTSTRAP_ENABLED

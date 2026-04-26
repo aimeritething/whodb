@@ -26,6 +26,10 @@ secret:
   create: true
   existingSecret: ''
 
+runtime:
+  logLevel: info
+  logFormat: json
+
 metadata:
   dsn: ''
   sessionDsn: ''

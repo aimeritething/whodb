@@ -87,6 +87,8 @@ Create the name of the service account to use
 {{- define "dataflow.secretName" -}}
 {{- if .Values.secret.existingSecret }}
 {{- .Values.secret.existingSecret }}
+{{- else if .Values.secret.name }}
+{{- .Values.secret.name }}
 {{- else }}
 {{- printf "%s-secret" (include "dataflow.fullname" .) }}
 {{- end }}
