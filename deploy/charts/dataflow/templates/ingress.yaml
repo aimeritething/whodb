@@ -1,0 +1,31 @@
+{{- if .Values.ingress.enabled -}}
+{{- $host := include "dataflow.ingressHost" . -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "dataflow.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dataflow.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  tls:
+    - hosts:
+        - {{ $host | quote }}
+      secretName: wildcard-cert
+  rules:
+    - host: {{ $host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "dataflow.fullname" $ }}
+                port:
+                  number: {{ $.Values.service.port }}
+{{- end }}

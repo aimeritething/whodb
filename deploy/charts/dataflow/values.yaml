@@ -1,0 +1,140 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/sealos-apps/dataflow/dataflow
+  pullPolicy: IfNotPresent
+  tag: latest
+
+deploymentStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+imagePullSecrets: []
+nameOverride: ''
+fullnameOverride: ''
+
+cloudDomain: '127.0.0.1.nip.io'
+
+session:
+  encryptionKey: 'replace-with-32-byte-secret-key!'
+  ttl: 24h
+  bootstrapEnabled: true
+
+secret:
+  create: true
+  existingSecret: ''
+
+metadata:
+  dsn: ''
+  sessionDsn: ''
+  database: postgres
+  sslMode: disable
+  extraOptions: ''
+
+  native:
+    enabled: true
+    clusterName: ''
+    credentialSecretName: ''
+    version: postgresql-14.8.0
+    replicas: 2
+    storage: 3Gi
+    backup:
+      enabled: true
+      cron: '0 7 * * *'
+      retentionPeriod: 7d
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+      requests:
+        cpu: 10m
+        memory: 50Mi
+    terminationPolicy: Delete
+
+extraEnvs: []
+
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+  name: ''
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+  className: nginx
+  host: ''
+  hostPrefix: dataflow
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '3600'
+
+app:
+  enabled: false
+  name: dataflow
+  displayName: DataFlow
+  description: Sealos-native database workspace
+  iconPath: /favicon.ico
+
+gateway:
+  enabled: false
+  className: ''
+  create: false
+  name: ''
+  namespace: ''
+  annotations: {}
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+  httpRoutes:
+    - name: dataflow
+      annotations: {}
+      hostnames: []
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+
+resources: {}
+
+startupProbe:
+  httpGet:
+    path: /health
+    port: http
+  periodSeconds: 5
+  failureThreshold: 24
+  timeoutSeconds: 3
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

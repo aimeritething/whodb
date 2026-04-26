@@ -1,0 +1,21 @@
+{{- if .Values.app.enabled }}
+{{- $host := include "dataflow.ingressHost" . -}}
+apiVersion: app.sealos.io/v1
+kind: App
+metadata:
+  name: {{ include "dataflow.fullname" . }}
+  namespace: app-system
+spec:
+  type: iframe
+  name: {{ .Values.app.name }}
+  displayType: normal
+  icon: {{ printf "https://%s%s" $host .Values.app.iconPath | quote }}
+  data:
+    desc: {{ .Values.app.description | quote }}
+    url: {{ printf "https://%s" $host | quote }}
+  i18n:
+    zh:
+      name: {{ .Values.app.displayName | quote }}
+    zh-Hans:
+      name: {{ .Values.app.displayName | quote }}
+{{- end }}

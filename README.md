@@ -84,6 +84,14 @@ docker run --rm -p 8080:8080 dataflow-local
 
 Open `http://localhost:8080` after the container starts.
 
+## Build a Sealos Cluster Image
+
+Sealos packaging files live under [`deploy/`](./deploy).
+
+- PR workflow: [`/.github/workflows/pr-sealos-image.yml`](./.github/workflows/pr-sealos-image.yml)
+- Release workflow: [`/.github/workflows/release.yaml`](./.github/workflows/release.yaml)
+- Packaging details: [`deploy/README.md`](./deploy/README.md)
+
 ## Project Structure
 
 ```text
@@ -97,6 +105,8 @@ dataflow/               # React 19 + TypeScript frontend
   src/main.tsx          # Entry point
   src/stores/           # Zustand stores
   src/components/       # Database, editor, analysis, and layout UI
+
+deploy/                 # Sealos cluster image packaging
 
 dev/                    # Local database fixtures and helper scripts
 docs/                   # Product and engineering docs

@@ -1,0 +1,100 @@
+{{- if eq (include "dataflow.metadataPostgresNativeEnabled" .) "true" }}
+{{- $clusterName := include "dataflow.metadataPostgresClusterName" . }}
+{{- $metadata := default (dict) .Values.metadata }}
+{{- $native := default (dict) $metadata.native }}
+{{- $backup := default (dict) $native.backup }}
+{{- $backupEnabled := true }}
+{{- if hasKey $backup "enabled" }}
+{{- $backupEnabled = $backup.enabled }}
+{{- end }}
+{{- $resourcesDefault := dict "limits" (dict "cpu" "1000m" "memory" "1024Mi") "requests" (dict "cpu" "10m" "memory" "50Mi") }}
+{{- $resources := default $resourcesDefault $native.resources }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    sealos-db-provider-cr: {{ $clusterName }}
+    app.kubernetes.io/instance: {{ $clusterName }}
+    app.kubernetes.io/managed-by: kbcli
+  name: {{ $clusterName }}
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    sealos-db-provider-cr: {{ $clusterName }}
+    app.kubernetes.io/instance: {{ $clusterName }}
+    app.kubernetes.io/managed-by: kbcli
+  name: {{ $clusterName }}
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups:
+      - '*'
+    resources:
+      - '*'
+    verbs:
+      - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    sealos-db-provider-cr: {{ $clusterName }}
+    app.kubernetes.io/instance: {{ $clusterName }}
+    app.kubernetes.io/managed-by: kbcli
+  name: {{ $clusterName }}
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $clusterName }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $clusterName }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: Cluster
+metadata:
+  labels:
+    clusterdefinition.kubeblocks.io/name: postgresql
+    clusterversion.kubeblocks.io/name: {{ include "dataflow.metadataPostgresVersion" . }}
+  name: {{ $clusterName }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  affinity:
+    nodeLabels: {}
+    podAntiAffinity: Preferred
+    tenancy: SharedNode
+    topologyKeys:
+      - kubernetes.io/hostname
+  {{- if $backupEnabled }}
+  backup:
+    cronExpression: {{ default "0 7 * * *" $backup.cron | quote }}
+    enabled: true
+    method: pg-basebackup
+    pitrEnabled: true
+    retentionPeriod: {{ default "7d" $backup.retentionPeriod | quote }}
+  {{- end }}
+  clusterDefinitionRef: postgresql
+  clusterVersionRef: {{ include "dataflow.metadataPostgresVersion" . }}
+  componentSpecs:
+    - componentDefRef: postgresql
+      monitor: true
+      name: postgresql
+      replicas: {{ default 2 $native.replicas }}
+      resources: {{ toYaml $resources | nindent 8 }}
+      serviceAccountName: {{ $clusterName }}
+      switchPolicy:
+        type: Noop
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ default "3Gi" $native.storage }}
+  terminationPolicy: {{ include "dataflow.metadataPostgresTerminationPolicy" . }}
+{{- end }}

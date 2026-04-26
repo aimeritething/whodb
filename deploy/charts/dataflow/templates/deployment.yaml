@@ -1,0 +1,118 @@
+{{- $nativeEnabled := eq (include "dataflow.metadataPostgresNativeEnabled" .) "true" -}}
+{{- if and (not $nativeEnabled) (not .Values.secret.existingSecret) (not .Values.metadata.dsn) -}}
+{{- fail "metadata.dsn is required when metadata.native.enabled=false and secret.existingSecret is empty" -}}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dataflow.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dataflow.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "dataflow.selectorLabels" . | nindent 6 }}
+  {{- with .Values.deploymentStrategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "dataflow.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "dataflow.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: {{ include "dataflow.secretName" . }}
+          env:
+            {{- if $nativeEnabled }}
+            - name: WHODB_PG_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "dataflow.metadataPostgresCredentialSecretName" . }}
+                  key: host
+            - name: WHODB_PG_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "dataflow.metadataPostgresCredentialSecretName" . }}
+                  key: port
+            - name: WHODB_PG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "dataflow.metadataPostgresCredentialSecretName" . }}
+                  key: username
+            - name: WHODB_PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "dataflow.metadataPostgresCredentialSecretName" . }}
+                  key: password
+            - name: WHODB_METADATA_DSN
+              value: {{ (printf "host=$(WHODB_PG_HOST) user=$(WHODB_PG_USER) password=$(WHODB_PG_PASSWORD) dbname=%s port=$(WHODB_PG_PORT) sslmode=%s %s" (default "postgres" .Values.metadata.database) (default "disable" .Values.metadata.sslMode) (default "" .Values.metadata.extraOptions)) | trim | quote }}
+            {{- end }}
+            - name: PORT
+              value: {{ printf "%v" .Values.service.port | quote }}
+            - name: WHODB_SESSION_TTL
+              value: {{ .Values.session.ttl | quote }}
+            - name: WHODB_SEALOS_BOOTSTRAP_ENABLED
+              value: {{ ternary "true" "false" .Values.session.bootstrapEnabled | quote }}
+          {{- with .Values.extraEnvs }}
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
