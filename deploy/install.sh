@@ -68,7 +68,7 @@ get_secret_data() {
 find_existing_dataflow_secret() {
   local name=""
 
-  for name in "${RELEASE_NAME}-secret" "${RELEASE_NAME}-dataflow-secret"; do
+  for name in "${RELEASE_NAME}-secret" "${RELEASE_NAME}-dataflow-secret" "dataflow-runtime"; do
     if kubectl get secret "${name}" -n "${NAMESPACE}" >/dev/null 2>&1; then
       echo "${name}"
       return 0
