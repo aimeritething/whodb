@@ -12,11 +12,12 @@ import (
 	"github.com/clidey/whodb/core/src/env"
 	yaml "go.yaml.in/yaml/v3"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/clientcmd/api"
 )
 
 // BootstrapInput describes the public Sealos bootstrap request.
@@ -331,12 +332,14 @@ func (r *resolver) resolveConnectionData(
 	switch spec.EngineType {
 	case string(engine.DatabaseType_Redis):
 		return r.resolveRedisConnectionData(ctx, namespace, resourceName)
+	case string(engine.DatabaseType_MongoDB):
+		return r.resolveMongoDBConnectionData(ctx, spec, namespace, resourceName)
 	case string(engine.DatabaseType_ClickHouse):
 		secretData, err := r.readConnCredentialSecret(ctx, namespace, resourceName)
 		if err != nil {
 			return nil, err
 		}
-		return r.resolveClickHouseConnectionData(spec, namespace, secretData)
+		return r.resolveClickHouseConnectionData(ctx, spec, namespace, resourceName, secretData)
 	default:
 		secretData, err := r.readConnCredentialSecret(ctx, namespace, resourceName)
 		if err != nil {
@@ -355,6 +358,42 @@ func (r *resolver) readConnCredentialSecret(ctx context.Context, namespace, reso
 		return nil, errors.New("secret is empty")
 	}
 	return secret.Data, nil
+}
+
+func (r *resolver) resolveMongoDBConnectionData(
+	ctx context.Context,
+	spec dbTypeSpec,
+	namespace string,
+	resourceName string,
+) (*connectionData, error) {
+	connSecret, err := r.clientset.CoreV1().Secrets(namespace).Get(ctx, SecretName(resourceName), metav1.GetOptions{})
+	if err == nil {
+		if connSecret.Data == nil {
+			return nil, errors.New("secret is empty")
+		}
+		return genericResolveFromSecret(spec, connSecret.Data, namespace), nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return nil, fmt.Errorf("read secret: %w", err)
+	}
+
+	secretName := resourceName + "-mongodb-account-root"
+	accountSecret, err := r.clientset.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("read mongodb account secret: %w", err)
+	}
+
+	service, port, err := r.findPrimaryServiceByPort(ctx, namespace, resourceName, 27017)
+	if err != nil {
+		return nil, err
+	}
+
+	return &connectionData{
+		username: decodeSecretField(accountSecret.Data["username"]),
+		password: decodeSecretField(accountSecret.Data["password"]),
+		host:     NormalizeSecretHost(service.Name, namespace),
+		port:     strconv.Itoa(port),
+	}, nil
 }
 
 func (r *resolver) resolveRedisConnectionData(
@@ -382,8 +421,10 @@ func (r *resolver) resolveRedisConnectionData(
 }
 
 func (r *resolver) resolveClickHouseConnectionData(
+	ctx context.Context,
 	spec dbTypeSpec,
 	namespace string,
+	resourceName string,
 	secretData map[string][]byte,
 ) (*connectionData, error) {
 	if _, ok := secretData["admin-password"]; !ok {
@@ -393,28 +434,44 @@ func (r *resolver) resolveClickHouseConnectionData(
 	username := decodeSecretField(secretData["username"])
 	password := decodeSecretField(secretData["admin-password"])
 	tcpEndpoint := decodeSecretField(secretData["tcpEndpoint"])
-	if tcpEndpoint == "" {
-		tcpEndpoint = decodeSecretField(secretData["endpoint"])
+
+	if tcpEndpoint != "" {
+		host, port, err := parseEndpoint(tcpEndpoint)
+		if err != nil {
+			return nil, err
+		}
+		if port == "" {
+			port = "9000"
+		}
+		return &connectionData{
+			username: username,
+			password: password,
+			host:     NormalizeSecretHost(host, namespace),
+			port:     port,
+		}, nil
 	}
 
-	host, port, err := parseEndpoint(tcpEndpoint)
+	service, port, err := r.findServiceByPort(ctx, namespace, resourceName, 9000)
 	if err != nil {
 		return nil, err
 	}
-
-	if port == "" {
-		port = "9000"
-	}
-
 	return &connectionData{
 		username: username,
 		password: password,
-		host:     NormalizeSecretHost(host, namespace),
-		port:     port,
+		host:     NormalizeSecretHost(service.Name, namespace),
+		port:     strconv.Itoa(port),
 	}, nil
 }
 
 func (r *resolver) findServiceByPort(ctx context.Context, namespace, resourceName string, expectedPort int32) (*corev1.Service, int, error) {
+	return r.findServiceByPortWithPreferredRole(ctx, namespace, resourceName, expectedPort, "")
+}
+
+func (r *resolver) findPrimaryServiceByPort(ctx context.Context, namespace, resourceName string, expectedPort int32) (*corev1.Service, int, error) {
+	return r.findServiceByPortWithPreferredRole(ctx, namespace, resourceName, expectedPort, "primary")
+}
+
+func (r *resolver) findServiceByPortWithPreferredRole(ctx context.Context, namespace, resourceName string, expectedPort int32, preferredRole string) (*corev1.Service, int, error) {
 	services, err := r.clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: "app.kubernetes.io/instance=" + resourceName,
 	})
@@ -422,15 +479,29 @@ func (r *resolver) findServiceByPort(ctx context.Context, namespace, resourceNam
 		return nil, 0, fmt.Errorf("list services: %w", err)
 	}
 
+	var fallback *corev1.Service
+	var fallbackPort int
 	for _, service := range services.Items {
 		if service.Spec.ClusterIP == "None" {
 			continue
 		}
 		for _, port := range service.Spec.Ports {
 			if port.Port == expectedPort {
-				return &service, int(port.Port), nil
+				if preferredRole != "" && service.Labels["kubeblocks.io/role"] == preferredRole {
+					matchedService := service
+					return &matchedService, int(port.Port), nil
+				}
+				if fallback == nil {
+					fallbackService := service
+					fallback = &fallbackService
+					fallbackPort = int(port.Port)
+				}
 			}
 		}
+	}
+
+	if fallback != nil {
+		return fallback, fallbackPort, nil
 	}
 
 	return nil, 0, errors.New("secret missing required fields")
