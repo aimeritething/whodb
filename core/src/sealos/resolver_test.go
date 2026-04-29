@@ -113,6 +113,173 @@ func TestResolveBootstrapForRedisUsesAccountSecretAndService(t *testing.T) {
 	}
 }
 
+func TestResolveBootstrapForMongoDBUsesAccountSecretAndService(t *testing.T) {
+	clientset := fake.NewSimpleClientset(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-db-mongodb-account-root",
+				Namespace: "ns-admin",
+			},
+			Data: map[string][]byte{
+				"username": []byte("root"),
+				"password": []byte("mongo-password"),
+			},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-db-mongodb-mongodb",
+				Namespace: "ns-admin",
+				Labels: map[string]string{
+					"app.kubernetes.io/instance": "test-db",
+					"kubeblocks.io/role":         "primary",
+				},
+			},
+			Spec: corev1.ServiceSpec{
+				ClusterIP: "10.0.0.3",
+				Ports: []corev1.ServicePort{
+					{Name: "mongodb", Port: 27017},
+				},
+			},
+		},
+	)
+
+	resolver := &resolver{
+		kubeconfig: testKubeconfig("ns-admin"),
+		clientset:  clientset,
+	}
+
+	result, err := resolver.ResolveBootstrap(context.Background(), BootstrapInput{
+		DBType:       "mongodb",
+		ResourceName: "test-db",
+	})
+	if err != nil {
+		t.Fatalf("expected mongodb bootstrap to succeed, got %v", err)
+	}
+	if result.Host != "test-db-mongodb-mongodb.ns-admin.svc" || result.Port != "27017" {
+		t.Fatalf("expected mongodb host/port from service, got %q:%q", result.Host, result.Port)
+	}
+	if result.Credentials.Username != "root" || result.Credentials.Password != "mongo-password" {
+		t.Fatalf("expected mongodb credentials from account secret, got %#v", result.Credentials)
+	}
+	if result.DatabaseName != "admin" || result.Credentials.Database != "admin" {
+		t.Fatalf("expected mongodb default database admin, got result=%q credentials=%q", result.DatabaseName, result.Credentials.Database)
+	}
+}
+
+func TestResolveBootstrapForMongoDBKeepsConnCredentialCompatibility(t *testing.T) {
+	clientset := fake.NewSimpleClientset(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-db-conn-credential",
+				Namespace: "ns-admin",
+			},
+			Data: map[string][]byte{
+				"username": []byte("root"),
+				"password": []byte("mongo-password"),
+				"host":     []byte("test-db-mongodb"),
+				"port":     []byte("27017"),
+			},
+		},
+	)
+
+	resolver := &resolver{
+		kubeconfig: testKubeconfig("ns-admin"),
+		clientset:  clientset,
+	}
+
+	result, err := resolver.ResolveBootstrap(context.Background(), BootstrapInput{
+		DBType:       "mongodb",
+		ResourceName: "test-db",
+	})
+	if err != nil {
+		t.Fatalf("expected mongodb legacy conn-credential bootstrap to succeed, got %v", err)
+	}
+	if result.Host != "test-db-mongodb.ns-admin.svc" || result.Port != "27017" {
+		t.Fatalf("expected mongodb host/port from conn-credential, got %q:%q", result.Host, result.Port)
+	}
+	if result.Credentials.Username != "root" || result.Credentials.Password != "mongo-password" {
+		t.Fatalf("expected mongodb credentials from conn-credential, got %#v", result.Credentials)
+	}
+}
+
+func TestResolveBootstrapForMongoDBPrefersPrimaryService(t *testing.T) {
+	clientset := fake.NewSimpleClientset(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-db-mongodb-account-root",
+				Namespace: "ns-admin",
+			},
+			Data: map[string][]byte{
+				"username": []byte("root"),
+				"password": []byte("mongo-password"),
+			},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-db-mongodb",
+				Namespace: "ns-admin",
+				Labels: map[string]string{
+					"app.kubernetes.io/instance": "test-db",
+				},
+			},
+			Spec: corev1.ServiceSpec{
+				ClusterIP: "10.0.0.4",
+				Ports: []corev1.ServicePort{
+					{Name: "mongodb", Port: 27017},
+				},
+			},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-db-mongodb-mongodb-ro",
+				Namespace: "ns-admin",
+				Labels: map[string]string{
+					"app.kubernetes.io/instance": "test-db",
+					"kubeblocks.io/role":         "secondary",
+				},
+			},
+			Spec: corev1.ServiceSpec{
+				ClusterIP: "10.0.0.5",
+				Ports: []corev1.ServicePort{
+					{Name: "mongodb", Port: 27017},
+				},
+			},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-db-mongodb-mongodb",
+				Namespace: "ns-admin",
+				Labels: map[string]string{
+					"app.kubernetes.io/instance": "test-db",
+					"kubeblocks.io/role":         "primary",
+				},
+			},
+			Spec: corev1.ServiceSpec{
+				ClusterIP: "10.0.0.6",
+				Ports: []corev1.ServicePort{
+					{Name: "mongodb", Port: 27017},
+				},
+			},
+		},
+	)
+
+	resolver := &resolver{
+		kubeconfig: testKubeconfig("ns-admin"),
+		clientset:  clientset,
+	}
+
+	result, err := resolver.ResolveBootstrap(context.Background(), BootstrapInput{
+		DBType:       "mongodb",
+		ResourceName: "test-db",
+	})
+	if err != nil {
+		t.Fatalf("expected mongodb bootstrap to succeed, got %v", err)
+	}
+	if result.Host != "test-db-mongodb-mongodb.ns-admin.svc" || result.Port != "27017" {
+		t.Fatalf("expected mongodb primary service endpoint, got %q:%q", result.Host, result.Port)
+	}
+}
+
 func TestResolveBootstrapForClickHouseUsesAdminPasswordAndTcpEndpoint(t *testing.T) {
 	clientset := fake.NewSimpleClientset(
 		&corev1.Secret{
@@ -142,6 +309,57 @@ func TestResolveBootstrapForClickHouseUsesAdminPasswordAndTcpEndpoint(t *testing
 	}
 	if result.Host != "test-house-clickhouse.ns-admin.svc" || result.Port != "9000" {
 		t.Fatalf("expected clickhouse tcp endpoint to be normalized, got %q:%q", result.Host, result.Port)
+	}
+	if result.Credentials.Username != "admin" || result.Credentials.Password != "house-password" {
+		t.Fatalf("expected clickhouse auth from secret, got %#v", result.Credentials)
+	}
+}
+
+func TestResolveBootstrapForClickHouseUsesNativeServiceWhenTcpEndpointMissing(t *testing.T) {
+	clientset := fake.NewSimpleClientset(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-house-conn-credential",
+				Namespace: "ns-admin",
+			},
+			Data: map[string][]byte{
+				"username":       []byte("admin"),
+				"admin-password": []byte("house-password"),
+				"endpoint":       []byte("test-house-clickhouse:8123"),
+			},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-house-clickhouse",
+				Namespace: "ns-admin",
+				Labels: map[string]string{
+					"app.kubernetes.io/instance": "test-house",
+				},
+			},
+			Spec: corev1.ServiceSpec{
+				ClusterIP: "10.0.0.2",
+				Ports: []corev1.ServicePort{
+					{Name: "http", Port: 8123},
+					{Name: "tcp", Port: 9000},
+				},
+			},
+		},
+	)
+
+	resolver := &resolver{
+		kubeconfig: testKubeconfig("ns-admin"),
+		clientset:  clientset,
+	}
+
+	result, err := resolver.ResolveBootstrap(context.Background(), BootstrapInput{
+		DBType:       "clickhouse",
+		ResourceName: "test-house",
+	})
+	if err != nil {
+		t.Fatalf("expected clickhouse bootstrap to succeed, got %v", err)
+	}
+	if result.Host != "test-house-clickhouse.ns-admin.svc" || result.Port != "9000" {
+		t.Fatalf("expected clickhouse native service endpoint, got %q:%q", result.Host, result.Port)
 	}
 	if result.Credentials.Username != "admin" || result.Credentials.Password != "house-password" {
 		t.Fatalf("expected clickhouse auth from secret, got %#v", result.Credentials)

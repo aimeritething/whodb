@@ -12,9 +12,9 @@ WhoDB bootstrap must not assume every database uses:
 1. secret name: `<resourceName>-conn-credential`
 2. secret fields: `username`, `password`, `host`, `port`
 
-That assumption works for some database types, but it is incorrect for Redis and ClickHouse on the current Sealos clusters.
+That assumption works for some database types, but it is incorrect for Redis, ClickHouse, and current user MongoDB clusters on the observed Sealos clusters.
 
-## PostgreSQL / MySQL / MongoDB
+## PostgreSQL / MySQL
 
 These types continue to use the simple `conn-credential` pattern:
 
@@ -27,6 +27,52 @@ These types continue to use the simple `conn-credential` pattern:
 3. Host normalization:
    - if `host` already contains `.svc`, use it as-is
    - otherwise append `.<namespace>.svc`
+
+## MongoDB
+
+MongoDB has two observed bootstrap shapes.
+
+Legacy/system MongoDB resources can use the simple `conn-credential` pattern:
+
+1. Secret name: `<resourceName>-conn-credential`
+2. Expected fields:
+   - `username`
+   - `password`
+   - `host`
+   - `port`
+
+Current user MongoDB resources do **not** expose `<resourceName>-conn-credential`.
+
+For a MongoDB resource `test-db` in namespace `ns-f94dz1z8`, the observed Kubernetes objects are:
+
+1. Account Secret:
+   - `test-db-mongodb-account-root`
+2. Services:
+   - `test-db-mongodb`
+   - `test-db-mongodb-mongodb`
+   - `test-db-mongodb-mongodb-ro`
+
+Observed account Secret fields:
+
+1. `username`
+2. `password`
+
+Observed missing fields:
+
+1. `host`
+2. `port`
+
+MongoDB bootstrap mapping for WhoDB:
+
+1. first try legacy `<resourceName>-conn-credential`
+2. if that Secret is not found, read username/password from `<resourceName>-mongodb-account-root`
+3. host/port:
+   - resolve from the ClusterIP service for the same resource that exposes port `27017`
+   - prefer the service labeled `kubeblocks.io/role=primary`
+4. normalized host:
+   - `<service-name>.<namespace>.svc`
+5. database:
+   - default to `admin` when not explicitly provided
 
 ## Redis
 
@@ -111,11 +157,14 @@ ClickHouse bootstrap mapping for WhoDB:
 
 WhoDB Sealos bootstrap should use per-database resolution rules:
 
-1. PostgreSQL / MySQL / MongoDB:
+1. PostgreSQL / MySQL:
    - generic `conn-credential` parsing
-2. Redis:
+2. MongoDB:
+   - legacy `conn-credential` parsing when available
+   - account Secret + primary service lookup when `conn-credential` is absent
+3. Redis:
    - account Secret + service lookup
-3. ClickHouse:
+4. ClickHouse:
    - `conn-credential`, but parse `admin-password` and `tcpEndpoint`
 
 ## Implications For dbprovider
