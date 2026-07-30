@@ -3,6 +3,7 @@ package router
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/clidey/whodb/core/src/analytics"
@@ -37,5 +38,50 @@ func TestContextMiddlewareAddsMetadata(t *testing.T) {
 	}
 	if captured.RequestID != "req-1" {
 		t.Fatalf("expected request id to be captured from header, got %s", captured.RequestID)
+	}
+}
+
+func TestHealthCheckMiddlewareHandlesHealthz(t *testing.T) {
+	handler := healthCheckMiddleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusTeapot)
+	}))
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "http://api.local/healthz", nil)
+
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
+	}
+	if got := rr.Header().Get("Cache-Control"); got != "no-store" {
+		t.Fatalf("expected Cache-Control no-store, got %q", got)
+	}
+	if got := rr.Header().Get("Content-Type"); got != "application/json" {
+		t.Fatalf("expected Content-Type application/json, got %q", got)
+	}
+	if got := strings.TrimSpace(rr.Body.String()); got != `{"service":"dataflow","status":"ok"}` {
+		t.Fatalf("unexpected healthz response: %s", got)
+	}
+}
+
+func TestHealthCheckMiddlewareKeepsLegacyHealth(t *testing.T) {
+	handler := healthCheckMiddleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusTeapot)
+	}))
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "http://api.local/health", nil)
+
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
+	}
+	if got := rr.Header().Get("Cache-Control"); got != "no-store" {
+		t.Fatalf("expected Cache-Control no-store, got %q", got)
+	}
+	if got := strings.TrimSpace(rr.Body.String()); got != "ok" {
+		t.Fatalf("unexpected legacy health response: %s", got)
 	}
 }

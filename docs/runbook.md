@@ -80,6 +80,16 @@ helm lint deploy/charts/dataflow
 helm template dataflow deploy/charts/dataflow >/tmp/dataflow-helm-template.yaml
 ```
 
+## Health Check
+
+The stable health endpoint is `/healthz`. It is unauthenticated, returns `200` with `{"service":"dataflow","status":"ok"}`, and sets `Cache-Control: no-store`.
+
+```bash
+curl -i http://localhost:8080/healthz
+```
+
+The Helm chart uses `/healthz` for startup, liveness, and readiness probes. `/health` remains available only as a legacy compatibility path.
+
 ## Build Embedded Binary
 
 ```bash

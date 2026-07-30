@@ -21,7 +21,7 @@ flowchart LR
 ## Backend Modules
 
 - `core/server.go`: process entrypoint, engine initialization, provider setup, router creation, graceful shutdown.
-- `core/src/router`: Chi router setup, middleware, `/health`, GraphQL transport, static asset serving in production builds.
+- `core/src/router`: Chi router setup, middleware, `/healthz` and legacy `/health`, GraphQL transport, static asset serving in production builds.
 - `core/graph`: GraphQL schema, generated code, resolvers, and HTTP handlers such as export/import or AI streaming.
 - `core/src/engine`: shared database plugin interface, base plugin behavior, connection config, metadata contracts.
 - `core/src/plugins`: database-specific implementations. Shared code must not branch on database type for plugin behavior that belongs in a plugin.
@@ -49,7 +49,7 @@ GraphQL is the default API boundary for application behavior. The main endpoint 
 HTTP endpoints are reserved for behaviors that do not fit GraphQL cleanly, especially file transfer and streaming:
 
 - `/api/export` streams CSV, Excel, or NDJSON export responses.
-- `/health` is served by middleware before authentication for readiness checks.
+- `/healthz` is served by middleware before authentication for startup, liveness, and readiness checks. It returns `200` with `{"service":"dataflow","status":"ok"}` and `Cache-Control: no-store`; `/health` remains as a legacy compatibility endpoint.
 - Static frontend assets are served by the backend in production builds unless API gateway mode is enabled.
 
 ## Authentication And Context
