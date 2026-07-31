@@ -88,7 +88,7 @@ The stable health endpoint is `/healthz`. It is unauthenticated, returns `200` w
 curl -i http://localhost:8080/healthz
 ```
 
-The Helm chart uses `/healthz` for startup, liveness, and readiness probes. `/health` remains available only as a legacy compatibility path.
+The Helm chart uses `/healthz` for startup, liveness, and readiness probes.
 
 ## Build Embedded Binary
 

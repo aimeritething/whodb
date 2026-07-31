@@ -65,9 +65,10 @@ func TestHealthCheckMiddlewareHandlesHealthz(t *testing.T) {
 	}
 }
 
-func TestHealthCheckMiddlewareKeepsLegacyHealth(t *testing.T) {
+func TestHealthCheckMiddlewareDoesNotHandleHealth(t *testing.T) {
 	handler := healthCheckMiddleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusTeapot)
+		w.Write([]byte("next"))
 	}))
 
 	rr := httptest.NewRecorder()
@@ -75,13 +76,13 @@ func TestHealthCheckMiddlewareKeepsLegacyHealth(t *testing.T) {
 
 	handler.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
+	if rr.Code != http.StatusTeapot {
+		t.Fatalf("expected request to continue to next handler, got status %d", rr.Code)
 	}
-	if got := rr.Header().Get("Cache-Control"); got != "no-store" {
-		t.Fatalf("expected Cache-Control no-store, got %q", got)
+	if got := rr.Header().Get("Cache-Control"); got != "" {
+		t.Fatalf("expected Cache-Control to be unset, got %q", got)
 	}
-	if got := strings.TrimSpace(rr.Body.String()); got != "ok" {
-		t.Fatalf("unexpected legacy health response: %s", got)
+	if got := strings.TrimSpace(rr.Body.String()); got != "next" {
+		t.Fatalf("expected next handler response, got %s", got)
 	}
 }

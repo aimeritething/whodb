@@ -88,7 +88,7 @@ func (w *statusResponseWriter) Flush() {
 	}
 }
 
-// healthCheckMiddleware responds to GET /health and /healthz without requiring authentication.
+// healthCheckMiddleware responds to GET /healthz without requiring authentication.
 // Used by E2E setup scripts to verify the server is ready to handle requests.
 func healthCheckMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -97,12 +97,6 @@ func healthCheckMiddleware(next http.Handler) http.Handler {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{"service":"dataflow","status":"ok"}`))
-			return
-		}
-		if r.Method == http.MethodGet && r.URL.Path == "/health" {
-			w.Header().Set("Cache-Control", "no-store")
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("ok"))
 			return
 		}
 		next.ServeHTTP(w, r)
