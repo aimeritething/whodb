@@ -18,7 +18,11 @@ package router
 
 import (
 	"embed"
+	"encoding/json"
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler/extension"
@@ -37,6 +41,17 @@ import (
 
 type OAuthLoginUrl struct {
 	Url string `json:"url"`
+}
+
+type healthResponse struct {
+	Service string             `json:"service"`
+	Status  string             `json:"status"`
+	Checks  []healthCheckIssue `json:"checks,omitempty"`
+}
+
+type healthCheckIssue struct {
+	Name   string `json:"name"`
+	Reason string `json:"reason"`
 }
 
 func NewGraphQLServer(es graphql.ExecutableSchema) *handler.Server {
@@ -88,17 +103,110 @@ func (w *statusResponseWriter) Flush() {
 	}
 }
 
-// healthCheckMiddleware responds to GET /health without requiring authentication.
-// Used by E2E setup scripts to verify the server is ready to handle requests.
+// healthCheckMiddleware responds to GET /healthz without requiring authentication.
+// Used by probes and E2E setup scripts to verify the server has valid runtime configuration.
 func healthCheckMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet && r.URL.Path == "/health" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("ok"))
+		if r.Method == http.MethodGet && r.URL.Path == "/healthz" {
+			statusCode, response := buildHealthResponse()
+			w.Header().Set("Cache-Control", "no-store")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(statusCode)
+			json.NewEncoder(w).Encode(response)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func buildHealthResponse() (int, healthResponse) {
+	issues := validateRuntimeConfiguration()
+	if len(issues) > 0 {
+		return http.StatusServiceUnavailable, healthResponse{
+			Service: "dataflow",
+			Status:  "error",
+			Checks:  issues,
+		}
+	}
+
+	return http.StatusOK, healthResponse{
+		Service: "dataflow",
+		Status:  "ok",
+	}
+}
+
+func validateRuntimeConfiguration() []healthCheckIssue {
+	var issues []healthCheckIssue
+
+	addIssue := func(name, reason string) {
+		issues = append(issues, healthCheckIssue{
+			Name:   name,
+			Reason: reason,
+		})
+	}
+
+	if port := strings.TrimSpace(os.Getenv("PORT")); port != "" {
+		n, err := strconv.Atoi(port)
+		if err != nil || n < 1 || n > 65535 {
+			addIssue("PORT", "must_be_valid_port")
+		}
+	}
+
+	if strings.TrimSpace(os.Getenv("WHODB_METADATA_DSN")) == "" {
+		addIssue("WHODB_METADATA_DSN", "required")
+	}
+
+	if env.GetSessionDSN() == "" {
+		addIssue("WHODB_SESSION_DSN", "required_or_metadata_dsn_fallback")
+	}
+
+	if len(env.GetSessionEncryptionKey()) != 32 {
+		addIssue("WHODB_SESSION_ENCRYPTION_KEY", "must_be_32_bytes")
+	}
+
+	ttl, err := time.ParseDuration(env.GetSessionTTL())
+	if err != nil || ttl <= 0 {
+		addIssue("WHODB_SESSION_TTL", "must_be_positive_duration")
+	}
+
+	validateOptionalBoolean("WHODB_SEALOS_BOOTSTRAP_ENABLED", addIssue)
+	validateOptionalBoolean("WHODB_STANDALONE_LOGIN_ENABLED", addIssue)
+	validateOptionalBoolean("WHODB_ENABLE_AWS_PROVIDER", addIssue)
+	validateAWSProviderConfig(addIssue)
+
+	return issues
+}
+
+func validateOptionalBoolean(name string, addIssue func(string, string)) {
+	value := strings.TrimSpace(os.Getenv(name))
+	if value == "" || value == "true" || value == "false" {
+		return
+	}
+	addIssue(name, "must_be_true_or_false")
+}
+
+func validateAWSProviderConfig(addIssue func(string, string)) {
+	if strings.TrimSpace(os.Getenv("WHODB_ENABLE_AWS_PROVIDER")) != "true" {
+		return
+	}
+
+	value := strings.TrimSpace(os.Getenv("WHODB_AWS_PROVIDER"))
+	if value == "" {
+		return
+	}
+
+	var providers []env.AWSProviderEnvConfig
+	if err := json.Unmarshal([]byte(value), &providers); err != nil {
+		addIssue("WHODB_AWS_PROVIDER", "must_be_json_array")
+		return
+	}
+
+	for _, provider := range providers {
+		if strings.TrimSpace(provider.Region) == "" {
+			addIssue("WHODB_AWS_PROVIDER", "region_required")
+			return
+		}
+	}
 }
 
 // accessLogMiddleware logs HTTP requests with method, path, status, duration, host, and remote address.

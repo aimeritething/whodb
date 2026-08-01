@@ -540,7 +540,7 @@ WHODB_URL=${1:-http://localhost:8080}
 TIMEOUT=${2:-5}
 
 # Check WhoDB availability
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "$WHODB_URL/health")
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "$WHODB_URL/healthz")
 
 if [ "$HTTP_CODE" -eq 200 ]; then
     echo "WhoDB is healthy"
@@ -569,7 +569,7 @@ spec:
         - containerPort: 8080
         livenessProbe:
           httpGet:
-            path: /health
+            path: /healthz
             port: 8080
           initialDelaySeconds: 30
           periodSeconds: 10
@@ -577,7 +577,7 @@ spec:
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /ready
+            path: /healthz
             port: 8080
           initialDelaySeconds: 10
           periodSeconds: 5

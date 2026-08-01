@@ -106,7 +106,7 @@ resources:
 
 startupProbe:
   httpGet:
-    path: /health
+    path: /healthz
     port: http
   periodSeconds: 5
   failureThreshold: 24
@@ -114,14 +114,14 @@ startupProbe:
 
 livenessProbe:
   httpGet:
-    path: /health
+    path: /healthz
     port: http
   initialDelaySeconds: 10
   periodSeconds: 10
 
 readinessProbe:
   httpGet:
-    path: /health
+    path: /healthz
     port: http
   initialDelaySeconds: 10
   periodSeconds: 10
