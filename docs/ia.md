@@ -47,7 +47,7 @@ The dashboard workspace is selected by the `analysis` activity tab.
 
 - `/api/query`: GraphQL endpoint for queries, mutations, and subscriptions/transports.
 - `/api/export`: HTTP export endpoint for CSV, Excel, and NDJSON downloads.
-- `/healthz`: unauthenticated startup, liveness, and readiness endpoint.
+- `/healthz`: unauthenticated startup, liveness, and readiness endpoint for local runtime configuration validity.
 - Static assets: served from the embedded frontend build in production mode.
 
 ## Navigation Rules

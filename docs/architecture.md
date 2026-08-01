@@ -49,7 +49,7 @@ GraphQL is the default API boundary for application behavior. The main endpoint 
 HTTP endpoints are reserved for behaviors that do not fit GraphQL cleanly, especially file transfer and streaming:
 
 - `/api/export` streams CSV, Excel, or NDJSON export responses.
-- `/healthz` is served by middleware before authentication for startup, liveness, and readiness checks. It returns `200` with `{"service":"dataflow","status":"ok"}` and `Cache-Control: no-store`.
+- `/healthz` is served by middleware before authentication for startup, liveness, and readiness checks. It validates local runtime configuration, returns `200` with `{"service":"dataflow","status":"ok"}` when valid, returns `503` with sanitized check names and reason codes when invalid, and sets `Cache-Control: no-store`. It does not probe metadata database, AWS, LLM provider, or user database connectivity.
 - Static frontend assets are served by the backend in production builds unless API gateway mode is enabled.
 
 ## Authentication And Context

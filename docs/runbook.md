@@ -82,13 +82,15 @@ helm template dataflow deploy/charts/dataflow >/tmp/dataflow-helm-template.yaml
 
 ## Health Check
 
-The stable health endpoint is `/healthz`. It is unauthenticated, returns `200` with `{"service":"dataflow","status":"ok"}`, and sets `Cache-Control: no-store`.
+The stable health endpoint is `/healthz`. It is unauthenticated, sets `Cache-Control: no-store`, and returns `200` with `{"service":"dataflow","status":"ok"}` only when required runtime configuration is locally valid.
+
+Invalid configuration returns `503` with `{"service":"dataflow","status":"error","checks":[...]}`. The checks expose field names and stable reason codes only; they do not include DSNs, session keys, tokens, API keys, or configured values.
 
 ```bash
 curl -i http://localhost:8080/healthz
 ```
 
-The Helm chart uses `/healthz` for startup, liveness, and readiness probes.
+The Helm chart uses `/healthz` for startup, liveness, and readiness probes. The endpoint checks local configuration completeness and does not probe metadata database connectivity, AWS, LLM providers, or user database connections.
 
 ## Build Embedded Binary
 
@@ -168,16 +170,16 @@ The tag push triggers `.github/workflows/release.yaml`, which publishes runtime 
 - `WHODB_ALLOWED_ORIGINS`: comma-separated CORS origins.
 - `WHODB_LOG_LEVEL`: log level.
 - `WHODB_LOG_FORMAT`: use `json` for JSON logs.
-- `WHODB_METADATA_DSN`: metadata database DSN.
-- `WHODB_SESSION_DSN`: auth session DSN. Falls back to metadata DSN when unset.
-- `WHODB_SESSION_ENCRYPTION_KEY`: server-side auth session encryption key.
-- `WHODB_SESSION_TTL`: session lifetime, default `24h`.
-- `WHODB_SEALOS_BOOTSTRAP_ENABLED`: set to `false` to disable Sealos bootstrap.
-- `WHODB_STANDALONE_LOGIN_ENABLED`: set to `false` to disable standalone login.
+- `WHODB_METADATA_DSN`: metadata database DSN. Required for healthy `/healthz`.
+- `WHODB_SESSION_DSN`: auth session DSN. Falls back to metadata DSN when unset; one of the two DSNs is required for healthy `/healthz`.
+- `WHODB_SESSION_ENCRYPTION_KEY`: server-side auth session encryption key. Must be 32 bytes for healthy `/healthz`.
+- `WHODB_SESSION_TTL`: session lifetime, default `24h`; when set, must be a positive Go duration for healthy `/healthz`.
+- `WHODB_SEALOS_BOOTSTRAP_ENABLED`: set to `false` to disable Sealos bootstrap. When set, must be `true` or `false` for healthy `/healthz`.
+- `WHODB_STANDALONE_LOGIN_ENABLED`: set to `false` to disable standalone login. When set, must be `true` or `false` for healthy `/healthz`.
 - `WHODB_TOKENS`: enables API gateway mode when non-empty.
 - `WHODB_OPENAI_API_KEY`, `WHODB_ANTHROPIC_API_KEY`, `WHODB_OLLAMA_HOST`, `WHODB_OLLAMA_PORT`: AI provider configuration.
 - `WHODB_AI_GENERIC_<ID>_*`: generic AI provider configuration.
-- `WHODB_ENABLE_AWS_PROVIDER`: enables AWS provider functionality.
+- `WHODB_ENABLE_AWS_PROVIDER`: enables AWS provider functionality. When set, must be `true` or `false`; if enabled with `WHODB_AWS_PROVIDER`, that value must be a JSON array with non-empty provider regions for healthy `/healthz`.
 - `BAML_LIBRARY_PATH`: explicit path to BAML native library for local macOS tests or bundled desktop builds.
 
 ## Troubleshooting
