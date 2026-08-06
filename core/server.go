@@ -16,6 +16,8 @@
 
 package main
 
+//go:generate go run github.com/99designs/gqlgen generate
+
 import (
 	_ "github.com/clidey/whodb/core/src/bamlconfig" // Must be first - sets BAML_LOG before native library loads
 

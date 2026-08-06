@@ -1,4 +1,4 @@
-SERVICE_NAME = whodb
+SERVICE_NAME = dataflow
 DOCKER_USERNAME ?=
 IMAGE_TAG ?= latest
 TARGETARCH ?= amd64
